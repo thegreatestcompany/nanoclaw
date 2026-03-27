@@ -563,7 +563,8 @@ async function runQuery(
         'NotebookEdit',
         'mcp__nanoclaw__*',
         'mcp__business-db__*',
-        'mcp__gmail__*'
+        'mcp__gmail__*',
+        'mcp__google-calendar__*'
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -583,6 +584,14 @@ async function runQuery(
         gmail: {
           command: 'npx',
           args: ['-y', '@gongrzhe/server-gmail-autoauth-mcp'],
+        },
+        'google-calendar': {
+          command: 'npx',
+          args: ['-y', '@cocal/google-calendar-mcp'],
+          env: {
+            GOOGLE_OAUTH_CREDENTIALS: '/home/node/.gmail-mcp/gcp-oauth.keys.json',
+            GOOGLE_CALENDAR_MCP_TOKEN_PATH: '/home/node/.gmail-mcp/calendar-tokens.json',
+          },
         },
       },
       hooks: {
