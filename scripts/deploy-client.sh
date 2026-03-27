@@ -78,7 +78,14 @@ curl -fsSL https://get.docker.com | sh
 
 # Install Node.js 22
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-apt-get install -y nodejs sqlite3
+apt-get install -y nodejs sqlite3 ffmpeg
+
+# Install whisper.cpp for voice transcription
+apt-get install -y build-essential cmake
+git clone https://github.com/ggerganov/whisper.cpp.git /opt/whisper.cpp
+cd /opt/whisper.cpp && cmake -B build && cmake --build build --config Release
+ln -sf /opt/whisper.cpp/build/bin/whisper-cli /usr/local/bin/whisper-cli
+cd /
 
 # Clone le repo
 git clone ${REPO_URL} /opt/hntic
@@ -90,6 +97,10 @@ npm install
 
 # Initialiser la business.db
 bash scripts/init-business-db.sh groups/main/business.db
+
+# Télécharger le modèle Whisper pour la transcription vocale
+mkdir -p data/models
+curl -L -o data/models/ggml-base.bin "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"
 
 # Configurer .env
 cat > .env << ENV
