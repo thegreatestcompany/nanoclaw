@@ -51,6 +51,9 @@ export interface NewMessage {
   timestamp: string;
   is_from_me?: boolean;
   is_bot_message?: boolean;
+  media_type?: 'document' | 'image' | 'audio' | 'video';
+  media_path?: string;
+  media_filename?: string;
 }
 
 export interface ScheduledTask {

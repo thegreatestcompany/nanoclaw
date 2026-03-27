@@ -155,6 +155,19 @@ function createSchema(database: Database.Database): void {
   } catch {
     /* column already exists */
   }
+
+  // Add media columns for document/image/audio capture (HNTIC)
+  for (const col of [
+    'media_type TEXT',
+    'media_path TEXT',
+    'media_filename TEXT',
+  ]) {
+    try {
+      database.exec(`ALTER TABLE messages ADD COLUMN ${col}`);
+    } catch {
+      /* column already exists */
+    }
+  }
 }
 
 export function initDatabase(): void {
@@ -283,7 +296,7 @@ export function setLastGroupSync(): void {
  */
 export function storeMessage(msg: NewMessage): void {
   db.prepare(
-    `INSERT OR REPLACE INTO messages (id, chat_jid, sender, sender_name, content, timestamp, is_from_me, is_bot_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT OR REPLACE INTO messages (id, chat_jid, sender, sender_name, content, timestamp, is_from_me, is_bot_message, media_type, media_path, media_filename) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     msg.id,
     msg.chat_jid,
@@ -293,6 +306,9 @@ export function storeMessage(msg: NewMessage): void {
     msg.timestamp,
     msg.is_from_me ? 1 : 0,
     msg.is_bot_message ? 1 : 0,
+    msg.media_type || null,
+    msg.media_path || null,
+    msg.media_filename || null,
   );
 }
 
@@ -400,7 +416,9 @@ export function getUnprocessedMessages(
   limit: number = 500,
 ): UnprocessedBatch[] {
   const excludePlaceholders =
-    excludeJids.length > 0 ? excludeJids.map(() => '?').join(',') : "'__none__'";
+    excludeJids.length > 0
+      ? excludeJids.map(() => '?').join(',')
+      : "'__none__'";
   const sql = `
     SELECT chat_jid, sender_name, content, timestamp
     FROM messages
@@ -441,7 +459,10 @@ export function getUnprocessedMessages(
 /**
  * Mark messages as processed by the passive scanner.
  */
-export function markMessagesProcessed(chatJid: string, beforeTimestamp: string): void {
+export function markMessagesProcessed(
+  chatJid: string,
+  beforeTimestamp: string,
+): void {
   db.prepare(
     `UPDATE messages SET passive_processed = 1
      WHERE chat_jid = ? AND timestamp <= ? AND passive_processed = 0`,
