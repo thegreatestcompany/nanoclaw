@@ -170,6 +170,11 @@ async function runTask(
   };
 
   try {
+    // Digest tasks (briefings, reports, summaries) need Sonnet for quality writing.
+    // Other scheduled tasks (reminders, checks, scans) use Haiku for cost efficiency.
+    const isDigestTask = /digest|briefing|hebdo|weekly|résumé|rapport|point/i.test(task.prompt);
+    const taskModel = isDigestTask ? 'sonnet' : 'haiku';
+
     const output = await runContainerAgent(
       group,
       {
@@ -181,6 +186,9 @@ async function runTask(
         isScheduledTask: true,
         assistantName: ASSISTANT_NAME,
         script: task.script || undefined,
+        model: taskModel,
+        maxTurns: isDigestTask ? 15 : 10,
+        maxBudgetUsd: isDigestTask ? 1.00 : 0.50,
       },
       (proc, containerName) =>
         deps.onProcess(task.chat_jid, proc, containerName, task.group_folder),

@@ -17,8 +17,9 @@
 import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
-import { query, HookCallback, PreCompactHookInput } from '@anthropic-ai/claude-agent-sdk';
+import { query, HookCallback, PreCompactHookInput, PostCompactHookInput, PreToolUseHookInput, PostToolUseHookInput } from '@anthropic-ai/claude-agent-sdk';
 import { fileURLToPath } from 'url';
+import { businessDbServer, closeDb } from './business-db-mcp.js';
 
 interface ContainerInput {
   prompt: string;
@@ -29,6 +30,9 @@ interface ContainerInput {
   isScheduledTask?: boolean;
   assistantName?: string;
   script?: string;
+  model?: 'sonnet' | 'haiku';
+  maxTurns?: number;
+  maxBudgetUsd?: number;
 }
 
 interface ContainerOutput {
@@ -180,6 +184,151 @@ function createPreCompactHook(assistantName?: string): HookCallback {
       log(`Archived conversation to ${filePath}`);
     } catch (err) {
       log(`Failed to archive transcript: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    return {};
+  };
+}
+
+/**
+ * PostCompact hook: reinject business context after compaction.
+ * Reads CLAUDE.md and active relationship summaries so the agent
+ * doesn't lose track of key contacts and deals after a long conversation.
+ */
+function createPostCompactHook(): HookCallback {
+  return async (input) => {
+    const hookInput = input as PostCompactHookInput;
+    log(`PostCompact triggered (${hookInput.trigger}), reinjecting business context`);
+
+    let context = '';
+
+    // Re-read CLAUDE.md for immediate memory
+    const claudeMdPath = '/workspace/group/CLAUDE.md';
+    if (fs.existsSync(claudeMdPath)) {
+      const claudeMd = fs.readFileSync(claudeMdPath, 'utf8');
+      // Only include the first ~2000 chars to avoid bloating context
+      context += `## Mémoire immédiate (CLAUDE.md)\n\n${claudeMd.slice(0, 2000)}\n\n`;
+    }
+
+    // Query active relationship summaries from business.db if available
+    try {
+      const { default: Database } = await import('better-sqlite3');
+      const dbPath = '/workspace/group/business.db';
+      if (fs.existsSync(dbPath)) {
+        const db = new Database(dbPath, { readonly: true });
+        const summaries = db.prepare(
+          `SELECT c.name, rs.summary, rs.open_items FROM relationship_summaries rs
+           LEFT JOIN contacts c ON rs.contact_id = c.id
+           WHERE rs.last_updated > date('now', '-30 days')
+           ORDER BY rs.last_updated DESC LIMIT 10`
+        ).all() as { name: string | null; summary: string; open_items: string | null }[];
+        db.close();
+
+        if (summaries.length > 0) {
+          context += '## Relations actives\n\n';
+          for (const s of summaries) {
+            context += `• *${s.name || 'Sans nom'}*: ${s.summary}`;
+            if (s.open_items) context += ` — En cours: ${s.open_items}`;
+            context += '\n';
+          }
+          context += '\n';
+        }
+
+        // Also grab urgent deals
+        const db2 = new Database(dbPath, { readonly: true });
+        const urgentDeals = db2.prepare(
+          `SELECT title, stage, amount, expected_close_date, next_action FROM deals
+           WHERE stage NOT IN ('won', 'lost') AND deleted_at IS NULL
+           ORDER BY expected_close_date ASC LIMIT 5`
+        ).all() as { title: string; stage: string; amount: number | null; expected_close_date: string | null; next_action: string | null }[];
+        db2.close();
+
+        if (urgentDeals.length > 0) {
+          context += '## Deals en cours\n\n';
+          for (const d of urgentDeals) {
+            context += `• *${d.title}* (${d.stage})`;
+            if (d.amount) context += ` — ${d.amount}€`;
+            if (d.expected_close_date) context += ` — Échéance: ${d.expected_close_date}`;
+            if (d.next_action) context += ` — Action: ${d.next_action}`;
+            context += '\n';
+          }
+        }
+      }
+    } catch (err) {
+      log(`PostCompact: could not read business.db: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    if (context) {
+      return {
+        systemMessage: `## Rappel post-compaction\n\nLe contexte a été compacté. Voici les informations business critiques à garder en tête :\n\n${context}`,
+      };
+    }
+
+    return {};
+  };
+}
+
+/**
+ * PreToolUse hook: block destructive Bash commands and writes outside workspace.
+ */
+function createPreToolUseHook(): HookCallback {
+  const BLOCKED_PATTERNS = [
+    /rm\s+(-[rf]+\s+)*\//,     // rm -rf /
+    /DROP\s+TABLE/i,
+    /DROP\s+DATABASE/i,
+    /TRUNCATE/i,
+    />\s*\/(?!workspace\/group)/,  // redirect outside workspace
+  ];
+
+  return async (input) => {
+    const hookInput = input as PreToolUseHookInput;
+
+    if (hookInput.tool_name === 'Bash') {
+      const command = (hookInput.tool_input as { command?: string })?.command || '';
+      for (const pattern of BLOCKED_PATTERNS) {
+        if (pattern.test(command)) {
+          log(`[SECURITY] Blocked destructive command: ${command.slice(0, 100)}`);
+          return {
+            hookSpecificOutput: {
+              hookEventName: 'PreToolUse' as const,
+              permissionDecision: 'deny' as const,
+              permissionDecisionReason: `Commande bloquée pour raison de sécurité. Pattern détecté: ${pattern.source}`,
+            },
+          };
+        }
+      }
+    }
+
+    if (hookInput.tool_name === 'Write' || hookInput.tool_name === 'Edit') {
+      const filePath = (hookInput.tool_input as { file_path?: string })?.file_path || '';
+      if (filePath && !filePath.startsWith('/workspace/group/')) {
+        log(`[SECURITY] Blocked write outside workspace: ${filePath}`);
+        return {
+          hookSpecificOutput: {
+            hookEventName: 'PreToolUse' as const,
+            permissionDecision: 'deny' as const,
+            permissionDecisionReason: `Écriture bloquée : seuls les fichiers dans /workspace/group/ sont modifiables.`,
+          },
+        };
+      }
+    }
+
+    return {};
+  };
+}
+
+/**
+ * PostToolUse hook: log SQL mutations executed via Bash (fallback audit for non-MCP access).
+ */
+function createPostToolUseHook(): HookCallback {
+  return async (input) => {
+    const hookInput = input as PostToolUseHookInput;
+
+    if (hookInput.tool_name === 'Bash') {
+      const command = (hookInput.tool_input as { command?: string })?.command || '';
+      if (/sqlite3.*business\.db/i.test(command) && /INSERT|UPDATE|DELETE/i.test(command)) {
+        log(`[AUDIT] SQL mutation via Bash detected: ${command.slice(0, 200)}`);
+      }
     }
 
     return {};
@@ -398,6 +547,9 @@ async function runQuery(
       additionalDirectories: extraDirs.length > 0 ? extraDirs : undefined,
       resume: sessionId,
       resumeSessionAt: resumeAt,
+      model: containerInput.model || 'sonnet',
+      maxTurns: containerInput.maxTurns,
+      maxBudgetUsd: containerInput.maxBudgetUsd,
       systemPrompt: globalClaudeMd
         ? { type: 'preset' as const, preset: 'claude_code' as const, append: globalClaudeMd }
         : undefined,
@@ -409,7 +561,8 @@ async function runQuery(
         'TeamCreate', 'TeamDelete', 'SendMessage',
         'TodoWrite', 'ToolSearch', 'Skill',
         'NotebookEdit',
-        'mcp__nanoclaw__*'
+        'mcp__nanoclaw__*',
+        'mcp__business-db__*'
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -425,9 +578,13 @@ async function runQuery(
             NANOCLAW_IS_MAIN: containerInput.isMain ? '1' : '0',
           },
         },
+        'business-db': businessDbServer,
       },
       hooks: {
         PreCompact: [{ hooks: [createPreCompactHook(containerInput.assistantName)] }],
+        PostCompact: [{ hooks: [createPostCompactHook()] }],
+        PreToolUse: [{ hooks: [createPreToolUseHook()] }],
+        PostToolUse: [{ hooks: [createPostToolUseHook()] }],
       },
     }
   })) {
@@ -622,8 +779,11 @@ async function main(): Promise<void> {
       newSessionId: sessionId,
       error: errorMessage
     });
+    closeDb();
     process.exit(1);
   }
+
+  closeDb();
 }
 
 main();

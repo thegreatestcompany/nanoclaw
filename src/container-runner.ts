@@ -43,6 +43,9 @@ export interface ContainerInput {
   isScheduledTask?: boolean;
   assistantName?: string;
   script?: string;
+  model?: 'sonnet' | 'haiku';
+  maxTurns?: number;
+  maxBudgetUsd?: number;
 }
 
 export interface ContainerOutput {
