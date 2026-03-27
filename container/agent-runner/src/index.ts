@@ -562,7 +562,8 @@ async function runQuery(
         'TodoWrite', 'ToolSearch', 'Skill',
         'NotebookEdit',
         'mcp__nanoclaw__*',
-        'mcp__business-db__*'
+        'mcp__business-db__*',
+        'mcp__gmail__*'
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -579,6 +580,10 @@ async function runQuery(
           },
         },
         'business-db': businessDbServer,
+        gmail: {
+          command: 'npx',
+          args: ['-y', '@gongrzhe/server-gmail-autoauth-mcp'],
+        },
       },
       hooks: {
         PreCompact: [{ hooks: [createPreCompactHook(containerInput.assistantName)] }],

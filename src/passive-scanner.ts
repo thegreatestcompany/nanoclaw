@@ -65,7 +65,10 @@ export async function runPassiveScan(
   }
 
   logger.info(
-    { conversations: batches.length, totalMessages: batches.reduce((s, b) => s + b.messages.length, 0) },
+    {
+      conversations: batches.length,
+      totalMessages: batches.reduce((s, b) => s + b.messages.length, 0),
+    },
     'Passive scan: processing batches',
   );
 
@@ -78,8 +81,7 @@ export async function runPassiveScan(
     );
     if (meaningfulMessages.length === 0) {
       // Mark as processed without invoking agent
-      const lastTimestamp =
-        batch.messages[batch.messages.length - 1].timestamp;
+      const lastTimestamp = batch.messages[batch.messages.length - 1].timestamp;
       markMessagesProcessed(batch.chatJid, lastTimestamp);
       continue;
     }
@@ -113,8 +115,7 @@ export async function runPassiveScan(
       );
 
       // Mark batch as processed
-      const lastTimestamp =
-        batch.messages[batch.messages.length - 1].timestamp;
+      const lastTimestamp = batch.messages[batch.messages.length - 1].timestamp;
       markMessagesProcessed(batch.chatJid, lastTimestamp);
       scanned++;
     } catch (err) {
