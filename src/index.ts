@@ -58,6 +58,8 @@ import {
   loadSenderAllowlist,
   shouldDropMessage,
 } from './sender-allowlist.js';
+import { runPassiveScan } from './passive-scanner.js';
+import { isJidIgnored } from './scan-config.js';
 import { startSchedulerLoop } from './task-scheduler.js';
 import { Channel, NewMessage, RegisteredGroup } from './types.js';
 import { logger } from './logger.js';
@@ -369,7 +371,7 @@ async function runAgent(
         assistantName: ASSISTANT_NAME,
         model: 'sonnet',
         maxTurns: 30,
-        maxBudgetUsd: 2.00,
+        maxBudgetUsd: 2.0,
       },
       (proc, containerName) =>
         queue.registerProcess(chatJid, proc, containerName, group.folder),
@@ -599,6 +601,11 @@ async function main(): Promise<void> {
         return;
       }
 
+      // HNTIC: skip messages from ignored conversations (scan_config)
+      if (isJidIgnored(chatJid)) {
+        return;
+      }
+
       // Sender allowlist drop mode: discard messages from denied senders before storing
       if (!msg.is_from_me && !msg.is_bot_message && registeredGroups[chatJid]) {
         const cfg = loadSenderAllowlist();
@@ -665,6 +672,31 @@ async function main(): Promise<void> {
       if (text) await channel.sendMessage(jid, text);
     },
   });
+  // HNTIC: Start passive scanner (every 2 hours)
+  const PASSIVE_SCAN_INTERVAL = 2 * 60 * 60 * 1000; // 2 hours
+  const mainEntry = Object.entries(registeredGroups).find(
+    ([, g]) => g.isMain === true,
+  );
+  if (mainEntry) {
+    const [mainJid, mainGroup] = mainEntry;
+    const passiveScanLoop = async () => {
+      try {
+        await runPassiveScan({
+          registeredGroups: () => registeredGroups,
+          queue,
+          mainGroup,
+          mainChatJid: mainJid,
+        });
+      } catch (err) {
+        logger.error({ err }, 'Passive scan error');
+      }
+      setTimeout(passiveScanLoop, PASSIVE_SCAN_INTERVAL);
+    };
+    // First scan 5 minutes after startup, then every 2 hours
+    setTimeout(passiveScanLoop, 5 * 60 * 1000);
+    logger.info('Passive scanner scheduled (every 2 hours)');
+  }
+
   startIpcWatcher({
     sendMessage: (jid, text) => {
       const channel = findChannel(channels, jid);

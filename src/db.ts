@@ -146,6 +146,15 @@ function createSchema(database: Database.Database): void {
   } catch {
     /* columns already exist */
   }
+
+  // Add passive_processed column for passive scanning (HNTIC)
+  try {
+    database.exec(
+      `ALTER TABLE messages ADD COLUMN passive_processed INTEGER DEFAULT 0`,
+    );
+  } catch {
+    /* column already exists */
+  }
 }
 
 export function initDatabase(): void {
@@ -374,6 +383,72 @@ export function getMessagesSince(
     .prepare(sql)
     .all(chatJid, sinceTimestamp, `${botPrefix}:%`, limit) as NewMessage[];
 }
+
+// --- Passive scanning (HNTIC) ---
+
+export interface UnprocessedBatch {
+  chatJid: string;
+  messages: Array<{ sender_name: string; content: string; timestamp: string }>;
+}
+
+/**
+ * Get messages not yet processed by the passive scanner, grouped by chat.
+ * Excludes bot messages and empty content.
+ */
+export function getUnprocessedMessages(
+  excludeJids: string[],
+  limit: number = 500,
+): UnprocessedBatch[] {
+  const excludePlaceholders =
+    excludeJids.length > 0 ? excludeJids.map(() => '?').join(',') : "'__none__'";
+  const sql = `
+    SELECT chat_jid, sender_name, content, timestamp
+    FROM messages
+    WHERE passive_processed = 0
+      AND timestamp > datetime('now', '-1 day')
+      AND is_bot_message = 0
+      AND content != '' AND content IS NOT NULL
+      AND chat_jid NOT IN (${excludePlaceholders})
+    ORDER BY chat_jid, timestamp
+    LIMIT ?
+  `;
+  const params = [...excludeJids, limit];
+  const rows = db.prepare(sql).all(...params) as Array<{
+    chat_jid: string;
+    sender_name: string;
+    content: string;
+    timestamp: string;
+  }>;
+
+  // Group by chat_jid
+  const batches = new Map<string, UnprocessedBatch>();
+  for (const row of rows) {
+    let batch = batches.get(row.chat_jid);
+    if (!batch) {
+      batch = { chatJid: row.chat_jid, messages: [] };
+      batches.set(row.chat_jid, batch);
+    }
+    batch.messages.push({
+      sender_name: row.sender_name,
+      content: row.content,
+      timestamp: row.timestamp,
+    });
+  }
+
+  return Array.from(batches.values());
+}
+
+/**
+ * Mark messages as processed by the passive scanner.
+ */
+export function markMessagesProcessed(chatJid: string, beforeTimestamp: string): void {
+  db.prepare(
+    `UPDATE messages SET passive_processed = 1
+     WHERE chat_jid = ? AND timestamp <= ? AND passive_processed = 0`,
+  ).run(chatJid, beforeTimestamp);
+}
+
+// --- End passive scanning ---
 
 export function createTask(
   task: Omit<ScheduledTask, 'last_run' | 'last_result'>,
