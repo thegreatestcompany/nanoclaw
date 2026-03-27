@@ -20,6 +20,7 @@ import {
   STORE_DIR,
 } from '../config.js';
 import { getLastGroupSync, setLastGroupSync, updateChatName } from '../db.js';
+import { isVoiceMessage, transcribeAudioMessage } from '../transcription.js';
 import { logger } from '../logger.js';
 import {
   Channel,
@@ -248,6 +249,18 @@ export class WhatsAppChannel implements Channel {
                 `@${this.botLidUser}`,
                 `@${ASSISTANT_NAME}`,
               );
+            }
+
+            // Voice messages: transcribe and prepend [Voice: ...]
+            if (!content && isVoiceMessage(msg)) {
+              try {
+                const transcript = await transcribeAudioMessage(msg, this.sock!);
+                if (transcript) {
+                  content = `[Voice: ${transcript}]`;
+                }
+              } catch (err) {
+                logger.error({ err }, 'Voice transcription failed');
+              }
             }
 
             // Skip protocol messages with no text content (encryption keys, read receipts, etc.)

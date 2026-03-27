@@ -27,6 +27,12 @@ vi.mock('../db.js', () => ({
   updateChatName: vi.fn(),
 }));
 
+// Mock transcription
+vi.mock('../transcription.js', () => ({
+  isVoiceMessage: vi.fn(() => false),
+  transcribeAudioMessage: vi.fn(() => Promise.resolve(null)),
+}));
+
 // Mock fs
 vi.mock('fs', async () => {
   const actual = await vi.importActual<typeof import('fs')>('fs');
