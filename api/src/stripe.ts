@@ -59,7 +59,7 @@ async function handleCheckoutCompleted(session: any): Promise<void> {
   if (existing && existing.status === 'pending_cancellation') {
     // Reactivate — process is still running during grace period
     db.prepare(
-      'UPDATE clients SET status = ?, cancel_at = NULL, cancel_reason = NULL, stripe_customer_id = ?, stripe_subscription_id = ?, updated_at = datetime("now") WHERE id = ?'
+      `UPDATE clients SET status = ?, cancel_at = NULL, cancel_reason = NULL, stripe_customer_id = ?, stripe_subscription_id = ?, updated_at = datetime('now') WHERE id = ?`
     ).run('active', session.customer, session.subscription, clientId);
     console.log(`Client ${clientId} reactivated (was pending_cancellation)`);
     // TODO: send WhatsApp "Content de te revoir !"
@@ -93,7 +93,7 @@ async function handleCheckoutCompleted(session: any): Promise<void> {
       updates.trial_ends_at = trialEndsAt;
     }
     db.prepare(
-      'UPDATE clients SET stripe_subscription_id = ?, trial_ends_at = ?, updated_at = datetime("now") WHERE id = ?'
+      `UPDATE clients SET stripe_subscription_id = ?, trial_ends_at = ?, updated_at = datetime('now') WHERE id = ?`
     ).run(session.subscription || null, trialEndsAt, clientId);
 
     console.log(`Client provisioned via Stripe: ${clientId} → ${result.onboardUrl}`);
@@ -225,7 +225,7 @@ async function processStripeEvent(event: { id: string; type: string; data: { obj
     case 'invoice.payment_failed': {
       const invoice = event.data.object;
       db.prepare(
-        'UPDATE clients SET status = ?, updated_at = datetime("now") WHERE stripe_customer_id = ?'
+        `UPDATE clients SET status = ?, updated_at = datetime('now') WHERE stripe_customer_id = ?`
       ).run('payment_failed', invoice.customer as string);
 
       // TODO: send WhatsApp message with invoice.hosted_invoice_url
@@ -251,7 +251,7 @@ async function processStripeEvent(event: { id: string; type: string; data: { obj
       // Restore active status after a previously failed payment
       const invoice = event.data.object;
       const updated = db.prepare(
-        'UPDATE clients SET status = ?, updated_at = datetime("now") WHERE stripe_customer_id = ? AND status = ?'
+        `UPDATE clients SET status = ?, updated_at = datetime('now') WHERE stripe_customer_id = ? AND status = ?`
       ).run('active', invoice.customer as string, 'payment_failed');
       if (updated.changes > 0) {
         console.log(`Payment recovered for customer ${invoice.customer}`);
