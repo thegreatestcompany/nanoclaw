@@ -971,7 +971,82 @@ Il faut adapter :
 
 ---
 
-## 14. Mises à jour et déploiement de nouvelles features
+## 14. Transcription vocale locale (faster-whisper)
+
+### Principe
+
+Remplacer whisper.cpp (et l'API Whisper d'OpenAI) par faster-whisper en service background Python. Le modèle reste chargé en RAM — pas de rechargement à chaque vocal.
+
+### Pourquoi
+
+- **Coût zéro** — pas de clé API OpenAI, pas de facturation par minute
+- **Pas de dépendance externe** — rien à configurer côté client
+- **Meilleure qualité en français** — le modèle "small" est nettement meilleur que "base"
+- **Latence réseau éliminée** — transcription locale en ~8 sec par minute d'audio
+
+### Installation sur le VPS
+
+```bash
+pip install faster-whisper flask --break-system-packages
+```
+
+### Service de transcription
+
+Fichier `/opt/otto/whisper-service.py` :
+
+```python
+from faster_whisper import WhisperModel
+from flask import Flask, request, jsonify
+import tempfile, os
+
+app = Flask(__name__)
+model = WhisperModel("small", device="cpu", compute_type="int8")
+
+@app.route("/transcribe", methods=["POST"])
+def transcribe():
+    audio = request.files["file"]
+    with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
+        audio.save(f.name)
+        segments, info = model.transcribe(f.name, language="fr")
+        text = " ".join([s.text for s in segments])
+        os.unlink(f.name)
+    return jsonify({"text": text, "language": info.language, "duration": info.duration})
+
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=9876)
+```
+
+Lancer avec PM2 :
+```bash
+pm2 start /opt/otto/whisper-service.py --name whisper --interpreter python3
+pm2 save
+```
+
+### Intégration dans Otto
+
+Modifier `src/transcription.ts` pour appeler le service local au lieu de whisper-cli :
+
+```typescript
+const form = new FormData();
+form.append('file', fs.createReadStream(vocalPath));
+const res = await fetch('http://127.0.0.1:9876/transcribe', { method: 'POST', body: form });
+const { text, duration } = await res.json();
+```
+
+### Consommation RAM
+
+- ~500 MB pour le modèle "small" (coût fixe, partagé entre tous les clients)
+- Sur un VPS CCX23 (16 GB) avec 15 clients idle : 15 × 350 MB + 500 MB = 5.75 GB → largement ok
+
+### Suppression des dépendances
+
+- Retirer `OPENAI_API_KEY` du `.env` des clients
+- Retirer `whisper-cpp` et `ffmpeg` du provisioning (faster-whisper gère les formats audio nativement)
+- Le service Python est provisionné une seule fois sur le VPS, pas par client
+
+---
+
+## 15. Mises à jour et déploiement de nouvelles features
 
 ### Principe
 
@@ -1127,7 +1202,7 @@ Usage : `ssh root@otto.hntic.fr '/opt/otto/app/scripts/deploy.sh'` — exécutab
 
 ---
 
-## 15. Stockage des pièces jointes
+## 16. Stockage des pièces jointes
 
 ### Structure par client
 
@@ -1248,7 +1323,7 @@ Si Object Storage est activé, les fichiers y sont déjà redondants — pas bes
 
 ---
 
-## 16. Back-office admin — `otto.hntic.fr/admin`
+## 17. Back-office admin — `otto.hntic.fr/admin`
 
 ### Principe
 
