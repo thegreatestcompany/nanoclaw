@@ -47,7 +47,69 @@ else
   echo "  Usage: $0 \"Prénom Nom\" \"Nom Entreprise\""
 fi
 
-# --- Étape 3 : Créer le fichier schema_log.md ---
+# --- Étape 3 : Créer la structure memory/ ---
+MEMORY_DIR="${PROJECT_DIR}/groups/main/memory"
+mkdir -p "$MEMORY_DIR/people" "$MEMORY_DIR/projects" "$MEMORY_DIR/context"
+
+if [ ! -f "$MEMORY_DIR/glossary.md" ]; then
+  cat > "$MEMORY_DIR/glossary.md" << 'GLOSSARY_EOF'
+# Glossaire
+
+Termes, acronymes et raccourcis utilisés par le dirigeant.
+
+| Terme | Signification | Ajouté le |
+|-------|--------------|-----------|
+GLOSSARY_EOF
+  echo "✓ memory/glossary.md créé"
+fi
+
+if [ ! -f "$MEMORY_DIR/context/company.md" ]; then
+  cat > "$MEMORY_DIR/context/company.md" << 'COMPANY_EOF'
+# Contexte entreprise
+
+[À remplir pendant l'onboarding et au fil des conversations]
+
+## Infos générales
+- Secteur :
+- Taille :
+- Date de création :
+- Localisation :
+
+## Activité principale
+
+
+## Clients types
+
+
+## Concurrents connus
+
+COMPANY_EOF
+  echo "✓ memory/context/company.md créé"
+fi
+
+if [ ! -f "$MEMORY_DIR/context/preferences.md" ]; then
+  cat > "$MEMORY_DIR/context/preferences.md" << 'PREFS_EOF'
+# Préférences du dirigeant
+
+[Mis à jour automatiquement par Otto au fil des interactions]
+
+## Communication
+- Tutoiement/vouvoiement :
+- Horaires préférés :
+- Longueur des messages :
+
+## Digests
+- Flash quotidien :
+- Briefing hebdo :
+
+## Corrections et patterns
+<!-- Otto ajoute ici les corrections récurrentes pour ne pas refaire les mêmes erreurs -->
+
+PREFS_EOF
+  echo "✓ memory/context/preferences.md créé"
+fi
+
+# --- Étape 4 : Créer le fichier schema_log.md ---
 SCHEMA_LOG="${PROJECT_DIR}/groups/main/schema_log.md"
 if [ ! -f "$SCHEMA_LOG" ]; then
   cat > "$SCHEMA_LOG" << 'SCHEMA_EOF'

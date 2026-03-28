@@ -58,6 +58,7 @@ import {
   loadSenderAllowlist,
   shouldDropMessage,
 } from './sender-allowlist.js';
+import { runDailyLearnings, runWeeklyAutoDream } from './memory-consolidator.js';
 import { runPassiveScan } from './passive-scanner.js';
 import { isJidIgnored } from './scan-config.js';
 import { startSchedulerLoop } from './task-scheduler.js';
@@ -671,6 +672,39 @@ async function main(): Promise<void> {
     // First scan 5 minutes after startup, then every 2 hours
     setTimeout(passiveScanLoop, 5 * 60 * 1000);
     logger.info('Passive scanner scheduled (every 2 hours)');
+
+    // HNTIC: Daily memory extraction (every 24h, first run 1h after startup)
+    const DAILY_LEARNINGS_INTERVAL = 24 * 60 * 60 * 1000;
+    const memoryDeps = { mainGroup, mainChatJid: mainJid, queue };
+    const dailyLearningsLoop = async () => {
+      try {
+        await runDailyLearnings(memoryDeps);
+      } catch (err) {
+        logger.error({ err }, 'Daily learnings error');
+      }
+      setTimeout(dailyLearningsLoop, DAILY_LEARNINGS_INTERVAL);
+    };
+    setTimeout(dailyLearningsLoop, 60 * 60 * 1000); // 1h after startup
+
+    // HNTIC: Weekly AutoDream (every 7 days, first run Sunday night)
+    const WEEKLY_AUTODREAM_INTERVAL = 7 * 24 * 60 * 60 * 1000;
+    const weeklyAutoDreamLoop = async () => {
+      try {
+        await runWeeklyAutoDream(memoryDeps);
+      } catch (err) {
+        logger.error({ err }, 'Weekly AutoDream error');
+      }
+      setTimeout(weeklyAutoDreamLoop, WEEKLY_AUTODREAM_INTERVAL);
+    };
+    // Calculate ms until next Sunday 22:00 local time
+    const now = new Date();
+    const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
+    const nextSunday = new Date(now);
+    nextSunday.setDate(now.getDate() + daysUntilSunday);
+    nextSunday.setHours(22, 0, 0, 0);
+    const msUntilSunday = nextSunday.getTime() - now.getTime();
+    setTimeout(weeklyAutoDreamLoop, msUntilSunday > 0 ? msUntilSunday : WEEKLY_AUTODREAM_INTERVAL);
+    logger.info('Memory consolidation scheduled (daily + weekly AutoDream)');
   }
 
   startIpcWatcher({
