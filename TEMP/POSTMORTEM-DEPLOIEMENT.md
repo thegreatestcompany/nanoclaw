@@ -134,6 +134,22 @@ if (queryResult.resumeFailed) {
 
 ---
 
+## 8. Gmail/Calendar OAuth non automatisé
+
+**Situation actuelle** : les credentials Gmail (`~/.gmail-mcp/`) ont été copiées manuellement depuis le Mac vers le VPS via `scp`. Ce n'est pas scalable — on ne peut pas copier les credentials de chaque client manuellement.
+
+**Solution à implémenter** :
+- Un seul projet GCP HNTIC avec écran de consentement vérifié par Google (review 1-2 semaines)
+- Le flow d'onboarding inclut un bouton "Connecter Gmail" qui déclenche un OAuth standard
+- Les tokens sont stockés automatiquement dans le dossier du client
+- Même approche pour Google Calendar
+
+**Impact** : Gmail/Calendar ne fonctionne que pour toi (credentials hardcodées) tant que l'OAuth automatisé n'est pas implémenté. Les premiers clients n'auront pas Gmail/Calendar sauf configuration manuelle.
+
+**Priorité** : haute — à faire avant le premier client qui veut Gmail.
+
+---
+
 ## Checklist pour le script d'onboarding automatisé
 
 D'après ces post-mortem, le script de provisioning client doit :
