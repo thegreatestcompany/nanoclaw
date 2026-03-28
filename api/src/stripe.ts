@@ -45,9 +45,26 @@ async function handleCheckoutCompleted(session: any): Promise<void> {
     return;
   }
 
-  const email = session.customer_email as string | null;
+  // customer_email may be on the session or on the Customer object
+  let email = session.customer_email as string | null;
+  if (!email && session.customer_details?.email) {
+    email = session.customer_details.email as string;
+  }
+  // Last resort: fetch the Customer from Stripe API
+  if (!email && session.customer && process.env.STRIPE_SECRET_KEY) {
+    try {
+      const { default: Stripe } = await import('stripe');
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const customer = await stripe.customers.retrieve(session.customer as string);
+      if ('email' in customer && customer.email) {
+        email = customer.email;
+      }
+    } catch (err) {
+      console.error('Failed to fetch customer email from Stripe:', err);
+    }
+  }
   if (!email) {
-    console.error('Checkout completed but no customer_email — cannot provision');
+    console.error('Checkout completed but no customer email found — cannot provision');
     return;
   }
 
