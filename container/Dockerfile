@@ -25,6 +25,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     git \
     poppler-utils \
+    pandoc \
+    python3-pip \
+    && pip3 install --break-system-packages python-docx openpyxl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Chromium path for agent-browser
