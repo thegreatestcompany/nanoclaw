@@ -277,7 +277,7 @@ function createPreToolUseHook(): HookCallback {
     /DROP\s+TABLE/i,
     /DROP\s+DATABASE/i,
     /TRUNCATE/i,
-    />\s*\/(?!workspace\/group)/,  // redirect outside workspace
+    /(?<!\d)>\s*\/(?!workspace\/group|dev\/null|tmp\/)/,  // redirect outside workspace (allow /dev/null, /tmp/, stderr 2>)
   ];
 
   return async (input) => {
