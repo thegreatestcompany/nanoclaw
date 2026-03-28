@@ -57,8 +57,8 @@ hcloud server create \
   --name otto-prod \
   --type ccx33 \
   --image ubuntu-24.04 \
-  --location fsn1 \
-  --ssh-key hntic-deploy
+  --location nbg1 \
+  --ssh-key otto-deploy
 
 # Créer et attacher un volume pour les données clients
 hcloud volume create --name otto-data --size 100 --server otto-prod
@@ -81,7 +81,10 @@ hcloud volume create --name otto-data --size 100 --server otto-prod
 
 # ─── Système ───
 apt update && apt upgrade -y
-apt install -y docker.io docker-compose-v2 nodejs npm sqlite3 ufw fail2ban
+apt install -y sqlite3 ufw fail2ban
+
+# ─── Docker CE (version officielle, plus récente que docker.io) ───
+curl -fsSL https://get.docker.com | sh
 
 # ─── Node.js 22 ───
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
@@ -98,6 +101,9 @@ certbot --nginx -d otto.hntic.fr --non-interactive --agree-tos -m matthieu@hntic
 # ─── Firewall ───
 ufw allow ssh
 ufw allow 'Nginx Full'
+# CRITIQUE : autoriser le trafic Docker vers le credential proxy (port 3001)
+# Sans cette règle, les containers agent ne peuvent pas appeler l'API Anthropic
+ufw allow from 172.17.0.0/16 to any port 3001
 ufw enable
 
 # ─── Structure des dossiers ───
@@ -330,10 +336,22 @@ async function provisionClient(clientId: string, email: string, stripeCustomerId
   execSync(`chown otto-${clientId}: /opt/otto/clients/${clientId}/.env`);
   execSync(`chmod 600 /opt/otto/clients/${clientId}/.env`);
 
-  // 4. Lancer le process NanoClaw via PM2
+  // 4. Créer le wrapper PM2 pour ce client
+  // IMPORTANT : ne pas utiliser `pm2 start dist/index.js` directement
+  // car pino (logger) écrit sur stderr et PM2 interprète ça comme des crashes
+  const wrapperPath = `/opt/otto/clients/${clientId}/start-pm2.sh`;
+  fs.writeFileSync(wrapperPath, `#!/bin/bash\ncd /opt/otto/clients/${clientId}\nexec node /opt/otto/app/dist/index.js 2>&1\n`);
+  execSync(`chmod +x ${wrapperPath}`);
+
+  // 5. Donner les permissions correctes aux dossiers montés dans les containers
+  // Le container agent tourne en user non-root (node), il doit pouvoir écrire
+  execSync(`chmod -R 777 /opt/otto/clients/${clientId}/groups/ /opt/otto/clients/${clientId}/data/ /opt/otto/clients/${clientId}/store/`);
+
+  // 6. Lancer le process NanoClaw via PM2
   execSync(`
-    pm2 start /opt/otto/app/dist/index.js \
+    pm2 start ${wrapperPath} \
       --name otto-${clientId} \
+      --interpreter bash \
       --uid otto-${clientId} \
       --env-file /opt/otto/clients/${clientId}/.env \
       -- --data-dir /opt/otto/clients/${clientId}
@@ -543,7 +561,23 @@ C'est la modification minimale pour l'onboarding. L'autre modification significa
 
 ---
 
-## 6. Gestion des clés API Anthropic
+## 6. Leçons du premier déploiement (post-mortem)
+
+Voir `TEMP/POSTMORTEM-DEPLOIEMENT.md` pour le détail complet. Points critiques à retenir :
+
+1. **Tokens OAuth Pro/Max ne fonctionnent PAS depuis un VPS** — Anthropic lie les tokens à l'IP/machine. Utiliser exclusivement des clés API (`sk-ant-api03-...`) en production.
+
+2. **UFW bloque Docker → host** — Ajouter `ufw allow from 172.17.0.0/16 to any port 3001` AVANT de lancer les containers. Sans ça, le credential proxy est inatteignable.
+
+3. **PM2 + pino = logs vides et crashes** — Toujours utiliser un wrapper bash (`start-pm2.sh`) au lieu de `pm2 start dist/index.js` directement.
+
+4. **Permissions Docker** — Les dossiers montés dans les containers doivent être accessibles par le user `node` (non-root). Faire `chmod -R 777` sur les dossiers montés.
+
+5. **Sessions SDK invalides après changement de credentials** — Si la clé API change, vider la table `sessions` dans `store/messages.db` sinon le SDK essaie de reprendre une session qui n'existe plus.
+
+---
+
+## 7. Gestion des clés API Anthropic
 
 ### Architecture : 1 Workspace Anthropic par client
 
@@ -596,7 +630,7 @@ bucket_width=1d" \
 
 ---
 
-## 7. Stripe — Configuration
+## 8. Stripe — Configuration
 
 ### Produit Stripe
 
@@ -654,7 +688,7 @@ Le Payment Link est suffisant pour démarrer. Tu le crées en 2 minutes dans le 
 
 ---
 
-## 8. Backups
+## 9. Backups
 
 ```bash
 # /etc/cron.d/otto-backup
@@ -689,7 +723,7 @@ find "$BACKUP_DIR" -name "*.db" -mtime +30 -delete
 
 ---
 
-## 9. Monitoring
+## 10. Monitoring
 
 ### PM2 monitoring
 
@@ -732,7 +766,7 @@ Intégré dans le script `daily-cost-check.sh` — si un client dépasse 150$/mo
 
 ---
 
-## 10. Commandes opérationnelles
+## 11. Commandes opérationnelles
 
 ### Ajouter un client manuellement (hors Stripe)
 
@@ -789,7 +823,7 @@ hcloud server change-type otto-prod ccx33
 
 ---
 
-## 11. RGPD Checklist
+## 12. RGPD Checklist
 
 | Obligation | Action |
 |------------|--------|
@@ -804,7 +838,7 @@ hcloud server change-type otto-prod ccx33
 
 ---
 
-## 12. Flow complet résumé
+## 13. Flow complet résumé
 
 ```
 1. Dirigeant découvre Otto sur hntic.fr
@@ -828,7 +862,7 @@ Zéro intervention humaine du step 1 au step 10.
 
 ---
 
-## 13. Mémoire persistante cross-session
+## 14. Mémoire persistante cross-session
 
 ### Le problème
 
@@ -989,7 +1023,7 @@ Il faut adapter :
 
 ---
 
-## 14. Transcription vocale locale (faster-whisper)
+## 15. Transcription vocale locale (faster-whisper)
 
 ### Principe
 
@@ -1064,7 +1098,7 @@ const { text, duration } = await res.json();
 
 ---
 
-## 15. Mises à jour et déploiement de nouvelles features
+## 16. Mises à jour et déploiement de nouvelles features
 
 ### Principe
 
@@ -1220,7 +1254,7 @@ Usage : `ssh root@otto.hntic.fr '/opt/otto/app/scripts/deploy.sh'` — exécutab
 
 ---
 
-## 16. Stockage des pièces jointes
+## 17. Stockage des pièces jointes
 
 ### Structure par client
 
@@ -1341,7 +1375,7 @@ Si Object Storage est activé, les fichiers y sont déjà redondants — pas bes
 
 ---
 
-## 17. Back-office admin — `otto.hntic.fr/admin`
+## 18. Back-office admin — `otto.hntic.fr/admin`
 
 ### Principe
 
