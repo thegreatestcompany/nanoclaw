@@ -145,7 +145,7 @@ function launchPairingCode(clientId: string, phone: string, ws: WebSocket): void
     '--step', 'whatsapp-auth',
     '--', '--method', 'pairing-code', '--phone', phone,
   ], {
-    cwd: APP_DIR,
+    cwd: clientDir, // CRITICAL: must be clientDir so credentials land in client's store/auth/
     env: {
       ...process.env,
       STORE_DIR: path.join(clientDir, 'store'),
@@ -211,68 +211,110 @@ function launchPairingCode(clientId: string, phone: string, ws: WebSocket): void
 
 /**
  * After WhatsApp auth, register the client's channel and start their Otto process.
+ * Includes retry logic — creds.json may not have the `me` field immediately.
  */
 function registerClientChannel(clientId: string): void {
   const clientDir = path.join(CLIENTS_DIR, clientId);
+  let attempts = 0;
+  const maxAttempts = 10;
 
-  try {
-    // Get the client's phone number from auth credentials
+  const tryRegister = () => {
+    attempts++;
     const credsPath = path.join(clientDir, 'store', 'auth', 'creds.json');
-    if (!fs.existsSync(credsPath)) return;
 
-    const creds = JSON.parse(fs.readFileSync(credsPath, 'utf-8'));
-    const phoneJid = creds.me?.id?.split(':')[0] + '@s.whatsapp.net';
-
-    if (!phoneJid || phoneJid === 'undefined@s.whatsapp.net') {
-      console.error(`Could not extract JID for client ${clientId}`);
+    if (!fs.existsSync(credsPath)) {
+      if (attempts < maxAttempts) {
+        console.log(`Waiting for creds.json for ${clientId} (attempt ${attempts}/${maxAttempts})`);
+        setTimeout(tryRegister, 3000);
+        return;
+      }
+      console.error(`No creds.json found for ${clientId} after ${maxAttempts} attempts`);
       return;
     }
 
-    // Register the channel
-    const registerProc = spawn('npx', [
-      'tsx', path.join(APP_DIR, 'setup', 'index.ts'),
-      '--step', 'register',
-      '--jid', phoneJid,
-      '--name', 'Otto',
-      '--trigger', '@otto',
-      '--folder', 'main',
-      '--channel', 'whatsapp',
-      '--assistant-name', 'Otto',
-      '--is-main',
-      '--no-trigger-required',
-    ], {
-      cwd: clientDir,
-      env: { ...process.env, HOME: '/root', PATH: process.env.PATH },
-    });
+    try {
+      const creds = JSON.parse(fs.readFileSync(credsPath, 'utf-8'));
+      const meId = creds.me?.id;
 
-    registerProc.on('close', (code) => {
-      if (code === 0) {
-        console.log(`Channel registered for client ${clientId} (${phoneJid})`);
-        updateClientStatus(clientId, 'active');
-
-        // Start the client's Otto PM2 process
-        startClientProcess(clientId);
-      } else {
-        console.error(`Channel registration failed for ${clientId} with code ${code}`);
+      if (!meId) {
+        if (attempts < maxAttempts) {
+          console.log(`No me.id in creds.json for ${clientId} yet (attempt ${attempts}/${maxAttempts})`);
+          setTimeout(tryRegister, 3000);
+          return;
+        }
+        console.error(`No me.id in creds.json for ${clientId} after ${maxAttempts} attempts`);
+        return;
       }
-    });
-  } catch (err) {
-    console.error(`Error registering channel for ${clientId}:`, err);
-  }
+
+      const phoneJid = meId.split(':')[0] + '@s.whatsapp.net';
+      console.log(`Registering channel for ${clientId}: ${phoneJid}`);
+
+      const registerProc = spawn('npx', [
+        'tsx', path.join(APP_DIR, 'setup', 'index.ts'),
+        '--step', 'register',
+        '--jid', phoneJid,
+        '--name', 'Otto',
+        '--trigger', '@otto',
+        '--folder', 'main',
+        '--channel', 'whatsapp',
+        '--assistant-name', 'Otto',
+        '--is-main',
+        '--no-trigger-required',
+      ], {
+        cwd: clientDir,
+        env: {
+          ...process.env,
+          STORE_DIR: path.join(clientDir, 'store'),
+          GROUPS_DIR: path.join(clientDir, 'groups'),
+          DATA_DIR: path.join(clientDir, 'data'),
+          HOME: '/root',
+          PATH: process.env.PATH,
+        },
+      });
+
+      registerProc.on('close', (code) => {
+        if (code === 0) {
+          console.log(`Channel registered for client ${clientId} (${phoneJid})`);
+          updateClientStatus(clientId, 'active');
+          startClientProcess(clientId);
+        } else {
+          console.error(`Channel registration failed for ${clientId} with code ${code}`);
+        }
+      });
+    } catch (err) {
+      console.error(`Error reading creds for ${clientId}:`, err);
+      if (attempts < maxAttempts) {
+        setTimeout(tryRegister, 3000);
+      }
+    }
+  };
+
+  tryRegister();
 }
 
 /**
  * Start the client's Otto PM2 process.
+ * The wrapper was already created by provision.ts — recreate if missing.
  */
 function startClientProcess(clientId: string): void {
   const clientDir = path.join(CLIENTS_DIR, clientId);
-
-  // Create the PM2 wrapper script
   const wrapperPath = path.join(clientDir, 'start-pm2.sh');
-  fs.writeFileSync(wrapperPath, `#!/bin/bash\ncd ${clientDir}\nexec node ${APP_DIR}/dist/index.js 2>&1\n`);
-  fs.chmodSync(wrapperPath, '755');
 
-  // Set permissions
+  if (!fs.existsSync(wrapperPath)) {
+    const wrapperContent = `#!/bin/bash
+# Otto client wrapper for ${clientId}
+set -a
+source ${clientDir}/.env
+set +a
+export STORE_DIR="${clientDir}/store"
+export GROUPS_DIR="${clientDir}/groups"
+export DATA_DIR="${clientDir}/data"
+cd ${APP_DIR}
+exec node ${APP_DIR}/dist/index.js 2>&1
+`;
+    fs.writeFileSync(wrapperPath, wrapperContent, { mode: 0o755 });
+  }
+
   try {
     execSync(`chmod -R 777 ${clientDir}/groups/ ${clientDir}/data/ ${clientDir}/store/`);
     execSync(`pm2 start ${wrapperPath} --name otto-${clientId} --interpreter bash`);

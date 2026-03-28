@@ -1,9 +1,12 @@
 /**
- * Client provisioning — creates Linux user, folders, business.db,
- * .env, and PM2 process for a new client.
+ * Client provisioning — creates folders, business.db, .env, Anthropic
+ * workspace+API key, and prepares the PM2 wrapper.
  *
  * On macOS (dev), provisioning is simulated in a local directory.
  * On Linux (prod), it creates real Linux users and PM2 processes.
+ *
+ * NOTE: PM2 process is NOT started here — it starts after WhatsApp
+ * auth succeeds (in onboard.ts → startClientProcess).
  */
 
 import { execSync } from 'child_process';
@@ -12,17 +15,103 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-import { getDb } from './db.js';
+import { getDb, getNextProxyPort, setClientProxyPort } from './db.js';
 
 const IS_LINUX = os.platform() === 'linux';
 const CLIENTS_DIR = process.env.CLIENTS_DIR || path.join(process.cwd(), '..', 'clients');
-const APP_DIR = process.env.APP_DIR || path.join(process.cwd(), '..');
+const APP_DIR = process.env.APP_DIR || path.join(process.cwd(), '..', 'app');
 const INIT_SQL = path.join(APP_DIR, 'scripts', 'init-business-db.sql');
+const ANTHROPIC_ADMIN_KEY = process.env.ANTHROPIC_ADMIN_KEY || '';
 
 export interface ProvisionResult {
   clientId: string;
   onboardToken: string;
   onboardUrl: string;
+}
+
+/**
+ * Create an Anthropic workspace and API key for a client.
+ * Returns the API key string, or null if Admin API is not configured.
+ */
+async function createAnthropicCredentials(clientId: string): Promise<{
+  apiKey: string | null;
+  workspaceId: string | null;
+  apiKeyId: string | null;
+}> {
+  if (!ANTHROPIC_ADMIN_KEY) {
+    console.warn('ANTHROPIC_ADMIN_KEY not set — using shared API key for client');
+    // Fallback to shared key from the API's environment
+    const sharedKey = process.env.ANTHROPIC_API_KEY || '';
+    return { apiKey: sharedKey || null, workspaceId: null, apiKeyId: null };
+  }
+
+  try {
+    // 1. Create workspace
+    const wsRes = await fetch('https://api.anthropic.com/v1/organizations/workspaces', {
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_ADMIN_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ name: `otto-${clientId}` }),
+    });
+    const workspace = await wsRes.json() as { id: string };
+
+    if (!workspace.id) {
+      console.error('Failed to create Anthropic workspace:', workspace);
+      const sharedKey = process.env.ANTHROPIC_API_KEY || '';
+      return { apiKey: sharedKey || null, workspaceId: null, apiKeyId: null };
+    }
+
+    // 2. Create API key in this workspace
+    const keyRes = await fetch('https://api.anthropic.com/v1/organizations/api_keys', {
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_ADMIN_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: `otto-${clientId}`,
+        workspace_id: workspace.id,
+      }),
+    });
+    const apiKeyData = await keyRes.json() as { id: string; key: string };
+
+    if (!apiKeyData.key) {
+      console.error('Failed to create Anthropic API key:', apiKeyData);
+      const sharedKey = process.env.ANTHROPIC_API_KEY || '';
+      return { apiKey: sharedKey || null, workspaceId: workspace.id, apiKeyId: null };
+    }
+
+    console.log(`Anthropic workspace ${workspace.id} + API key created for ${clientId}`);
+    return { apiKey: apiKeyData.key, workspaceId: workspace.id, apiKeyId: apiKeyData.id };
+  } catch (err) {
+    console.error('Anthropic Admin API error:', err);
+    const sharedKey = process.env.ANTHROPIC_API_KEY || '';
+    return { apiKey: sharedKey || null, workspaceId: null, apiKeyId: null };
+  }
+}
+
+/**
+ * Revoke an Anthropic API key. Called during deprovisioning.
+ */
+export async function revokeAnthropicApiKey(apiKeyId: string): Promise<void> {
+  if (!ANTHROPIC_ADMIN_KEY || !apiKeyId) return;
+
+  try {
+    await fetch(`https://api.anthropic.com/v1/organizations/api_keys/${apiKeyId}`, {
+      method: 'DELETE',
+      headers: {
+        'x-api-key': ANTHROPIC_ADMIN_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+    });
+    console.log(`Revoked Anthropic API key ${apiKeyId}`);
+  } catch (err) {
+    console.error('Failed to revoke Anthropic API key:', err);
+  }
 }
 
 export async function provisionClient(
@@ -43,7 +132,7 @@ export async function provisionClient(
     path.join(clientDir, 'groups', 'main', 'logs'),
     path.join(clientDir, 'groups', 'global'),
     path.join(clientDir, 'store'),
-    path.join(clientDir, 'auth'),
+    path.join(clientDir, 'store', 'auth'),
     path.join(clientDir, 'logs'),
     path.join(clientDir, 'data', 'env'),
     path.join(clientDir, 'data', 'models'),
@@ -76,52 +165,83 @@ export async function provisionClient(
   );
   fs.writeFileSync(
     path.join(memoryDir, 'context', 'company.md'),
-    '# Contexte entreprise\n\n[À remplir pendant l\'onboarding]\n',
+    "# Contexte entreprise\n\n[À remplir pendant l'onboarding]\n",
   );
   fs.writeFileSync(
     path.join(memoryDir, 'context', 'preferences.md'),
     '# Préférences du dirigeant\n\n[Mis à jour automatiquement]\n',
   );
 
-  // 5. Write .env
+  // 5. Create Anthropic workspace + API key for this client
+  let clientApiKey = apiKey;
+  let workspaceId: string | null = null;
+  let apiKeyId: string | null = null;
+
+  if (!clientApiKey) {
+    const creds = await createAnthropicCredentials(clientId);
+    clientApiKey = creds.apiKey || undefined;
+    workspaceId = creds.workspaceId;
+    apiKeyId = creds.apiKeyId;
+  }
+
+  // 6. Allocate a unique proxy port
+  const proxyPort = getNextProxyPort();
+
+  // 7. Write .env (NEVER include the admin key — only the client's own API key)
   const envContent = [
-    `ANTHROPIC_API_KEY=${apiKey || 'TO_BE_SET'}`,
+    `ANTHROPIC_API_KEY=${clientApiKey || 'TO_BE_SET'}`,
     'ASSISTANT_NAME=Otto',
     'TZ=Europe/Paris',
     `CLIENT_ID=${clientId}`,
+    `CREDENTIAL_PROXY_PORT=${proxyPort}`,
   ].join('\n');
   fs.writeFileSync(path.join(clientDir, '.env'), envContent, { mode: 0o600 });
+  fs.mkdirSync(path.join(clientDir, 'data', 'env'), { recursive: true });
   fs.copyFileSync(path.join(clientDir, '.env'), path.join(clientDir, 'data', 'env', 'env'));
 
-  // 6. On Linux (prod): create Linux user + PM2 process
+  // 8. Create the PM2 wrapper script
+  const wrapperContent = `#!/bin/bash
+# Otto client wrapper for ${clientId}
+set -a
+source ${clientDir}/.env
+set +a
+export STORE_DIR="${clientDir}/store"
+export GROUPS_DIR="${clientDir}/groups"
+export DATA_DIR="${clientDir}/data"
+cd ${APP_DIR}
+exec node ${APP_DIR}/dist/index.js 2>&1
+`;
+  fs.writeFileSync(path.join(clientDir, 'start-pm2.sh'), wrapperContent, { mode: 0o755 });
+
+  // 9. Fix permissions for Docker containers (agent runs as non-root user "node")
+  try {
+    execSync(`chmod -R 777 "${clientDir}/groups/" "${clientDir}/data/" "${clientDir}/store/"`);
+  } catch { /* best effort */ }
+
+  // 10. On Linux (prod): create Linux user + UFW rule
   if (IS_LINUX) {
     try {
       execSync(`sudo useradd -r -s /bin/false otto-${clientId} 2>/dev/null || true`);
-      execSync(`sudo chown -R otto-${clientId}: ${clientDir}`);
-      execSync(`sudo chmod 700 ${clientDir}`);
-      execSync(
-        `pm2 start ${APP_DIR}/dist/index.js ` +
-        `--name otto-${clientId} ` +
-        `--uid otto-${clientId} ` +
-        `-- --data-dir ${clientDir}`,
-      );
-      execSync('pm2 save');
+      execSync(`sudo ufw allow from 172.17.0.0/16 to any port ${proxyPort} 2>/dev/null || true`);
     } catch (err) {
       console.error('Linux provisioning error (non-fatal):', err);
     }
   }
 
-  // 7. Generate onboard token
+  // 11. Generate onboard token
   const onboardToken = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
   db.prepare(`
-    INSERT OR REPLACE INTO clients (id, email, stripe_customer_id, onboard_token, onboard_token_expires_at, status, updated_at)
-    VALUES (?, ?, ?, ?, ?, 'awaiting_whatsapp', datetime('now'))
-  `).run(clientId, email, stripeCustomerId, onboardToken, expiresAt);
+    INSERT OR REPLACE INTO clients (id, email, stripe_customer_id, anthropic_workspace_id, anthropic_api_key_id, proxy_port, onboard_token, onboard_token_expires_at, status, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'awaiting_whatsapp', datetime('now'))
+  `).run(clientId, email, stripeCustomerId, workspaceId, apiKeyId, proxyPort, onboardToken, expiresAt);
 
-  console.log(`Client ${clientId} provisioned at ${clientDir}`);
+  // Store the port
+  setClientProxyPort(clientId, proxyPort);
+
+  console.log(`Client ${clientId} provisioned at ${clientDir} (port ${proxyPort})`);
 
   return {
     clientId,
@@ -134,12 +254,16 @@ export async function deprovisionClient(clientId: string): Promise<void> {
   const clientDir = path.join(CLIENTS_DIR, clientId);
   const db = getDb();
 
-  // Stop PM2 process (Linux only)
-  if (IS_LINUX) {
-    try {
-      execSync(`pm2 stop otto-${clientId} && pm2 delete otto-${clientId}`);
-      execSync('pm2 save');
-    } catch { /* may not exist */ }
+  // Stop PM2 process
+  try {
+    execSync(`pm2 stop otto-${clientId} && pm2 delete otto-${clientId}`);
+    execSync('pm2 save');
+  } catch { /* may not exist */ }
+
+  // Revoke Anthropic API key
+  const client = db.prepare('SELECT * FROM clients WHERE id = ?').get(clientId) as any;
+  if (client?.anthropic_api_key_id) {
+    await revokeAnthropicApiKey(client.anthropic_api_key_id);
   }
 
   // Archive client data
@@ -155,10 +279,13 @@ export async function deprovisionClient(clientId: string): Promise<void> {
   // Remove client directory
   fs.rmSync(clientDir, { recursive: true, force: true });
 
-  // Remove Linux user (prod only)
+  // Remove Linux user + UFW rule (prod only)
   if (IS_LINUX) {
     try {
       execSync(`sudo userdel otto-${clientId} 2>/dev/null || true`);
+      if (client?.proxy_port) {
+        execSync(`sudo ufw delete allow ${client.proxy_port}/tcp 2>/dev/null || true`);
+      }
     } catch { /* ignore */ }
   }
 

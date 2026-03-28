@@ -34,9 +34,13 @@ export function startCredentialProxy(
     'ANTHROPIC_BASE_URL',
   ]);
 
-  const authMode: AuthMode = secrets.ANTHROPIC_API_KEY ? 'api-key' : 'oauth';
+  // In multi-tenant mode, the .env at cwd is the app's .env, not the client's.
+  // The client's secrets come from process.env (set by the PM2 wrapper via `source .env`).
+  const apiKey = secrets.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY;
+  const authMode: AuthMode = apiKey ? 'api-key' : 'oauth';
   const oauthToken =
-    secrets.CLAUDE_CODE_OAUTH_TOKEN || secrets.ANTHROPIC_AUTH_TOKEN;
+    secrets.CLAUDE_CODE_OAUTH_TOKEN || process.env.CLAUDE_CODE_OAUTH_TOKEN ||
+    secrets.ANTHROPIC_AUTH_TOKEN || process.env.ANTHROPIC_AUTH_TOKEN;
 
   const upstreamUrl = new URL(
     secrets.ANTHROPIC_BASE_URL || 'https://api.anthropic.com',
@@ -65,7 +69,7 @@ export function startCredentialProxy(
         if (authMode === 'api-key') {
           // API key mode: inject x-api-key on every request
           delete headers['x-api-key'];
-          headers['x-api-key'] = secrets.ANTHROPIC_API_KEY;
+          headers['x-api-key'] = apiKey;
         } else {
           // OAuth mode: replace placeholder Bearer token with the real one
           // only when the container actually sends an Authorization header
@@ -121,5 +125,5 @@ export function startCredentialProxy(
 /** Detect which auth mode the host is configured for. */
 export function detectAuthMode(): AuthMode {
   const secrets = readEnvFile(['ANTHROPIC_API_KEY']);
-  return secrets.ANTHROPIC_API_KEY ? 'api-key' : 'oauth';
+  return (secrets.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY) ? 'api-key' : 'oauth';
 }

@@ -32,10 +32,16 @@ export function initDb(): void {
       trial_ends_at TEXT,
       cancel_at TEXT,
       cancel_reason TEXT,
+      proxy_port INTEGER,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )
   `);
+
+  // Migration for existing DBs
+  try {
+    db.exec('ALTER TABLE clients ADD COLUMN proxy_port INTEGER');
+  } catch { /* column already exists */ }
 }
 
 export function getDb(): Database.Database {
@@ -54,6 +60,10 @@ export interface Client {
   onboard_token: string | null;
   onboard_token_expires_at: string | null;
   whatsapp_jid: string | null;
+  trial_ends_at: string | null;
+  cancel_at: string | null;
+  cancel_reason: string | null;
+  proxy_port: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -78,4 +88,15 @@ export function updateClientStatus(id: string, status: string): void {
 
 export function slugify(email: string): string {
   return email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-');
+}
+
+const BASE_PROXY_PORT = 3002; // 3001 is reserved for otto-prod (main instance)
+
+export function getNextProxyPort(): number {
+  const row = db.prepare('SELECT MAX(proxy_port) as maxPort FROM clients').get() as { maxPort: number | null };
+  return (row.maxPort || BASE_PROXY_PORT - 1) + 1;
+}
+
+export function setClientProxyPort(clientId: string, port: number): void {
+  db.prepare(`UPDATE clients SET proxy_port = ?, updated_at = datetime('now') WHERE id = ?`).run(port, clientId);
 }
