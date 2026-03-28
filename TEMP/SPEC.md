@@ -1412,6 +1412,23 @@ Ajouter un script `npm run dashboard` ou `scripts/dashboard.sh` pour lancer auto
 
 **Évolution ultérieure** : Dashboard web custom (Next.js) avec vue visuelle du pipeline, KPIs, échéances. Pour les clients qui veulent "voir" en plus de "parler".
 
+### OAuth simplifié pour les clients (CRITIQUE avant premier client)
+
+Actuellement, la connexion Gmail/Calendar nécessite que le client aille sur GCP Console — inacceptable pour un dirigeant de PME.
+
+**Solution** : créer UN SEUL projet GCP HNTIC avec un écran de consentement vérifié par Google. Le flux client devient :
+1. Otto envoie un lien WhatsApp : "Pour connecter ton Gmail, clique ici"
+2. Le client clique → page Google standard "HNTIC veut accéder à votre Gmail" → "Autoriser"
+3. Le token est stocké automatiquement sur le VPS du client
+
+**Pré-requis** :
+- Projet GCP HNTIC avec écran de consentement vérifié (1-2 semaines de review Google)
+- Serveur web ou Cloud Function pour le callback OAuth (peut être hébergé sur un Vercel ou un petit VPS central)
+- Scopes : `gmail.modify`, `gmail.settings.basic`, `calendar.readonly`, `calendar.events`
+- Le token refresh se fait automatiquement, le client ne refait jamais la manipulation
+
+**Même approche applicable pour** : Google Calendar, Google Drive, Microsoft 365 (Outlook/Calendar).
+
 ### Multi-canal
 - Ajout de Telegram, Slack, ou email comme canaux alternatifs
 - Même agent, même mémoire, plusieurs points d'entrée

@@ -254,7 +254,10 @@ export class WhatsAppChannel implements Channel {
             // Voice messages: transcribe and prepend [Voice: ...]
             if (!content && isVoiceMessage(msg)) {
               try {
-                const transcript = await transcribeAudioMessage(msg, this.sock!);
+                const transcript = await transcribeAudioMessage(
+                  msg,
+                  this.sock!,
+                );
                 if (transcript) {
                   content = `[Voice: ${transcript}]`;
                 }
