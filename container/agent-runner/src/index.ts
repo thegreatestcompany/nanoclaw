@@ -487,7 +487,7 @@ async function runQuery(
   containerInput: ContainerInput,
   sdkEnv: Record<string, string | undefined>,
   resumeAt?: string,
-): Promise<{ newSessionId?: string; lastAssistantUuid?: string; closedDuringQuery: boolean }> {
+): Promise<{ newSessionId?: string; lastAssistantUuid?: string; closedDuringQuery: boolean; resumeFailed?: boolean }> {
   const stream = new MessageStream();
   stream.push(prompt);
 
@@ -623,7 +623,16 @@ async function runQuery(
     if (message.type === 'result') {
       resultCount++;
       const textResult = 'result' in message ? (message as { result?: string }).result : null;
+      const errorText = (message as { error?: string }).error || '';
       log(`Result #${resultCount}: subtype=${message.subtype}${textResult ? ` text=${textResult.slice(0, 200)}` : ''}`);
+
+      // Detect stale session resume failure
+      if (message.subtype === 'error_during_execution' && errorText.includes('No conversation found with session ID')) {
+        log('Detected stale session — will retry without resume');
+        ipcPolling = false;
+        return { newSessionId: undefined, lastAssistantUuid: undefined, closedDuringQuery: false, resumeFailed: true };
+      }
+
       writeOutput({
         status: 'success',
         result: textResult || null,
@@ -753,7 +762,15 @@ async function main(): Promise<void> {
     while (true) {
       log(`Starting query (session: ${sessionId || 'new'}, resumeAt: ${resumeAt || 'latest'})...`);
 
-      const queryResult = await runQuery(prompt, sessionId, mcpServerPath, containerInput, sdkEnv, resumeAt);
+      let queryResult = await runQuery(prompt, sessionId, mcpServerPath, containerInput, sdkEnv, resumeAt);
+
+      // If resume failed ("No conversation found"), retry without session resume
+      if (queryResult.resumeFailed) {
+        log('Session resume failed, retrying with fresh session...');
+        sessionId = undefined;
+        resumeAt = undefined;
+        queryResult = await runQuery(prompt, undefined, mcpServerPath, containerInput, sdkEnv, undefined);
+      }
       if (queryResult.newSessionId) {
         sessionId = queryResult.newSessionId;
       }
