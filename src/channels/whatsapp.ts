@@ -23,7 +23,14 @@ import {
 } from '../config.js';
 import { getLastGroupSync, setLastGroupSync, updateChatName } from '../db.js';
 import { isVoiceMessage, transcribeAudioMessage } from '../transcription.js';
-import { logger } from '../logger.js';
+import { logger as appLogger } from '../logger.js';
+
+// Baileys requires a pino-compatible logger with level, child, trace
+const logger = Object.assign(appLogger, {
+  level: 'warn',
+  child: () => logger,
+  trace: appLogger.debug.bind(appLogger),
+}) as typeof appLogger & { level: string; child: () => any; trace: (...args: any[]) => void };
 import {
   Channel,
   OnInboundMessage,
