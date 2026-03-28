@@ -181,6 +181,26 @@ if (queryResult.resumeFailed) {
 
 ---
 
+## 11. CRITIQUE — Otto a répondu dans la mauvaise conversation
+
+**Symptôme** : Otto a envoyé un message au contact d'un autre client au lieu du self-chat.
+
+**Cause** : Le mauvais JID (`33650524562` — un contact) a été enregistré comme groupe "main" au lieu du bon JID (`33650133431` — le self-chat). Otto a reçu un message de ce contact, l'a traité, et y a répondu.
+
+**Pourquoi c'est arrivé** : Enregistrement manuel du mauvais JID pendant le debug. En fonctionnement automatique, `registerClientChannel()` extrait le JID depuis `creds.me.id` ce qui donne le bon numéro.
+
+**Prévention** :
+1. Ne JAMAIS enregistrer manuellement un JID sans vérifier qu'il est bien le self-chat du client
+2. Le provisionning automatique utilise `creds.me.id` ce qui est correct
+3. Ajouter une vérification dans le code : si le JID enregistré est un `@s.whatsapp.net` (DM, pas un groupe), vérifier qu'il correspond au numéro du client dans `creds.json`
+4. Pour les clients avec numéro partagé (perso), recommander fortement d'utiliser un numéro dédié ou un solo group
+
+**Impact** : bug de confidentialité majeur. Un message d'Otto a été envoyé à la mauvaise personne. Heureusement en test uniquement.
+
+**Priorité** : CRITIQUE — ajouter une vérification automatique avant tout envoi.
+
+---
+
 ## Checklist pour le script d'onboarding automatisé
 
 D'après ces post-mortem, le script de provisioning client doit :
