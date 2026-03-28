@@ -1,0 +1,279 @@
+/**
+ * Stripe webhook handler — auto-provisions clients on payment.
+ *
+ * Events handled:
+ *   checkout.session.completed              → provision new client (or reactivate)
+ *   checkout.session.async_payment_succeeded → provision for delayed payment methods
+ *   customer.subscription.deleted           → start 24h grace period, then deprovision
+ *   invoice.payment_failed                  → notify client via WhatsApp
+ *   invoice.paid                            → restore active status after failed payment
+ *
+ * Trial: 7-day trial with card required. Provisioning is identical.
+ * Grace period: 24h delay before deprovisioning on cancellation.
+ *
+ * Best practices (per Stripe docs):
+ *   - Return 200 immediately, process async
+ *   - Idempotency via event.id dedup
+ *   - Raw body for signature verification
+ */
+
+import type { Express, Request, Response } from 'express';
+import express from 'express';
+
+import { getDb, slugify } from './db.js';
+import { provisionClient, deprovisionClient } from './provision.js';
+
+// In-memory set to deduplicate events (Stripe can send the same event multiple times)
+const processedEvents = new Set<string>();
+const MAX_PROCESSED_EVENTS = 10000;
+
+function markEventProcessed(eventId: string): boolean {
+  if (processedEvents.has(eventId)) return false;
+  processedEvents.add(eventId);
+  if (processedEvents.size > MAX_PROCESSED_EVENTS) {
+    const first = processedEvents.values().next().value;
+    if (first) processedEvents.delete(first);
+  }
+  return true;
+}
+
+async function handleCheckoutCompleted(session: any): Promise<void> {
+  // Don't provision if payment hasn't completed yet (async payment methods like SEPA)
+  // Note: for trials, payment_status is 'no_payment_required' — this is fine, we still provision
+  if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
+    console.log(`Checkout completed but payment_status=${session.payment_status} — waiting for async payment`);
+    return;
+  }
+
+  const email = session.customer_email as string | null;
+  if (!email) {
+    console.error('Checkout completed but no customer_email — cannot provision');
+    return;
+  }
+
+  const clientId = slugify(email);
+  const db = getDb();
+
+  // Check if this is a reactivation (client exists with pending_cancellation)
+  const existing = db.prepare('SELECT * FROM clients WHERE id = ?').get(clientId) as any;
+  if (existing && existing.status === 'pending_cancellation') {
+    // Reactivate — process is still running during grace period
+    db.prepare(
+      'UPDATE clients SET status = ?, cancel_at = NULL, cancel_reason = NULL, stripe_customer_id = ?, stripe_subscription_id = ?, updated_at = datetime("now") WHERE id = ?'
+    ).run('active', session.customer, session.subscription, clientId);
+    console.log(`Client ${clientId} reactivated (was pending_cancellation)`);
+    // TODO: send WhatsApp "Content de te revoir !"
+    return;
+  }
+
+  // Get trial info from the subscription if available
+  let trialEndsAt: string | null = null;
+  if (session.subscription) {
+    // The subscription object may be expanded or just an ID
+    // In webhook events, it's typically just the ID — we'd need to fetch it
+    // For now, we calculate from trial_period_days if present
+    // Stripe sends trial_end as a unix timestamp on the subscription object
+  }
+
+  try {
+    const result = await provisionClient(clientId, email, session.customer as string);
+
+    // Store subscription ID and trial end date
+    const updates: Record<string, unknown> = {
+      stripe_subscription_id: session.subscription || null,
+    };
+    if (trialEndsAt) {
+      updates.trial_ends_at = trialEndsAt;
+    }
+    db.prepare(
+      'UPDATE clients SET stripe_subscription_id = ?, trial_ends_at = ?, updated_at = datetime("now") WHERE id = ?'
+    ).run(session.subscription || null, trialEndsAt, clientId);
+
+    console.log(`Client provisioned via Stripe: ${clientId} → ${result.onboardUrl}`);
+    // TODO: send onboarding email with result.onboardUrl
+  } catch (err) {
+    console.error(`Provisioning failed for ${email}:`, err);
+  }
+}
+
+export function setupStripeRoutes(app: Express): void {
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!stripeSecretKey) {
+    console.warn('STRIPE_SECRET_KEY not set — Stripe webhooks disabled. Use POST /api/provision for manual provisioning.');
+
+    // Manual provisioning endpoint (for testing without Stripe)
+    app.post('/api/provision', express.json(), async (req: Request, res: Response) => {
+      const { email, name, company, apiKey } = req.body as {
+        email?: string;
+        name?: string;
+        company?: string;
+        apiKey?: string;
+      };
+
+      if (!email) {
+        res.status(400).json({ error: 'email is required' });
+        return;
+      }
+
+      const clientId = slugify(email);
+      const db = getDb();
+
+      const existing = db.prepare('SELECT id FROM clients WHERE id = ?').get(clientId);
+      if (existing) {
+        res.status(409).json({ error: `Client ${clientId} already exists` });
+        return;
+      }
+
+      try {
+        const result = await provisionClient(clientId, email, 'manual', apiKey);
+
+        if (name || company) {
+          db.prepare('UPDATE clients SET name = ?, company = ? WHERE id = ?')
+            .run(name || null, company || null, clientId);
+        }
+
+        res.json({
+          ok: true,
+          clientId: result.clientId,
+          onboardUrl: result.onboardUrl,
+        });
+      } catch (err) {
+        res.status(500).json({
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    });
+
+    return;
+  }
+
+  // Stripe webhook (raw body required for signature verification)
+  app.post(
+    '/api/stripe-webhook',
+    express.raw({ type: 'application/json' }),
+    async (req: Request, res: Response) => {
+      let event;
+      try {
+        const { default: Stripe } = await import('stripe');
+        const stripe = new Stripe(stripeSecretKey);
+        const sig = req.headers['stripe-signature'];
+        if (!sig || typeof sig !== 'string') {
+          res.status(400).send('Missing stripe-signature header');
+          return;
+        }
+        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret!);
+      } catch (err) {
+        console.error('Stripe webhook signature verification failed:', err);
+        res.status(400).send('Webhook Error');
+        return;
+      }
+
+      // Return 200 immediately (Stripe best practice)
+      res.json({ received: true });
+
+      // Deduplicate
+      if (!markEventProcessed(event.id)) {
+        console.log(`Duplicate Stripe event ${event.id} — skipping`);
+        return;
+      }
+
+      processStripeEvent(event).catch((err) =>
+        console.error(`Error processing Stripe event ${event.id}:`, err),
+      );
+    },
+  );
+}
+
+async function processStripeEvent(event: { id: string; type: string; data: { object: any } }): Promise<void> {
+  const db = getDb();
+
+  switch (event.type) {
+    case 'checkout.session.completed':
+    case 'checkout.session.async_payment_succeeded':
+      await handleCheckoutCompleted(event.data.object);
+      break;
+
+    case 'customer.subscription.deleted': {
+      // Start 24h grace period — don't deprovision immediately
+      const sub = event.data.object;
+      const client = db.prepare(
+        'SELECT id FROM clients WHERE stripe_customer_id = ?'
+      ).get(sub.customer as string) as { id: string } | undefined;
+
+      if (client) {
+        db.prepare(
+          `UPDATE clients SET status = 'pending_cancellation',
+           cancel_at = datetime('now', '+24 hours'),
+           cancel_reason = ?, updated_at = datetime('now') WHERE id = ?`
+        ).run(sub.cancellation_details?.reason || 'subscription_deleted', client.id);
+
+        console.log(`Client ${client.id} → pending_cancellation (24h grace period)`);
+        // TODO: send WhatsApp farewell message with export offer
+      }
+      break;
+    }
+
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object;
+      db.prepare(
+        'UPDATE clients SET status = ?, updated_at = datetime("now") WHERE stripe_customer_id = ?'
+      ).run('payment_failed', invoice.customer as string);
+
+      // TODO: send WhatsApp message with invoice.hosted_invoice_url
+      // to let client update their payment method
+      console.log(`Payment failed for customer ${invoice.customer} — invoice: ${invoice.hosted_invoice_url}`);
+      break;
+    }
+
+    case 'invoice.paid': {
+      // Restore active status after a previously failed payment
+      const invoice = event.data.object;
+      const updated = db.prepare(
+        'UPDATE clients SET status = ?, updated_at = datetime("now") WHERE stripe_customer_id = ? AND status = ?'
+      ).run('active', invoice.customer as string, 'payment_failed');
+      if (updated.changes > 0) {
+        console.log(`Payment recovered for customer ${invoice.customer}`);
+      }
+      break;
+    }
+  }
+}
+
+/**
+ * Check for clients whose grace period has expired and deprovision them.
+ * Also check for trial ending soon and send reminders.
+ * Called periodically from a setInterval in the main API process.
+ */
+export async function runPeriodicChecks(): Promise<void> {
+  const db = getDb();
+
+  // 1. Deprovision clients past grace period
+  const expired = db.prepare(
+    `SELECT id FROM clients WHERE status = 'pending_cancellation' AND cancel_at < datetime('now')`
+  ).all() as { id: string }[];
+
+  for (const client of expired) {
+    try {
+      await deprovisionClient(client.id);
+      console.log(`Client ${client.id} deprovisioned (grace period expired)`);
+    } catch (err) {
+      console.error(`Failed to deprovision ${client.id}:`, err);
+    }
+  }
+
+  // 2. Trial ending reminders (2 days before trial_ends_at)
+  const trialEnding = db.prepare(
+    `SELECT id, trial_ends_at FROM clients
+     WHERE trial_ends_at IS NOT NULL
+     AND trial_ends_at BETWEEN datetime('now') AND datetime('now', '+2 days')
+     AND status = 'active'`
+  ).all() as { id: string; trial_ends_at: string }[];
+
+  for (const client of trialEnding) {
+    // TODO: send WhatsApp trial-ending summary via the client's Otto process
+    // Query their business.db for stats (contacts, deals, interactions, documents)
+    console.log(`Trial ending soon for ${client.id} (${client.trial_ends_at})`);
+  }
+}
