@@ -344,7 +344,9 @@ async function runAgent(
       group,
       {
         prompt,
-        sessionId,
+        // Don't pass sessionId — sessions are not portable between ephemeral containers.
+        // Continuity within a container is handled by IPC (30 min idle timeout).
+        // sessionId,
         groupFolder: group.folder,
         chatJid,
         isMain,
