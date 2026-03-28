@@ -93,7 +93,7 @@ function getPhoneNumber(projectRoot: string): string {
   try {
     const creds = JSON.parse(
       fs.readFileSync(
-        path.join(projectRoot, 'store', 'auth', 'creds.json'),
+        path.join(storeDir, 'auth', 'creds.json'),
         'utf-8',
       ),
     );
@@ -124,10 +124,12 @@ function emitAuthStatus(
 
 export async function run(args: string[]): Promise<void> {
   const projectRoot = process.cwd();
+  // In multi-tenant mode, STORE_DIR points to the client's store directory
+  const storeDir = process.env.STORE_DIR || path.join(projectRoot, 'store');
 
   const { method, phone } = parseArgs(args);
-  const statusFile = path.join(projectRoot, 'store', 'auth-status.txt');
-  const qrFile = path.join(projectRoot, 'store', 'qr-data.txt');
+  const statusFile = path.join(storeDir, 'auth-status.txt');
+  const qrFile = path.join(storeDir, 'qr-data.txt');
 
   if (!method) {
     emitAuthStatus('unknown', 'failed', 'failed', {
@@ -159,7 +161,7 @@ export async function run(args: string[]): Promise<void> {
   // Clean stale state
   logger.info({ method }, 'Starting channel authentication');
   try {
-    fs.rmSync(path.join(projectRoot, 'store', 'auth'), {
+    fs.rmSync(path.join(storeDir, 'auth'), {
       recursive: true,
       force: true,
     });
@@ -249,7 +251,7 @@ async function handleQrBrowser(
       { cwd: projectRoot, encoding: 'utf-8' },
     );
     const html = QR_AUTH_TEMPLATE.replace('{{QR_SVG}}', svg);
-    const htmlPath = path.join(projectRoot, 'store', 'qr-auth.html');
+    const htmlPath = path.join(storeDir, 'qr-auth.html');
     fs.writeFileSync(htmlPath, html);
 
     // Open in browser (cross-platform)
@@ -309,7 +311,7 @@ async function handlePairingCode(
   // Write to file immediately so callers can read it without waiting for stdout
   try {
     fs.writeFileSync(
-      path.join(projectRoot, 'store', 'pairing-code.txt'),
+      path.join(storeDir, 'pairing-code.txt'),
       pairingCode,
     );
   } catch {
@@ -344,7 +346,7 @@ async function pollAuthCompletion(
 
     if (content === 'authenticated' || content === 'already_authenticated') {
       // Write success page if qr-auth.html exists
-      const htmlPath = path.join(projectRoot, 'store', 'qr-auth.html');
+      const htmlPath = path.join(storeDir, 'qr-auth.html');
       if (fs.existsSync(htmlPath)) {
         fs.writeFileSync(htmlPath, SUCCESS_HTML);
       }

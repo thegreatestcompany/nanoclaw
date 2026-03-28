@@ -145,7 +145,7 @@ function launchPairingCode(clientId: string, phone: string, ws: WebSocket): void
     '--step', 'whatsapp-auth',
     '--', '--method', 'pairing-code', '--phone', phone,
   ], {
-    cwd: clientDir, // CRITICAL: must be clientDir so credentials land in client's store/auth/
+    cwd: APP_DIR, // Must be APP_DIR for module resolution. STORE_DIR env var directs credentials to client's store.
     env: {
       ...process.env,
       STORE_DIR: path.join(clientDir, 'store'),
