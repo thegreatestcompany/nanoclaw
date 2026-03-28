@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
     git \
     poppler-utils \
     pandoc \
+    ffmpeg \
     python3-pip \
     && pip3 install --break-system-packages python-docx openpyxl \
     && rm -rf /var/lib/apt/lists/*
