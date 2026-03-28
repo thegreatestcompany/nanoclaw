@@ -1452,11 +1452,17 @@ Actuellement, la connexion Gmail/Calendar nécessite que le client aille sur GCP
 
 ### Pricing client
 
-- **Phase founding members** (5-10 premiers clients) : 500€ HT/mois, engagement 3 mois
+- **Phase founding members** (5-10 premiers clients) : 500€ HT/mois, essai gratuit 7 jours (carte requise)
 - **Phase scaling** :
   - Essentiel (300€/mois) : assistant conversationnel + mémoire business + rappels
   - Premium (600€/mois) : + intelligence commerciale (SalesWatch) + digests proactifs + documents
   - Partenaire (1 000€/mois) : + onboarding sur-mesure + calibration trimestrielle + support prioritaire
+
+### Période d'essai et résiliation
+
+- **Essai 7 jours** : carte bancaire requise. Le client est provisionné immédiatement (même agent, mêmes features). Premier prélèvement automatique à J+7. Rappel WhatsApp avec bilan d'usage à J+4.
+- **Résiliation** : délai de grâce 24h. Otto envoie un message d'adieu et propose un export des données. Le client peut se réabonner pendant la grâce sans perdre ses données.
+- **Échec de paiement** : Otto envoie un lien Stripe pour mettre à jour la carte. 3 relances automatiques par Stripe. Si toutes échouent → résiliation avec grâce 24h.
 
 ### Marge brute cible
 70-80% sur les founding members (500€ revenu — 100-150€ coûts = 350-400€ marge)

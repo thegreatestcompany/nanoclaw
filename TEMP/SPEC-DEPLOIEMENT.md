@@ -586,12 +586,45 @@ Créer dans le dashboard Stripe :
 - **Produit** : "Otto Chief of Staff"
 - **Prix** : 500€ HT/mois (récurrent)
 - **Mode checkout** : `subscription`
+- **Période d'essai** : `trial_period_days: 7` (carte bancaire requise)
 
 ### Webhook Stripe
 
 Dans Stripe Dashboard → Developers → Webhooks :
 - **URL** : `https://otto.hntic.fr/api/stripe-webhook`
-- **Events** : `checkout.session.completed`, `customer.subscription.deleted`, `invoice.payment_failed`
+- **Events** : `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.deleted`, `customer.subscription.trial_will_end`, `invoice.payment_failed`, `invoice.paid`
+
+### Cycle de vie client
+
+```
+1. Client souscrit → checkout.session.completed → provisionClient()
+   - Si trial : payment_status = 'no_payment_required', on provisionne quand même
+   - trial_end récupéré via stripe.subscriptions.retrieve()
+
+2. J+4 (3 jours avant fin trial) → customer.subscription.trial_will_end
+   - Envoyer un bilan WhatsApp : "Ton essai se termine dans 3 jours.
+     Voici ce que j'ai fait : X contacts, Y deals, Z interactions."
+
+3. J+7 → Stripe prélève 500€ automatiquement
+   - invoice.paid → status reste 'active'
+
+4. Si échec de paiement → invoice.payment_failed
+   - Marquer status = 'payment_failed'
+   - Envoyer WhatsApp : "⚠️ Paiement échoué. Mets ta carte à jour ici : {hosted_invoice_url}"
+   - Stripe relance 3 fois automatiquement
+   - Si paiement récupéré → invoice.paid → status = 'active'
+
+5. Si résiliation → customer.subscription.deleted
+   - Marquer status = 'pending_cancellation', cancel_at = now + 24h
+   - Envoyer WhatsApp : "Ton abonnement est terminé. Réponds dans 24h pour un export de tes données."
+   - Otto reste actif pendant 24h (grâce)
+   - Cron horaire vérifie cancel_at < now → deprovisionClient()
+
+6. Si réabonnement pendant la grâce → checkout.session.completed
+   - Client existant avec status = 'pending_cancellation'
+   - Remettre status = 'active', cancel_at = NULL
+   - Process PM2 tourne encore, rien à recréer
+```
 
 ### Lien de souscription
 
