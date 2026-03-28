@@ -132,11 +132,57 @@ RULES:
   }
 );
 
+// Tables that can be modified by the agent
+const WRITABLE_TABLES = new Set([
+  'contacts', 'companies', 'deals', 'interactions', 'projects',
+  'team_members', 'assignments', 'absences', 'reviews',
+  'suppliers', 'invoices', 'expenses', 'contracts',
+  'obligations', 'decisions', 'goals', 'meetings',
+  'documents', 'memories', 'relationship_summaries', 'activity_digests',
+]);
+
+// Tables that are read-only (agent cannot modify)
+// audit_log: integrity of audit trail
+// scan_config: only modifiable via explicit user command
+const READONLY_TABLES = new Set(['audit_log', 'scan_config', 'sqlite_sequence']);
+
+// Operations that require explicit user confirmation before executing.
+// The agent must ask the user and get a "oui" / "ok" / "yes" before proceeding.
+const SENSITIVE_OPERATIONS = {
+  // Any DELETE (even soft delete on important tables)
+  isDelete: (sql: string) => /^\s*DELETE/i.test(sql),
+  // Modifying financial data (amounts, salaries)
+  isFinancialUpdate: (sql: string, table: string) =>
+    /^\s*UPDATE/i.test(sql) &&
+    ['deals', 'invoices', 'expenses', 'contracts', 'team_members'].includes(table) &&
+    /amount|salary|value|budget|consumed|tax_amount|daily_rate|annual_cost/i.test(sql),
+  // Changing deal stage (won/lost is irreversible business-wise)
+  isDealStageChange: (sql: string, table: string) =>
+    /^\s*UPDATE/i.test(sql) && table === 'deals' && /stage/i.test(sql),
+  // Bulk updates (no WHERE clause)
+  isBulkUpdate: (sql: string) =>
+    /^\s*UPDATE/i.test(sql) && !/WHERE/i.test(sql),
+};
+
 const mutateBusinessDb = tool(
   'mutate_business_db',
   `Execute an INSERT, UPDATE, or DELETE on the business database.
 Automatically logs to audit_log. Returns affected row count and last inserted ID.
-Always use parameterized queries with ? placeholders. Never use DELETE — use UPDATE SET deleted_at = datetime('now') instead (soft delete).`,
+Always use parameterized queries with ? placeholders. Never use DELETE — use UPDATE SET deleted_at = datetime('now') instead (soft delete).
+
+WRITABLE TABLES: ${[...WRITABLE_TABLES].join(', ')}
+READONLY TABLES (blocked): audit_log, scan_config
+
+SENSITIVE OPERATIONS (require user confirmation BEFORE calling this tool):
+- Any DELETE operation
+- Changing financial amounts (deals.amount, invoices.amount, team_members.salary, etc.)
+- Changing deal stage (especially to 'won' or 'lost')
+- Any UPDATE without a WHERE clause
+
+For sensitive operations, FIRST ask the user to confirm:
+"Je vais [description du changement]. C'est bien ça ?"
+Only call this tool AFTER the user confirms with "oui", "ok", "yes", or similar.
+If the user has NOT confirmed, do NOT call this tool — ask first.`,
   {
     query: z.string().describe('SQL INSERT/UPDATE/DELETE query with ? placeholders'),
     params: z.array(z.union([z.string(), z.number(), z.null()])).optional()
@@ -144,6 +190,8 @@ Always use parameterized queries with ? placeholders. Never use DELETE — use U
     table_name: z.string().describe('Table being modified (for audit_log)'),
     record_id: z.string().optional().describe('ID of the record being modified (for audit_log)'),
     reason: z.string().optional().describe('Reason for the change (for audit_log)'),
+    user_confirmed: z.boolean().optional()
+      .describe('Set to true ONLY if the user has explicitly confirmed this operation in the current conversation. Required for sensitive operations.'),
   },
   async (args) => {
     const db = getDb();
@@ -161,6 +209,39 @@ Always use parameterized queries with ? placeholders. Never use DELETE — use U
     if (/^\s*(DROP|TRUNCATE)/i.test(sql)) {
       return {
         content: [{ type: 'text', text: 'Error: DROP and TRUNCATE are not allowed. Use soft delete (UPDATE SET deleted_at) instead.' }],
+        isError: true,
+      };
+    }
+
+    // Block readonly tables
+    if (READONLY_TABLES.has(args.table_name)) {
+      return {
+        content: [{ type: 'text', text: `Error: la table '${args.table_name}' est en lecture seule. Elle ne peut pas être modifiée par l'agent.` }],
+        isError: true,
+      };
+    }
+
+    // Block unknown tables
+    if (!WRITABLE_TABLES.has(args.table_name)) {
+      return {
+        content: [{ type: 'text', text: `Error: table '${args.table_name}' inconnue. Tables autorisées : ${[...WRITABLE_TABLES].join(', ')}` }],
+        isError: true,
+      };
+    }
+
+    // Check sensitive operations — require user_confirmed = true
+    const isSensitive =
+      SENSITIVE_OPERATIONS.isDelete(sql) ||
+      SENSITIVE_OPERATIONS.isFinancialUpdate(sql, args.table_name) ||
+      SENSITIVE_OPERATIONS.isDealStageChange(sql, args.table_name) ||
+      SENSITIVE_OPERATIONS.isBulkUpdate(sql);
+
+    if (isSensitive && !args.user_confirmed) {
+      return {
+        content: [{
+          type: 'text',
+          text: `⚠️ OPÉRATION SENSIBLE — Confirmation requise.\n\nCette opération modifie des données critiques (${args.table_name}). Tu dois d'abord demander confirmation au dirigeant, puis rappeler ce tool avec user_confirmed: true.\n\nQuery: ${sql.slice(0, 200)}`,
+        }],
         isError: true,
       };
     }
