@@ -105,6 +105,35 @@ pm2 restart otto-prod
 
 ---
 
+## 7. Session SDK stale après destruction du container
+
+**Symptôme** : `No conversation found with session ID: xxx` en boucle. L'agent ne répond jamais, le host relance un container qui échoue de la même façon.
+
+**Cause** : le container crée une session SDK, Otto stocke le `sessionId` dans la table `sessions` de `store/messages.db`. Quand le container se ferme (timeout 30 min), la session est détruite côté Anthropic. Au prochain message, un nouveau container est spawné avec l'ancien `sessionId` → le SDK essaie de reprendre → "No conversation found" → erreur → Otto retry → même erreur → boucle infinie.
+
+**Solution implémentée** : détection de l'erreur dans `container/agent-runner/src/index.ts`. Quand `runQuery()` retourne un `result` avec `subtype=error_during_execution` et le message contient "No conversation found with session ID", on retourne `resumeFailed: true`. La boucle principale détecte ce flag et relance `runQuery()` sans session (session fraîche).
+
+```typescript
+// Dans runQuery(), détection de l'erreur
+if (message.subtype === 'error_during_execution' && errorText.includes('No conversation found with session ID')) {
+  log('Detected stale session — will retry without resume');
+  return { ..., resumeFailed: true };
+}
+
+// Dans la boucle principale, fallback
+if (queryResult.resumeFailed) {
+  log('Session resume failed, retrying with fresh session...');
+  sessionId = undefined;
+  queryResult = await runQuery(prompt, undefined, ...);
+}
+```
+
+**Important** : le session resume fonctionne normalement pour les messages envoyés PENDANT que le container est actif (via IPC, dans les 30 min). C'est uniquement le resume ENTRE les containers (après timeout) qui peut échouer et qui est maintenant géré proprement.
+
+**À ne PAS faire** : mettre `persistSession: false` — ça désactiverait le resume même à l'intérieur d'une session active, ce qui casse la continuité conversationnelle.
+
+---
+
 ## Checklist pour le script d'onboarding automatisé
 
 D'après ces post-mortem, le script de provisioning client doit :
