@@ -5,6 +5,7 @@ import path from 'path';
 import makeWASocket, {
   Browsers,
   DisconnectReason,
+  downloadMediaMessage,
   WAMessageKey,
   WASocket,
   fetchLatestWaWebVersion,
@@ -17,6 +18,7 @@ import makeWASocket, {
 import {
   ASSISTANT_HAS_OWN_NUMBER,
   ASSISTANT_NAME,
+  GROUPS_DIR,
   STORE_DIR,
 } from '../config.js';
 import { getLastGroupSync, setLastGroupSync, updateChatName } from '../db.js';
@@ -279,6 +281,47 @@ export class WhatsAppChannel implements Channel {
               }
             }
 
+            // Document capture: download business documents (PDF, DOCX, XLSX)
+            // Ignore photos/videos sent as media — only capture files sent via the paperclip
+            let mediaType: 'document' | 'image' | 'audio' | undefined;
+            let mediaPath: string | undefined;
+            let mediaFilename: string | undefined;
+
+            const docMsg = normalized.documentMessage;
+            if (docMsg) {
+              const filename = docMsg.fileName || `document_${Date.now()}`;
+              const ext = path.extname(filename).toLowerCase();
+              const BUSINESS_EXTENSIONS = new Set([
+                '.pdf', '.docx', '.doc', '.xlsx', '.xls',
+                '.pptx', '.ppt', '.csv', '.txt', '.rtf',
+              ]);
+
+              if (BUSINESS_EXTENSIONS.has(ext)) {
+                try {
+                  const buffer = await downloadMediaMessage(
+                    msg, 'buffer', {},
+                    { logger: console as any, reuploadRequest: this.sock!.updateMediaMessage },
+                  ) as Buffer;
+
+                  const groupFolder = groups[chatJid]?.folder || 'main';
+                  const docDir = path.join(GROUPS_DIR, groupFolder, 'documents');
+                  fs.mkdirSync(docDir, { recursive: true });
+                  const savedName = `${Date.now()}_${filename}`;
+                  const filePath = path.join(docDir, savedName);
+                  fs.writeFileSync(filePath, buffer);
+
+                  mediaType = 'document';
+                  mediaPath = `documents/${savedName}`;
+                  mediaFilename = filename;
+                  content = `[Document reçu : ${filename}] (stocké à ${mediaPath})\n${content || ''}`.trim();
+
+                  logger.info({ filename, size: buffer.length, path: mediaPath }, 'Document captured');
+                } catch (err) {
+                  logger.error({ err, filename }, 'Failed to download document');
+                }
+              }
+            }
+
             // Skip protocol messages with no text content (encryption keys, read receipts, etc.)
             if (!content) continue;
 
@@ -303,6 +346,9 @@ export class WhatsAppChannel implements Channel {
               timestamp,
               is_from_me: fromMe,
               is_bot_message: isBotMessage,
+              media_type: mediaType,
+              media_path: mediaPath,
+              media_filename: mediaFilename,
             });
           } else if (chatJid !== rawJid) {
             // LID translation produced a JID that doesn't match any registered group
