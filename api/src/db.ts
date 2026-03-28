@@ -60,7 +60,7 @@ export interface Client {
 
 export function getClientByToken(token: string): Client | undefined {
   return db.prepare(
-    'SELECT * FROM clients WHERE onboard_token = ? AND onboard_token_expires_at > datetime("now")'
+    `SELECT * FROM clients WHERE onboard_token = ? AND onboard_token_expires_at > datetime('now')`
   ).get(token) as Client | undefined;
 }
 
@@ -73,7 +73,7 @@ export function getAllClients(): Client[] {
 }
 
 export function updateClientStatus(id: string, status: string): void {
-  db.prepare('UPDATE clients SET status = ?, updated_at = datetime("now") WHERE id = ?').run(status, id);
+  db.prepare(`UPDATE clients SET status = ?, updated_at = datetime('now') WHERE id = ?`).run(status, id);
 }
 
 export function slugify(email: string): string {

@@ -162,7 +162,7 @@ export async function deprovisionClient(clientId: string): Promise<void> {
     } catch { /* ignore */ }
   }
 
-  db.prepare('UPDATE clients SET status = ?, updated_at = datetime("now") WHERE id = ?')
+  db.prepare(`UPDATE clients SET status = ?, updated_at = datetime('now') WHERE id = ?`)
     .run('cancelled', clientId);
 
   console.log(`Client ${clientId} deprovisioned`);
