@@ -303,6 +303,7 @@ function startClientProcess(clientId: string): void {
   if (!fs.existsSync(wrapperPath)) {
     const wrapperContent = `#!/bin/bash
 # Otto client wrapper for ${clientId}
+umask 000  # Ensure files created by host are accessible by Docker containers (user node)
 set -a
 source ${clientDir}/.env
 set +a
