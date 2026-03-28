@@ -23,20 +23,24 @@ export function setupOnboardRoutes(app: Express, server: Server): void {
 
     if (!client) {
       res.status(404).send(`
-        <html><body style="font-family:system-ui;text-align:center;padding:40px;background:#0a0a0a;color:#fff">
-          <h1>Lien expiré ou invalide</h1>
-          <p>Contacte matthieu@hntic.fr pour un nouveau lien.</p>
-        </body></html>
+        <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+        <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fafafa;color:#1a1a1a;padding:40px 20px;text-align:center}</style></head>
+        <body><div><img src="/static/hntic-logo.png" alt="HNTIC" style="width:48px;margin-bottom:24px">
+        <h1 style="font-weight:300;letter-spacing:0.2em;margin-bottom:16px">Lien expir&eacute;</h1>
+        <p style="color:#888">Ce lien a expir&eacute; ou a d&eacute;j&agrave; &eacute;t&eacute; utilis&eacute;.<br>V&eacute;rifie tes emails pour un lien valide.</p></div></body></html>
       `);
       return;
     }
 
     if (client.status === 'active') {
       res.send(`
-        <html><body style="font-family:system-ui;text-align:center;padding:40px;background:#0a0a0a;color:#fff">
-          <h1 style="color:#22c55e">WhatsApp déjà connecté</h1>
-          <p>Otto est actif. Tu peux fermer cette page et ouvrir WhatsApp.</p>
-        </body></html>
+        <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+        <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fafafa;color:#1a1a1a;padding:40px 20px;text-align:center}</style></head>
+        <body><div><img src="/static/hntic-logo.png" alt="HNTIC" style="width:48px;margin-bottom:24px">
+        <h1 style="font-weight:300;letter-spacing:0.2em;margin-bottom:16px;color:#166534">WhatsApp connect&eacute;</h1>
+        <p style="color:#888">Otto est actif. Tu peux fermer cette page et ouvrir WhatsApp.</p></div></body></html>
       `);
       return;
     }
