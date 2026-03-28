@@ -1444,7 +1444,7 @@ Actuellement, la connexion Gmail/Calendar nécessite que le client aille sur GCP
 
 | Poste | Estimation mensuelle |
 |-------|---------------------|
-| VPS Hetzner CX23 (ou Scaleway DEV1-M) | 3,50-7€ |
+| VPS Hetzner CCX33 mutualisé (~35 clients) | ~1,50€/client (53€ / 35) |
 | API Claude Haiku (scan passif, triage) | 10-30€ |
 | API Claude Sonnet (réponses, digests) | 50-120€ |
 | API Whisper (vocaux, optionnel) | 5-10€ |

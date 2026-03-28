@@ -24,18 +24,30 @@ Otto est un assistant IA conversationnel pour dirigeants de PME, accessible via 
 
 ### Hébergeur : Hetzner Cloud
 
-Gamme CCX (vCPU dédiés) pour des performances garanties.
+Gamme CCX (vCPU AMD dédiés) pour des performances garanties. Localisation : **Falkenstein (fsn1)** — le plus proche de la France, conforme RGPD (UE).
+
+**Instance de lancement : CCX33** — 8 vCPU AMD / 32 GB RAM / 240 GB NVMe / 48€/mois
 
 **Progression :**
 
-| Phase | Clients | Instance | RAM | Prix/mois |
-|-------|---------|----------|-----|-----------|
-| Lancement (0-15) | 1-15 | CCX23 | 16 GB | ~25€ |
-| Croissance (15-40) | 15-40 | CCX33 | 32 GB | ~50€ |
-| Scale (40-80) | 40-80 | CCX43 | 64 GB | ~100€ |
-| Scale+ (80-120) | 80-120 | CCX53 | 128 GB | ~195€ |
+| Phase | Clients | Instance | vCPU | RAM | Disque | Prix/mois |
+|-------|---------|----------|------|-----|--------|-----------|
+| Lancement (0-35) | 1-35 | CCX33 | 8 | 32 GB | 240 GB + Volume 100 GB | ~53€ |
+| Scale (35-70) | 35-70 | CCX43 | 16 | 64 GB | 360 GB + Volume 500 GB | ~122€ |
+| Scale+ (70-120) | 70-120 | CCX53 | 32 | 128 GB | 600 GB + Volume 1 TB | ~220€ |
+| Multi-serveur (120+) | 120+ | 2x CCX43 + load balancer | 2x16 | 2x64 GB | Volumes | ~270€ |
 
 Resize = reboot de ~2 minutes, planifiable à 3h du matin. Les messages WhatsApp sont bufferisés par WhatsApp et récupérés au redémarrage.
+
+**Budget RAM (CCX33 — 32 GB) :**
+- OS + nginx + PM2 : ~500 MB
+- Service Whisper (faster-whisper "small") : ~500 MB
+- 31 GB disponibles pour les clients
+- Client idle : ~350 MB → ~80 clients max idle
+- Client actif (agent container) : ~1.5 GB → ~20 simultanés
+- En pratique : 30% des clients actifs en même temps → confortable jusqu'à 35 clients
+
+**Stockage :** toujours stocker les données clients sur un **Volume attaché** (pas sur le disque racine). Permet de changer de serveur sans migration de données. Volume : ~0.05€/GB/mois, extensible à chaud.
 
 **Setup initial du VPS :**
 
@@ -43,10 +55,16 @@ Resize = reboot de ~2 minutes, planifiable à 3h du matin. Les messages WhatsApp
 # Créer le VPS via hcloud CLI
 hcloud server create \
   --name otto-prod \
-  --type ccx23 \
+  --type ccx33 \
   --image ubuntu-24.04 \
-  --location nbg1 \
+  --location fsn1 \
   --ssh-key hntic-deploy
+
+# Créer et attacher un volume pour les données clients
+hcloud volume create --name otto-data --size 100 --server otto-prod
+# Le volume se monte sur /mnt/HC_Volume_xxxxx
+# Créer un lien propre :
+# ssh root@<IP> 'ln -s /mnt/HC_Volume_* /opt/otto/storage'
 
 # Pointer le DNS
 # → Dans Squarespace : ajouter un enregistrement A
