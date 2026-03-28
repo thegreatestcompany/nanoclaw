@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Otto by HNTIC — Connecte ton WhatsApp</title>
   <link rel="icon" href="/static/hntic-logo.png" type="image/png">
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
@@ -23,165 +22,80 @@
       padding: 40px 20px;
     }
 
-    .container {
-      max-width: 440px;
-      width: 100%;
-      text-align: center;
-    }
-
-    .logo-img {
-      width: 56px;
-      height: 56px;
-      margin-bottom: 32px;
-    }
-
-    h1 {
-      font-size: 1.8rem;
-      font-weight: 300;
-      letter-spacing: 0.3em;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-
-    .byline {
-      font-size: 0.95rem;
-      color: #999;
-      font-style: italic;
-      letter-spacing: 0.15em;
-      margin-bottom: 40px;
-    }
-
-    .tagline {
-      font-size: 1.1rem;
-      color: #555;
-      margin-bottom: 40px;
-      font-weight: 300;
-    }
+    .container { max-width: 440px; width: 100%; text-align: center; }
+    .logo-img { width: 56px; height: 56px; margin-bottom: 32px; }
+    h1 { font-size: 1.8rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 4px; }
+    .byline { font-size: 0.95rem; color: #999; font-style: italic; letter-spacing: 0.15em; margin-bottom: 40px; }
+    .tagline { font-size: 1.1rem; color: #555; margin-bottom: 32px; font-weight: 300; }
 
     .status {
-      font-size: 0.95rem;
-      margin-bottom: 24px;
-      padding: 10px 24px;
-      border-radius: 100px;
-      display: inline-block;
-      font-weight: 400;
+      font-size: 0.95rem; margin-bottom: 24px; padding: 10px 24px;
+      border-radius: 100px; display: inline-block; font-weight: 400;
     }
+    .waiting { background: #fff; color: #1a1a1a; border: 1px solid #e0e0e0; }
+    .success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
 
-    .waiting {
-      background: #fff;
-      color: #1a1a1a;
-      border: 1px solid #e0e0e0;
+    .phone-form {
+      background: #fff; padding: 28px 32px; border-radius: 16px;
+      border: 1px solid #eee; margin-bottom: 24px;
     }
-
-    .success {
-      background: #f0fdf4;
-      color: #166534;
-      border: 1px solid #bbf7d0;
+    .phone-form label { display: block; text-align: left; font-size: 0.9rem; color: #555; margin-bottom: 8px; }
+    .phone-form input {
+      width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 1rem; font-family: inherit; outline: none; margin-bottom: 16px;
     }
-
-    .error {
-      background: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
+    .phone-form input:focus { border-color: #1a1a1a; }
+    .phone-form button {
+      width: 100%; padding: 12px; background: #1a1a1a; color: #fff; border: none;
+      border-radius: 8px; font-size: 1rem; font-family: inherit; cursor: pointer;
+      font-weight: 500; transition: opacity 0.2s;
     }
+    .phone-form button:hover { opacity: 0.8; }
+    .phone-form button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .phone-hint { font-size: 0.8rem; color: #999; text-align: left; margin-top: -8px; margin-bottom: 16px; }
 
-    canvas {
-      margin: 0 auto 32px;
-      display: block;
-      border-radius: 16px;
-      background: #fff;
-      padding: 20px;
+    .pairing-code {
+      background: #fff; padding: 32px; border-radius: 16px;
+      border: 1px solid #eee; margin-bottom: 24px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.04);
     }
+    .pairing-code .code {
+      font-size: 2.5rem; font-weight: 600; letter-spacing: 0.15em;
+      font-family: 'SF Mono', 'Fira Code', monospace; margin: 16px 0;
+    }
+    .pairing-code .hint { font-size: 0.9rem; color: #888; }
 
     .steps {
-      text-align: left;
-      background: #fff;
-      padding: 28px 32px;
-      border-radius: 16px;
-      margin: 0 0 40px;
-      border: 1px solid #eee;
-      list-style: none;
-      counter-reset: step;
+      text-align: left; background: #fff; padding: 28px 32px; border-radius: 16px;
+      margin: 0 0 40px; border: 1px solid #eee; list-style: none; counter-reset: step;
     }
-
     .steps li {
-      margin: 14px 0;
-      color: #555;
-      line-height: 1.6;
-      font-size: 0.95rem;
-      padding-left: 32px;
-      position: relative;
-      counter-increment: step;
+      margin: 14px 0; color: #555; line-height: 1.6; font-size: 0.95rem;
+      padding-left: 32px; position: relative; counter-increment: step;
     }
-
     .steps li::before {
-      content: counter(step);
-      position: absolute;
-      left: 0;
-      top: 1px;
-      width: 22px;
-      height: 22px;
-      background: #f5f5f5;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #888;
+      content: counter(step); position: absolute; left: 0; top: 1px;
+      width: 22px; height: 22px; background: #f5f5f5; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 600; color: #888;
     }
+    .steps li strong { color: #1a1a1a; font-weight: 500; }
 
-    .steps li strong {
-      color: #1a1a1a;
-      font-weight: 500;
-    }
-
-    .footer {
-      color: #bbb;
-      font-size: 0.8rem;
-      letter-spacing: 0.05em;
-    }
-
-    .footer a {
-      color: #999;
-      text-decoration: none;
-    }
-
-    .footer a:hover {
-      color: #1a1a1a;
-    }
+    .footer { color: #bbb; font-size: 0.8rem; letter-spacing: 0.05em; }
+    .footer a { color: #999; text-decoration: none; }
 
     .spinner {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid #ddd;
-      border-top-color: #1a1a1a;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid #ddd; border-top-color: #1a1a1a;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      vertical-align: middle; margin-right: 8px;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .success-icon {
-      font-size: 3rem;
-      margin-bottom: 16px;
-    }
-
-    .success-text {
-      font-size: 1.05rem;
-      color: #555;
-      margin: 20px 0;
-      line-height: 1.6;
-    }
-
-    .muted {
-      color: #aaa;
-      font-size: 0.9rem;
-    }
+    .success-text { font-size: 1.05rem; color: #555; margin: 20px 0; line-height: 1.6; }
+    .muted { color: #aaa; font-size: 0.9rem; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
@@ -190,88 +104,112 @@
     <h1>Otto</h1>
     <p class="byline">by HNTIC</p>
 
-    <div id="qr-section">
+    <!-- Step 1: Enter phone number -->
+    <div id="phone-section">
       <p class="tagline">Connecte ton WhatsApp pour activer ton assistant.</p>
-
-      <div class="status waiting" id="status">
-        <span class="spinner"></span> Connexion en cours...
+      <div class="phone-form">
+        <label for="phone">Ton num&eacute;ro de t&eacute;l&eacute;phone WhatsApp</label>
+        <input type="tel" id="phone" placeholder="33612345678" autocomplete="tel">
+        <p class="phone-hint">Indicatif pays + num&eacute;ro, sans +, espaces ni tirets. Ex : 33612345678</p>
+        <button id="start-btn" onclick="startAuth()">Connecter WhatsApp</button>
       </div>
+    </div>
 
-      <canvas id="qrcode"></canvas>
-
+    <!-- Step 2: Enter pairing code in WhatsApp -->
+    <div id="code-section" class="hidden">
+      <div class="status waiting" id="status">
+        <span class="spinner"></span> G&eacute;n&eacute;ration du code...
+      </div>
+      <div class="pairing-code">
+        <p class="hint">Entre ce code dans WhatsApp</p>
+        <div class="code" id="pairing-code">--------</div>
+        <p class="hint">Le code expire dans 60 secondes</p>
+      </div>
       <ol class="steps">
         <li>Ouvre <strong>WhatsApp</strong> sur ton t&eacute;l&eacute;phone</li>
         <li>Va dans <strong>Param&egrave;tres</strong> &rarr; <strong>Appareils li&eacute;s</strong></li>
         <li>Appuie sur <strong>Lier un appareil</strong></li>
-        <li>Scanne le <strong>QR code</strong> ci-dessus</li>
+        <li>Appuie sur <strong>Lier avec un num&eacute;ro de t&eacute;l&eacute;phone</strong></li>
+        <li>Entre le <strong>code ci-dessus</strong></li>
       </ol>
     </div>
 
-    <div id="success-section" style="display:none">
-      <div class="success-icon">&#10003;</div>
+    <!-- Step 3: Connected -->
+    <div id="success-section" class="hidden">
+      <div style="font-size:3rem;margin-bottom:16px">&#10003;</div>
       <div class="status success">WhatsApp connect&eacute;</div>
-      <p class="success-text">
-        Otto va t'envoyer un message dans WhatsApp dans quelques secondes.
-      </p>
+      <p class="success-text">Otto va t'envoyer un message dans WhatsApp dans quelques secondes.</p>
       <p class="muted">Tu peux fermer cette page.</p>
     </div>
 
-    <div id="error-section" style="display:none">
+    <!-- Error -->
+    <div id="error-section" class="hidden">
       <div class="status error" id="error-msg">Erreur de connexion</div>
       <p class="success-text">Recharge la page pour r&eacute;essayer.</p>
     </div>
 
-    <div class="footer">
-      <p><a href="https://hntic.fr">HNTIC</a></p>
-    </div>
+    <div class="footer"><p><a href="https://hntic.fr">HNTIC</a></p></div>
   </div>
 
   <script>
+    let ws;
     const token = window.location.pathname.split('/onboard/')[1];
+
     if (!token) {
-      document.getElementById('qr-section').style.display = 'none';
-      document.getElementById('error-section').style.display = 'block';
+      document.getElementById('phone-section').classList.add('hidden');
+      document.getElementById('error-section').classList.remove('hidden');
       document.getElementById('error-msg').textContent = 'Lien invalide';
     } else {
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${protocol}//${location.host}/ws/${token}`);
+      ws = new WebSocket(`${protocol}//${location.host}/ws/${token}`);
 
       ws.onmessage = (e) => {
         const msg = JSON.parse(e.data);
 
-        if (msg.type === 'qr') {
-          document.getElementById('status').innerHTML = 'Scanne ce QR code avec WhatsApp';
+        if (msg.type === 'pairing_code') {
+          document.getElementById('status').innerHTML = 'Entre ce code dans WhatsApp';
           document.getElementById('status').className = 'status waiting';
-          QRCode.toCanvas(document.getElementById('qrcode'), msg.data, {
-            width: 280,
-            margin: 2,
-            color: { dark: '#1a1a1a', light: '#ffffff' }
-          });
+          document.getElementById('pairing-code').textContent = msg.code;
         }
 
         if (msg.type === 'connected') {
-          document.getElementById('qr-section').style.display = 'none';
-          document.getElementById('success-section').style.display = 'block';
+          document.getElementById('phone-section').classList.add('hidden');
+          document.getElementById('code-section').classList.add('hidden');
+          document.getElementById('success-section').classList.remove('hidden');
         }
 
         if (msg.type === 'error') {
-          document.getElementById('qr-section').style.display = 'none';
-          document.getElementById('error-section').style.display = 'block';
+          document.getElementById('phone-section').classList.add('hidden');
+          document.getElementById('code-section').classList.add('hidden');
+          document.getElementById('error-section').classList.remove('hidden');
           document.getElementById('error-msg').textContent = msg.message || 'Erreur';
         }
       };
 
       ws.onerror = () => {
-        document.getElementById('status').innerHTML = 'Erreur de connexion. Recharge la page.';
-        document.getElementById('status').className = 'status error';
-      };
-
-      ws.onclose = () => {
-        if (document.getElementById('success-section').style.display !== 'none') return;
-        document.getElementById('status').innerHTML = 'Connexion perdue. Recharge la page.';
-        document.getElementById('status').className = 'status error';
+        document.getElementById('error-section').classList.remove('hidden');
+        document.getElementById('error-msg').textContent = 'Erreur de connexion. Recharge la page.';
       };
     }
+
+    function startAuth() {
+      const phone = document.getElementById('phone').value.replace(/\D/g, '');
+      if (!phone || phone.length < 10) {
+        alert('Entre un num\u00e9ro valide (indicatif + num\u00e9ro, ex: 33612345678)');
+        return;
+      }
+
+      document.getElementById('start-btn').disabled = true;
+      document.getElementById('phone-section').classList.add('hidden');
+      document.getElementById('code-section').classList.remove('hidden');
+
+      ws.send(JSON.stringify({ type: 'start_auth', phone: phone }));
+    }
+
+    // Allow Enter key to submit
+    document.getElementById('phone').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') startAuth();
+    });
   </script>
 </body>
 </html>

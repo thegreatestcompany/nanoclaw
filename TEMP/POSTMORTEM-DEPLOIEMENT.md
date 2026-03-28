@@ -150,6 +150,37 @@ if (queryResult.resumeFailed) {
 
 ---
 
+## 9. Résiliation client et gestion des données
+
+**Ce qui est codé** : webhook Stripe `customer.subscription.deleted` → grâce 24h → deprovision (archive tar.gz + supprime).
+
+**Ce qui manque** :
+- Le client n'a aucun moyen de résilier lui-même. Il faut activer le **Stripe Customer Portal** (dashboard Stripe → Settings → Customer portal). Le client accède à un lien pour gérer son abonnement, sa carte, et résilier.
+- Otto devrait répondre à "je veux résilier" en envoyant le lien du Customer Portal.
+- Le message d'adieu avec proposition d'export des données n'est pas implémenté (TODO dans stripe.ts).
+- L'export des données (RGPD) doit être un tar.gz envoyé par email ou lien de téléchargement.
+
+**Priorité** : moyenne — à faire avant le premier client mais pas bloquant pour les tests.
+
+---
+
+## 10. Pas de mécanisme de reconnexion WhatsApp
+
+**Situation** : si un client délie son WhatsApp (changement de téléphone, suppression accidentelle, etc.), Otto crash en boucle car le handler QR code fait `process.exit(1)` en mode dev (et sur le VPS, le code IPC PM2 ne fonctionne pas en fork mode).
+
+**Impact** : le client est bloqué, seule une intervention manuelle peut restaurer la connexion.
+
+**Solution à implémenter** :
+- Détecter la déconnexion `loggedOut` dans le channel WhatsApp
+- Au lieu de crasher, mettre le process en pause et générer un nouveau token d'onboarding
+- Envoyer un email au client avec un lien de reconnexion
+- Route `/reconnect/:clientId` dans l'API qui régénère un QR code
+- Le client rescanne et le process reprend
+
+**Priorité** : haute — peut arriver à tout moment en production.
+
+---
+
 ## Checklist pour le script d'onboarding automatisé
 
 D'après ces post-mortem, le script de provisioning client doit :

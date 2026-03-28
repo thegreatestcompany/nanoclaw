@@ -101,28 +101,51 @@ export function setupOnboardRoutes(app: Express, server: Server): void {
 }
 
 /**
- * Start WhatsApp auth for a client. Spawns the setup script,
- * watches for QR code data, and pipes it to the WebSocket.
+ * Start WhatsApp auth for a client using pairing code method.
+ * The page will ask the client for their phone number, then display
+ * the pairing code to enter in WhatsApp.
  */
 function startWhatsAppAuth(clientId: string, ws: WebSocket): void {
   const clientDir = path.join(CLIENTS_DIR, clientId);
-  const authDir = path.join(clientDir, 'store', 'auth');
+  const authCredsPath = path.join(APP_DIR, 'store', 'auth');
 
-  // If already authenticated, skip
-  if (fs.existsSync(path.join(authDir, 'creds.json'))) {
-    broadcastConnected(clientId);
+  console.log(`WhatsApp auth ready for client ${clientId} — waiting for phone number`);
+
+  // Listen for phone number from the WebSocket
+  ws.on('message', (data) => {
+    try {
+      const msg = JSON.parse(data.toString());
+      if (msg.type === 'start_auth' && msg.phone) {
+        launchPairingCode(clientId, msg.phone, ws);
+      }
+    } catch { /* ignore non-JSON messages */ }
+  });
+
+  // Send ready signal to the page
+  ws.send(JSON.stringify({ type: 'auth_ready' }));
+}
+
+/**
+ * Launch the pairing code auth process for a client.
+ */
+function launchPairingCode(clientId: string, phone: string, ws: WebSocket): void {
+  if (activeAuthProcesses.has(clientId)) {
+    console.log(`Auth already in progress for ${clientId}`);
     return;
   }
 
-  console.log(`Starting WhatsApp auth for client ${clientId}`);
+  const clientDir = path.join(CLIENTS_DIR, clientId);
+  console.log(`Starting WhatsApp pairing code auth for ${clientId} (phone: ${phone})`);
 
-  // Spawn the WhatsApp auth process
+  // Ensure store directory exists
+  fs.mkdirSync(path.join(clientDir, 'store', 'auth'), { recursive: true });
+
   const proc = spawn('npx', [
     'tsx', path.join(APP_DIR, 'setup', 'index.ts'),
     '--step', 'whatsapp-auth',
-    '--', '--method', 'qr-terminal',
+    '--', '--method', 'pairing-code', '--phone', phone,
   ], {
-    cwd: clientDir,
+    cwd: APP_DIR,
     env: {
       ...process.env,
       STORE_DIR: path.join(clientDir, 'store'),
@@ -134,24 +157,30 @@ function startWhatsAppAuth(clientId: string, ws: WebSocket): void {
 
   activeAuthProcesses.set(clientId, proc);
 
-  // Watch for QR code in stdout/stderr (Baileys outputs QR as text)
-  let output = '';
   const handleData = (data: Buffer) => {
     const text = data.toString();
-    output += text;
 
-    // Check for pairing code or QR data
+    // Check for pairing code
     const pairingMatch = text.match(/PAIRING_CODE:\s*(\S+)/);
     if (pairingMatch) {
-      broadcastQrCode(clientId, pairingMatch[1]);
+      console.log(`Pairing code for ${clientId}: ${pairingMatch[1]}`);
+      ws.send(JSON.stringify({ type: 'pairing_code', code: pairingMatch[1] }));
+    }
+
+    // Also check the pairing-code.txt file
+    const codeFile = path.join(clientDir, 'store', 'pairing-code.txt');
+    if (fs.existsSync(codeFile)) {
+      const code = fs.readFileSync(codeFile, 'utf-8').trim();
+      if (code) {
+        console.log(`Pairing code from file for ${clientId}: ${code}`);
+        ws.send(JSON.stringify({ type: 'pairing_code', code }));
+      }
     }
 
     // Check for successful auth
     if (text.includes('AUTH_STATUS: authenticated') || text.includes('authenticated')) {
       console.log(`WhatsApp authenticated for client ${clientId}`);
       broadcastConnected(clientId);
-
-      // Register the channel for this client
       registerClientChannel(clientId);
     }
   };
@@ -163,8 +192,8 @@ function startWhatsAppAuth(clientId: string, ws: WebSocket): void {
     console.log(`WhatsApp auth process exited for ${clientId} with code ${code}`);
     activeAuthProcesses.delete(clientId);
 
-    // Check if auth succeeded
-    if (fs.existsSync(path.join(authDir, 'creds.json'))) {
+    const credsPath = path.join(clientDir, 'store', 'auth', 'creds.json');
+    if (fs.existsSync(credsPath)) {
       broadcastConnected(clientId);
       registerClientChannel(clientId);
     }
@@ -175,6 +204,7 @@ function startWhatsAppAuth(clientId: string, ws: WebSocket): void {
     if (activeAuthProcesses.has(clientId)) {
       proc.kill();
       activeAuthProcesses.delete(clientId);
+      ws.send(JSON.stringify({ type: 'error', message: 'Délai expiré. Recharge la page pour réessayer.' }));
     }
   }, 5 * 60 * 1000);
 }
