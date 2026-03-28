@@ -1,0 +1,4 @@
+-- Migration 001: Schema initial
+-- Ce fichier est identique à init-business-db.sql
+-- Il sert de référence pour le numérotage des migrations suivantes.
+-- NE PAS EXÉCUTER sur une base existante — utiliser init-business-db.sql à la place.

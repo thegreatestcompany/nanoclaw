@@ -104,13 +104,21 @@ export class WhatsAppChannel implements Channel {
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
-        const msg =
-          'WhatsApp authentication required. Run /setup in Claude Code.';
-        logger.error(msg);
-        exec(
-          `osascript -e 'display notification "${msg}" with title "NanoClaw" sound name "Basso"'`,
-        );
-        setTimeout(() => process.exit(1), 1000);
+        // In production (PM2), send QR to parent process for the onboarding web page.
+        // PM2 captures messages sent via process.send() on its IPC bus.
+        if (process.send) {
+          process.send({ type: 'qr', qr });
+          logger.info('QR code sent to parent process (PM2 IPC)');
+        } else {
+          // Local dev: show notification and exit (user should run /setup)
+          const msg =
+            'WhatsApp authentication required. Run /setup in Claude Code.';
+          logger.error(msg);
+          exec(
+            `osascript -e 'display notification "${msg}" with title "NanoClaw" sound name "Basso"'`,
+          );
+          setTimeout(() => process.exit(1), 1000);
+        }
       }
 
       if (connection === 'close') {
@@ -145,6 +153,11 @@ export class WhatsAppChannel implements Channel {
       } else if (connection === 'open') {
         this.connected = true;
         logger.info('Connected to WhatsApp');
+
+        // Notify parent process (PM2) that WhatsApp is connected
+        if (process.send) {
+          process.send({ type: 'connected' });
+        }
 
         // Announce availability so WhatsApp relays subsequent presence updates (typing indicators)
         this.sock.sendPresenceUpdate('available').catch((err) => {
