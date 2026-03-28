@@ -66,13 +66,20 @@ async function handleCheckoutCompleted(session: any): Promise<void> {
     return;
   }
 
-  // Get trial info from the subscription if available
+  // Get trial info: trial_end is on the Subscription object, not the Session.
+  // We need to fetch the subscription from Stripe to get the trial_end timestamp.
   let trialEndsAt: string | null = null;
-  if (session.subscription) {
-    // The subscription object may be expanded or just an ID
-    // In webhook events, it's typically just the ID — we'd need to fetch it
-    // For now, we calculate from trial_period_days if present
-    // Stripe sends trial_end as a unix timestamp on the subscription object
+  if (session.subscription && process.env.STRIPE_SECRET_KEY) {
+    try {
+      const { default: Stripe } = await import('stripe');
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+      if (subscription.trial_end) {
+        trialEndsAt = new Date(subscription.trial_end * 1000).toISOString();
+      }
+    } catch (err) {
+      console.error('Failed to fetch subscription for trial_end:', err);
+    }
   }
 
   try {
@@ -224,6 +231,19 @@ async function processStripeEvent(event: { id: string; type: string; data: { obj
       // TODO: send WhatsApp message with invoice.hosted_invoice_url
       // to let client update their payment method
       console.log(`Payment failed for customer ${invoice.customer} — invoice: ${invoice.hosted_invoice_url}`);
+      break;
+    }
+
+    case 'customer.subscription.trial_will_end': {
+      // Stripe sends this 3 days before trial ends — perfect for our reminder
+      const sub = event.data.object;
+      const client = db.prepare(
+        'SELECT id FROM clients WHERE stripe_customer_id = ?'
+      ).get(sub.customer as string) as { id: string } | undefined;
+      if (client) {
+        console.log(`Trial ending soon for ${client.id} (Stripe notification)`);
+        // TODO: query client's business.db for usage stats and send WhatsApp summary
+      }
       break;
     }
 
