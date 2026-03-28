@@ -76,7 +76,7 @@ export async function runDailyLearnings(
         assistantName: ASSISTANT_NAME,
         model: 'haiku',
         maxTurns: 10,
-        maxBudgetUsd: 0.10,
+        maxBudgetUsd: 0.1,
       },
       (proc, containerName) =>
         deps.queue.registerProcess(

@@ -58,7 +58,10 @@ import {
   loadSenderAllowlist,
   shouldDropMessage,
 } from './sender-allowlist.js';
-import { runDailyLearnings, runWeeklyAutoDream } from './memory-consolidator.js';
+import {
+  runDailyLearnings,
+  runWeeklyAutoDream,
+} from './memory-consolidator.js';
 import { runPassiveScan } from './passive-scanner.js';
 import { isJidIgnored } from './scan-config.js';
 import { startSchedulerLoop } from './task-scheduler.js';
@@ -703,7 +706,10 @@ async function main(): Promise<void> {
     nextSunday.setDate(now.getDate() + daysUntilSunday);
     nextSunday.setHours(22, 0, 0, 0);
     const msUntilSunday = nextSunday.getTime() - now.getTime();
-    setTimeout(weeklyAutoDreamLoop, msUntilSunday > 0 ? msUntilSunday : WEEKLY_AUTODREAM_INTERVAL);
+    setTimeout(
+      weeklyAutoDreamLoop,
+      msUntilSunday > 0 ? msUntilSunday : WEEKLY_AUTODREAM_INTERVAL,
+    );
     logger.info('Memory consolidation scheduled (daily + weekly AutoDream)');
   }
 
