@@ -1,6 +1,25 @@
 # TODO — Otto by HNTIC
 
-## À faire (court terme)
+## Prêt pour la prod (validé)
+
+- [x] Flow onboarding complet : Stripe → email → QR code → WhatsApp connecté → email bienvenue
+- [x] Reconnexion : /reconnect → email → nouveau lien 24h
+- [x] QR code + pairing code (fallback)
+- [x] Gestion d'erreurs (tous les échecs propagés à l'UI)
+- [x] Skills Anthropic (docx, pptx, xlsx, pdf) + 36 skills métier
+- [x] Whisper API OpenAI (2s)
+- [x] Permissions multi-tenant (root:1000, 770)
+- [x] Sécurité (injection admin, sandbox, register_group désactivé)
+
+## À faire avant le premier vrai client
+
+### Stripe live
+Passer de test à prod : nouvelles clés + nouveau webhook endpoint dans le dashboard Stripe.
+
+### Monitoring
+- PM2 auto-restart en cas de crash (`--max-memory-restart`)
+- Alerting quand un process client crash
+- Détection de déconnexion WhatsApp (heartbeat)
 
 ### Passive scanner
 L'infra est en place (passive scanner analyse toutes les 2h, `scan_config` pour exclure des JIDs). Désactivé en dev (conversations perso).
@@ -57,3 +76,16 @@ Passer de 1 process PM2 par client à 1 process unique. Prérequis : WhatsApp Bu
 
 ### Admin key Anthropic par client
 Actuellement commentée (`ANTHROPIC_ADMIN_KEY`). À activer en prod pour créer un workspace + clé API isolés par client. Permet l'isolation des coûts et la révocation individuelle.
+
+## À lancer maintenant (process admin)
+
+### Vérification Meta Business
+Créer un Meta Business Account + vérifier HNTIC. Prend 1-4 semaines. Bloque la migration WhatsApp Business API.
+→ https://business.facebook.com/
+
+### Landing page / site commercial
+Page de vente pour Otto avec le Payment Link Stripe intégré.
+
+## Résumé de la session du 29/03/2026
+
+Journée complète de dev : permissions, sandbox, skills, sécurité, architecture, onboarding. ~40 commits. Tout documenté dans ARCHITECTURE.md, SECURITY.md, et POSTMORTEM-DEPLOIEMENT.md.
