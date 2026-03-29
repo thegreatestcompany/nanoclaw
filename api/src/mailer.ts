@@ -17,7 +17,9 @@ const transporter = process.env.SMTP_USER
     })
   : null;
 
-const FROM = process.env.SMTP_FROM || 'Otto by HNTIC <contact@hntic.fr>';
+const FROM = process.env.SMTP_FROM
+  ? `Otto by HNTIC <${process.env.SMTP_FROM}>`
+  : 'Otto by HNTIC <otto@hntic.fr>';
 
 /**
  * Send the onboarding email with the WhatsApp connection link.
