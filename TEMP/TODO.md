@@ -23,10 +23,18 @@ Page web admin pour visualiser et gérer le VPS :
 ### Stripe live
 Passer de test à prod : nouvelles clés + nouveau webhook endpoint dans le dashboard Stripe.
 
+### Robustesse WhatsApp (CRITIQUE)
+Le process PM2 du client ne doit PAS tenter de se re-lier tout seul quand WhatsApp se déconnecte. Actuellement Baileys émet des QR codes automatiquement → crée des liaisons fantômes.
+
+À implémenter :
+1. Quand Baileys détecte une déconnexion (connection.close, loggedOut, QR refs ended) → le process se met en pause au lieu d'émettre des QR
+2. Envoyer un email automatique au client : "Ton WhatsApp s'est déconnecté, clique ici pour reconnecter"
+3. Le process attend que le client se reconnecte via /onboard (pas via les QR internes de Baileys)
+4. Tester tous les scénarios : déconnexion volontaire, changement de téléphone, timeout, crash process
+
 ### Monitoring
 - PM2 auto-restart en cas de crash (`--max-memory-restart`)
 - Alerting quand un process client crash
-- Détection de déconnexion WhatsApp (heartbeat)
 
 ### Passive scanner
 L'infra est en place (passive scanner analyse toutes les 2h, `scan_config` pour exclure des JIDs). Désactivé en dev (conversations perso).
