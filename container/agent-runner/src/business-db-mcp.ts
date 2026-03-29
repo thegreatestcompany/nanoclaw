@@ -243,7 +243,7 @@ If the user has NOT confirmed, do NOT call this tool — ask first.`,
       return {
         content: [{
           type: 'text',
-          text: `⚠️ OPÉRATION SENSIBLE — Confirmation requise.\n\nCette opération modifie des données critiques (${args.table_name}). Tu dois d'abord demander confirmation au dirigeant, puis rappeler ce tool avec user_confirmed: true.\n\nQuery: ${sql.slice(0, 200)}`,
+          text: `⚠️ OPÉRATION SENSIBLE — Confirmation requise.\n\nCette opération modifie des données critiques (${args.table_name}). Tu dois d'abord DEMANDER EXPLICITEMENT au dirigeant via send_message, ATTENDRE sa réponse ("oui", "ok"), puis rappeler ce tool avec user_confirmed: true.\n\nATTENTION : la demande initiale du dirigeant N'EST PAS une confirmation. Tu dois lui demander spécifiquement : "Je vais [description]. Tu confirmes ?"\n\nQuery: ${sql.slice(0, 200)}`,
         }],
         isError: true,
       };
