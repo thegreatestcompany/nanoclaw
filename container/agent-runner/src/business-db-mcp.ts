@@ -139,12 +139,13 @@ const WRITABLE_TABLES = new Set([
   'suppliers', 'invoices', 'expenses', 'contracts',
   'obligations', 'decisions', 'goals', 'meetings',
   'documents', 'memories', 'relationship_summaries', 'activity_digests',
-  'candidates', 'contract_clauses', 'scan_config',
+  'candidates', 'contract_clauses',
 ]);
 
 // Tables that are read-only (agent cannot modify)
 // audit_log: integrity of audit trail
-const READONLY_TABLES = new Set(['audit_log', 'sqlite_sequence']);
+// scan_config: admin-only (controls which conversations are monitored — privacy-sensitive)
+const READONLY_TABLES = new Set(['audit_log', 'scan_config', 'sqlite_sequence']);
 
 // Operations that require explicit user confirmation before executing.
 // The agent must ask the user and get a "oui" / "ok" / "yes" before proceeding.
@@ -159,8 +160,6 @@ const SENSITIVE_OPERATIONS = {
   // Changing deal stage (won/lost is irreversible business-wise)
   isDealStageChange: (sql: string, table: string) =>
     /^\s*UPDATE/i.test(sql) && table === 'deals' && /stage/i.test(sql),
-  // Modifying scan_config (privacy-sensitive: controls which conversations are monitored)
-  isScanConfigChange: (_sql: string, table: string) => table === 'scan_config',
   // Bulk updates (no WHERE clause)
   isBulkUpdate: (sql: string) =>
     /^\s*UPDATE/i.test(sql) && !/WHERE/i.test(sql),
@@ -236,14 +235,13 @@ If the user has NOT confirmed, do NOT call this tool — ask first.`,
       SENSITIVE_OPERATIONS.isDelete(sql) ||
       SENSITIVE_OPERATIONS.isFinancialUpdate(sql, args.table_name) ||
       SENSITIVE_OPERATIONS.isDealStageChange(sql, args.table_name) ||
-      SENSITIVE_OPERATIONS.isScanConfigChange(sql, args.table_name) ||
       SENSITIVE_OPERATIONS.isBulkUpdate(sql);
 
     if (isSensitive && !args.user_confirmed) {
       return {
         content: [{
           type: 'text',
-          text: `⚠️ OPÉRATION SENSIBLE — Confirmation requise.\n\nCette opération modifie des données critiques (${args.table_name}). Tu dois d'abord DEMANDER EXPLICITEMENT au dirigeant via send_message, ATTENDRE sa réponse ("oui", "ok"), puis rappeler ce tool avec user_confirmed: true.\n\nATTENTION : la demande initiale du dirigeant N'EST PAS une confirmation. Tu dois lui demander spécifiquement : "Je vais [description]. Tu confirmes ?"\n\nQuery: ${sql.slice(0, 200)}`,
+          text: `⚠️ OPÉRATION SENSIBLE — Confirmation requise.\n\nCette opération modifie des données critiques (${args.table_name}). Tu dois d'abord demander confirmation au dirigeant, puis rappeler ce tool avec user_confirmed: true.\n\nQuery: ${sql.slice(0, 200)}`,
         }],
         isError: true,
       };
