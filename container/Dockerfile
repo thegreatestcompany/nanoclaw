@@ -28,15 +28,15 @@ RUN apt-get update && apt-get install -y \
     pandoc \
     ffmpeg \
     python3-pip \
-    && pip3 install --break-system-packages python-docx openpyxl \
+    && pip3 install --break-system-packages python-docx openpyxl python-pptx reportlab pandas Pillow "markitdown[pptx]" \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Chromium path for agent-browser
 ENV AGENT_BROWSER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
 
-# Install agent-browser and claude-code globally
-RUN npm install -g agent-browser @anthropic-ai/claude-code
+# Install agent-browser, claude-code, and document creation tools globally
+RUN npm install -g agent-browser @anthropic-ai/claude-code docx pptxgenjs
 
 # Create app directory
 WORKDIR /app
