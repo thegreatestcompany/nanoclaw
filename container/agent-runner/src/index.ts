@@ -564,6 +564,10 @@ async function runQuery(
         'mcp__gmail__*',
         'mcp__google-calendar__*'
       ],
+      disallowedTools: [
+        'Agent', 'Task', 'TaskOutput', 'TaskStop',
+        'TeamCreate', 'TeamDelete', 'SendMessage',
+      ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
