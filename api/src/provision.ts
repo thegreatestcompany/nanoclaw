@@ -194,6 +194,7 @@ export async function provisionClient(
     'TZ=Europe/Paris',
     `CLIENT_ID=${clientId}`,
     `CREDENTIAL_PROXY_PORT=${proxyPort}`,
+    `WHISPER_MODEL=${APP_DIR}/data/models/ggml-large-v3-french-distil-q5_0.bin`,
   ].join('\n');
   fs.writeFileSync(path.join(clientDir, '.env'), envContent, { mode: 0o600 });
   fs.mkdirSync(path.join(clientDir, 'data', 'env'), { recursive: true });
