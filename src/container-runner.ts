@@ -2,7 +2,7 @@
  * Container Runner for NanoClaw
  * Spawns agent execution in containers and handles IPC
  */
-import { ChildProcess, spawn } from 'child_process';
+import { ChildProcess, execSync, spawn } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -127,6 +127,10 @@ function buildVolumeMounts(
     '.claude',
   );
   fs.mkdirSync(groupSessionsDir, { recursive: true });
+  // Ensure the entire .claude/ tree is writable by the container's node user (uid 1000)
+  try {
+    execSync(`chmod -R 777 "${groupSessionsDir}"`);
+  } catch { /* best effort */ }
   // Always write settings.json (overwrite on each launch to pick up config changes)
   const settingsFile = path.join(groupSessionsDir, 'settings.json');
   fs.writeFileSync(
