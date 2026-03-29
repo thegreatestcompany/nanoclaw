@@ -15,6 +15,7 @@ import path from 'path';
 import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
 
+import { sendReconnectionEmail } from './mailer.js';
 import {
   getClientByToken,
   getClientByEmail,
@@ -137,11 +138,14 @@ export function setupOnboardRoutes(app: Express, server: Server): void {
         }
 
         const { token } = renewOnboardToken(client.id);
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
         const onboardUrl = `${baseUrl}/onboard/${token}`;
 
         console.log(`Reconnection link generated for ${client.id}: ${onboardUrl}`);
-        res.json({ ok: true, onboardUrl });
+        sendReconnectionEmail(email, onboardUrl).catch((err) =>
+          console.error(`Failed to send reconnection email to ${email}:`, err),
+        );
+        res.json({ ok: true, message: 'Un email avec le lien de reconnexion a \u00e9t\u00e9 envoy\u00e9.' });
       } catch {
         res.status(400).json({ error: 'Invalid JSON' });
       }

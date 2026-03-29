@@ -78,11 +78,9 @@
 
     <!-- Success -->
     <div id="success-section" class="hidden">
-      <div class="status success">Lien g&eacute;n&eacute;r&eacute;</div>
-      <p class="success-text">Clique sur le lien ci-dessous pour reconnecter ton WhatsApp :</p>
-      <div class="card">
-        <a id="onboard-link" href="#" style="word-break:break-all;color:#1a6ed8;font-size:0.95rem"></a>
-      </div>
+      <div class="status success">Email envoy&eacute;</div>
+      <p class="success-text">V&eacute;rifie ta bo&icirc;te mail &mdash; tu vas recevoir un lien pour reconnecter ton WhatsApp.</p>
+      <p class="muted">Pense &agrave; v&eacute;rifier tes spams.</p>
     </div>
 
     <!-- Error -->
@@ -116,12 +114,9 @@
 
         const data = await res.json();
 
-        if (res.ok && data.onboardUrl) {
+        if (res.ok) {
           document.getElementById('form-section').classList.add('hidden');
           document.getElementById('success-section').classList.remove('hidden');
-          const link = document.getElementById('onboard-link');
-          link.href = data.onboardUrl;
-          link.textContent = data.onboardUrl;
         } else {
           document.getElementById('form-section').classList.add('hidden');
           document.getElementById('error-section').classList.remove('hidden');

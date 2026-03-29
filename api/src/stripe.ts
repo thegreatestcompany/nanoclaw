@@ -22,6 +22,7 @@ import express from 'express';
 
 import { getDb, slugify } from './db.js';
 import { provisionClient, deprovisionClient } from './provision.js';
+import { sendOnboardingEmail } from './mailer.js';
 
 // In-memory set to deduplicate events (Stripe can send the same event multiple times)
 const processedEvents = new Set<string>();
@@ -114,7 +115,9 @@ async function handleCheckoutCompleted(session: any): Promise<void> {
     ).run(session.subscription || null, trialEndsAt, clientId);
 
     console.log(`Client provisioned via Stripe: ${clientId} → ${result.onboardUrl}`);
-    // TODO: send onboarding email with result.onboardUrl
+    await sendOnboardingEmail(email, result.onboardUrl).catch((err) =>
+      console.error(`Failed to send onboarding email to ${email}:`, err),
+    );
   } catch (err) {
     console.error(`Provisioning failed for ${email}:`, err);
   }
