@@ -11,6 +11,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { spawn, execSync, ChildProcess } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
 
 import {
@@ -248,16 +249,20 @@ function launchAuth(clientId: string, phone: string | undefined, method: 'qr' | 
   let lastQrData = '';
 
   if (method === 'qr') {
-    qrPollInterval = setInterval(() => {
+    qrPollInterval = setInterval(async () => {
       try {
         if (fs.existsSync(qrFile)) {
           const qrData = fs.readFileSync(qrFile, 'utf-8').trim();
           if (qrData && qrData !== lastQrData) {
             lastQrData = qrData;
-            broadcast(clientId, { type: 'qr', data: qrData });
+            const dataUrl = await QRCode.toDataURL(qrData, { width: 280, margin: 2 });
+            console.log(`[QR] Broadcasting QR for ${clientId}, connections: ${activeConnections.get(clientId)?.size || 0}`);
+            broadcast(clientId, { type: 'qr', dataUrl });
           }
         }
-      } catch { /* file may be mid-write */ }
+      } catch (err) {
+        console.error(`[QR] Error generating QR for ${clientId}:`, err);
+      }
     }, 1000);
   }
 
