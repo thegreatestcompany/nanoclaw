@@ -139,6 +139,7 @@ const WRITABLE_TABLES = new Set([
   'suppliers', 'invoices', 'expenses', 'contracts',
   'obligations', 'decisions', 'goals', 'meetings',
   'documents', 'memories', 'relationship_summaries', 'activity_digests',
+  'candidates', 'contract_clauses',
 ]);
 
 // Tables that are read-only (agent cannot modify)

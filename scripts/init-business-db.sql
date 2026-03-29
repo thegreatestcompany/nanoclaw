@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS contacts (
   email TEXT,
   relationship_type TEXT DEFAULT 'prospect', -- prospect, client, partner, supplier, advisor, investor, team, personal
   source TEXT, -- whatsapp, manual, scan, document
+  linkedin_url TEXT,
   notes TEXT,
   deleted_at TEXT,
   created_at TEXT DEFAULT (datetime('now')),
@@ -48,6 +49,8 @@ CREATE TABLE IF NOT EXISTS deals (
   expected_close_date TEXT,
   next_action TEXT,
   next_action_date TEXT,
+  source TEXT, -- referral, inbound, cold, event, partner
+  loss_reason TEXT, -- price, timing, competitor, no_budget, no_decision, other
   notes TEXT,
   deleted_at TEXT,
   created_at TEXT DEFAULT (datetime('now')),
@@ -93,6 +96,7 @@ CREATE TABLE IF NOT EXISTS team_members (
   role TEXT,
   email TEXT,
   phone TEXT,
+  manager_id TEXT REFERENCES team_members(id),
   start_date TEXT,
   contract_type TEXT, -- cdi, cdd, freelance, intern
   trial_end_date TEXT,
@@ -148,6 +152,7 @@ CREATE TABLE IF NOT EXISTS suppliers (
   email TEXT,
   contract_end_date TEXT,
   annual_cost REAL,
+  rating INTEGER, -- 1-5 satisfaction score
   notes TEXT,
   deleted_at TEXT,
   created_at TEXT DEFAULT (datetime('now')),
@@ -168,6 +173,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   issue_date TEXT,
   due_date TEXT,
   paid_date TEXT,
+  payment_method TEXT, -- transfer, check, card, cash, direct_debit
   file_path TEXT,
   notes TEXT,
   deleted_at TEXT,
@@ -323,6 +329,42 @@ CREATE TABLE IF NOT EXISTS activity_digests (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- RECRUTEMENT
+
+CREATE TABLE IF NOT EXISTS candidates (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  name TEXT NOT NULL,
+  position TEXT NOT NULL,
+  stage TEXT DEFAULT 'sourced', -- sourced, screening, interview, offer, hired, rejected, withdrawn
+  source TEXT, -- referral, linkedin, job_board, agency, internal
+  email TEXT,
+  phone TEXT,
+  linkedin_url TEXT,
+  resume_path TEXT,
+  current_company TEXT,
+  salary_expectation REAL,
+  interviewer TEXT,
+  rejection_reason TEXT,
+  notes TEXT,
+  deleted_at TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- CLAUSES CONTRACTUELLES
+
+CREATE TABLE IF NOT EXISTS contract_clauses (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  contract_id TEXT REFERENCES contracts(id),
+  clause_type TEXT NOT NULL, -- liability, termination, non_compete, confidentiality, payment, ip, indemnity, force_majeure, other
+  title TEXT,
+  summary TEXT NOT NULL,
+  risk_level TEXT DEFAULT 'low', -- low, medium, high, critical
+  original_text TEXT,
+  notes TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
 -- AUDIT
 
 CREATE TABLE IF NOT EXISTS audit_log (
@@ -366,4 +408,7 @@ CREATE INDEX IF NOT EXISTS idx_meetings_date ON meetings(date);
 CREATE INDEX IF NOT EXISTS idx_documents_category ON documents(category);
 CREATE INDEX IF NOT EXISTS idx_memories_category ON memories(category);
 CREATE INDEX IF NOT EXISTS idx_audit_log_table ON audit_log(table_name, record_id);
-CREATE INDEX IF NOT EXISTS idx_scan_config_mode ON scan_config(mode);
+CREATE INDEX IF NOT EXISTS idx_candidates_stage ON candidates(stage);
+CREATE INDEX IF NOT EXISTS idx_candidates_position ON candidates(position);
+CREATE INDEX IF NOT EXISTS idx_contract_clauses_contract ON contract_clauses(contract_id);
+CREATE INDEX IF NOT EXISTS idx_contract_clauses_risk ON contract_clauses(risk_level);
