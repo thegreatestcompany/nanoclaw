@@ -111,3 +111,66 @@ export async function sendReconnectionEmail(
 
   console.log(`[EMAIL] Reconnection email sent to ${to}`);
 }
+
+/**
+ * Send the welcome email after successful WhatsApp connection.
+ */
+export async function sendWelcomeEmail(to: string): Promise<void> {
+  if (!transporter) {
+    console.warn('SMTP not configured — welcome email not sent');
+    return;
+  }
+
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: 'Otto est actif — ton assistant IA est prêt',
+    html: `
+      <div style="font-family:'Inter',system-ui,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px">
+        <div style="text-align:center;margin-bottom:32px">
+          <h1 style="font-size:1.5rem;font-weight:300;letter-spacing:0.3em;text-transform:uppercase;margin-bottom:4px">Otto</h1>
+          <p style="color:#999;font-style:italic;font-size:0.9rem">by HNTIC</p>
+        </div>
+
+        <p style="color:#333;font-size:1rem;line-height:1.6;margin-bottom:24px">
+          Ton assistant IA est connect&eacute; et pr&ecirc;t &agrave; t'aider. Envoie-lui un message sur WhatsApp pour commencer.
+        </p>
+
+        <div style="background:#f9f9f9;border-radius:12px;padding:24px;margin-bottom:24px">
+          <p style="color:#333;font-weight:500;margin-bottom:16px">Ce qu'Otto peut faire pour toi :</p>
+          <table style="width:100%;border-collapse:collapse">
+            <tr><td style="padding:6px 0;color:#555;font-size:0.9rem">&#128196; Cr&eacute;er des documents (Word, PowerPoint, Excel, PDF)</td></tr>
+            <tr><td style="padding:6px 0;color:#555;font-size:0.9rem">&#128197; G&eacute;rer ton agenda et tes rappels</td></tr>
+            <tr><td style="padding:6px 0;color:#555;font-size:0.9rem">&#128188; Suivre tes deals, contacts et pipeline</td></tr>
+            <tr><td style="padding:6px 0;color:#555;font-size:0.9rem">&#128176; Analyser tes finances et factures</td></tr>
+            <tr><td style="padding:6px 0;color:#555;font-size:0.9rem">&#128269; Rechercher des infos sur le web</td></tr>
+            <tr><td style="padding:6px 0;color:#555;font-size:0.9rem">&#127908; Comprendre tes messages vocaux</td></tr>
+          </table>
+        </div>
+
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;margin-bottom:24px;text-align:center">
+          <p style="color:#166534;font-size:0.95rem;margin:0">
+            Envoie <strong>"Bonjour"</strong> sur WhatsApp pour d&eacute;marrer.
+          </p>
+        </div>
+
+        <p style="color:#999;font-size:0.85rem;line-height:1.5;margin-bottom:8px">
+          <strong>Bon &agrave; savoir :</strong>
+        </p>
+        <ul style="color:#999;font-size:0.85rem;line-height:1.8;padding-left:20px;margin-bottom:24px">
+          <li>Otto apprend de tes conversations et s'am&eacute;liore avec le temps</li>
+          <li>Tes donn&eacute;es sont priv&eacute;es et s&eacute;curis&eacute;es</li>
+          <li>Tu peux lui envoyer des documents, des vocaux ou du texte</li>
+          <li>En cas de probl&egrave;me de connexion : <a href="https://otto.hntic.fr/reconnect" style="color:#666">otto.hntic.fr/reconnect</a></li>
+        </ul>
+
+        <hr style="border:none;border-top:1px solid #eee;margin:32px 0">
+        <p style="color:#bbb;font-size:0.75rem;text-align:center">
+          <a href="https://hntic.fr" style="color:#999;text-decoration:none">HNTIC</a>
+        </p>
+      </div>
+    `,
+  });
+
+  console.log(`[EMAIL] Welcome email sent to ${to}`);
+}

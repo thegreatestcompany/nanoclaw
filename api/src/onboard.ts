@@ -15,8 +15,9 @@ import path from 'path';
 import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
 
-import { sendReconnectionEmail } from './mailer.js';
+import { sendReconnectionEmail, sendWelcomeEmail } from './mailer.js';
 import {
+  getClientById,
   getClientByToken,
   getClientByEmail,
   renewOnboardToken,
@@ -320,6 +321,8 @@ function launchAuth(clientId: string, phone: string | undefined, method: 'qr' | 
     }, 1000);
   }
 
+  let registrationStarted = false;
+
   const handleData = (data: Buffer) => {
     const text = data.toString();
 
@@ -341,8 +344,9 @@ function launchAuth(clientId: string, phone: string | undefined, method: 'qr' | 
       } catch { /* ok */ }
     }
 
-    // Check for successful auth
-    if (text.includes('AUTH_STATUS: authenticated') || text.includes('authenticated')) {
+    // Check for successful auth (guard against double registration)
+    if (!registrationStarted && (text.includes('AUTH_STATUS: authenticated') || text.includes('authenticated'))) {
+      registrationStarted = true;
       console.log(`WhatsApp authenticated for client ${clientId}`);
       if (qrPollInterval) clearInterval(qrPollInterval);
       broadcast(clientId, { type: 'connected' });
@@ -358,11 +362,14 @@ function launchAuth(clientId: string, phone: string | undefined, method: 'qr' | 
     activeAuthProcesses.delete(clientId);
     if (qrPollInterval) clearInterval(qrPollInterval);
 
-    // If process exited successfully and creds exist, register
-    const credsPath = path.join(clientDir, 'store', 'auth', 'creds.json');
-    if (fs.existsSync(credsPath)) {
-      broadcast(clientId, { type: 'connected' });
-      registerClientChannel(clientId);
+    // If process exited and creds exist but registration hasn't started yet
+    if (!registrationStarted) {
+      const credsPath = path.join(clientDir, 'store', 'auth', 'creds.json');
+      if (fs.existsSync(credsPath)) {
+        registrationStarted = true;
+        broadcast(clientId, { type: 'connected' });
+        registerClientChannel(clientId);
+      }
     }
   });
 
@@ -447,6 +454,13 @@ function registerClientChannel(clientId: string): void {
           console.log(`Channel registered for client ${clientId} (${phoneJid})`);
           updateClientStatus(clientId, 'active');
           startClientProcess(clientId);
+          // Send welcome email
+          const client = getClientById(clientId);
+          if (client?.email) {
+            sendWelcomeEmail(client.email).catch((err) =>
+              console.error(`Failed to send welcome email to ${client.email}:`, err),
+            );
+          }
         } else {
           console.error(`Channel registration failed for ${clientId} with code ${code}`);
           broadcast(clientId, { type: 'error', message: 'L\'enregistrement a \u00e9chou\u00e9. Recharge la page pour r\u00e9essayer.' });
