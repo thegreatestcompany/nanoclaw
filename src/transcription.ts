@@ -27,17 +27,21 @@ async function transcribeWithWhisperCpp(
     fs.writeFileSync(tmpOgg, audioBuffer);
 
     // Convert ogg/opus to 16kHz mono WAV (required by whisper.cpp)
+    const t1 = Date.now();
     await execFileAsync(
       'ffmpeg',
       ['-i', tmpOgg, '-ar', '16000', '-ac', '1', '-f', 'wav', '-y', tmpWav],
       { timeout: 30_000 },
     );
+    console.log(`[voice] ffmpeg: ${Date.now() - t1}ms`);
 
+    const t2 = Date.now();
     const { stdout } = await execFileAsync(
       WHISPER_BIN,
       ['-m', WHISPER_MODEL, '-f', tmpWav, '--no-timestamps', '-nt'],
       { timeout: 60_000 },
     );
+    console.log(`[voice] whisper: ${Date.now() - t2}ms`);
 
     const transcript = stdout.trim();
     return transcript || null;
@@ -78,7 +82,8 @@ export async function transcribeAudioMessage(
       return FALLBACK_MESSAGE;
     }
 
-    console.log(`Downloaded audio message: ${buffer.length} bytes`);
+    const t0 = Date.now();
+    console.log(`[voice] Downloaded audio: ${buffer.length} bytes`);
 
     const transcript = await transcribeWithWhisperCpp(buffer);
 
@@ -86,7 +91,7 @@ export async function transcribeAudioMessage(
       return FALLBACK_MESSAGE;
     }
 
-    console.log(`Transcribed voice message: ${transcript.length} chars`);
+    console.log(`[voice] Transcribed in ${Date.now() - t0}ms: ${transcript.length} chars`);
     return transcript.trim();
   } catch (err) {
     console.error('Transcription error:', err);
