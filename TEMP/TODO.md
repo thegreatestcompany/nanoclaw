@@ -2,19 +2,16 @@
 
 ## À faire (court terme)
 
-### Passive scanner opt-in
-L'infra est en place (channel WhatsApp stocke les messages des JIDs dans `scan_config`, passive scanner les analyse toutes les 2h). Il manque l'interface pour que le client configure quelles conversations scanner.
+### Passive scanner
+L'infra est en place (passive scanner analyse toutes les 2h, `scan_config` pour exclure des JIDs). Désactivé en dev (conversations perso).
 
-**Fait :**
-- [x] `isJidScanned()` dans scan-config.ts
-- [x] Channel WhatsApp transmet les messages des JIDs scannés
-- [x] `scan_config` est read-only pour l'agent (l'agent contourne le human-in-the-loop)
-- [x] Chats snapshot écrit dans available_chats.json
+**Activation prod** : dans `src/channels/whatsapp.ts`, remplacer `if (groups[chatJid]) {` par `if (!isRegistered) { ... } else if (isRegistered) {` pour stocker les messages de toutes les conversations non-enregistrées. C'est une ligne de code (voir commit `f332aa7`).
+
+**Modèle** : opt-out (tout est scanné sauf `scan_config mode='ignore'`). Adapté aux clients WhatsApp Business (contacts pro uniquement).
 
 **À faire :**
-1. Ajouter un endpoint admin API pour gérer scan_config (add/remove JID)
-2. Ajouter une page dans l'interface d'onboarding où le client voit ses conversations et coche celles à scanner
-3. Ou implémenter un mécanisme d'approbation asynchrone robuste (IPC → message → attente confirmation → exécution)
+1. Endpoint admin API pour gérer les exclusions scan_config (add/remove JID)
+2. Page dans l'interface d'onboarding pour que le client exclue ses conversations perso
 
 ### Gmail OAuth automatisé
 L'intégration Gmail est actuellement manuelle (copie de credentials via scp). Pour l'onboarding self-service :

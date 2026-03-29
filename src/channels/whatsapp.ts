@@ -258,32 +258,9 @@ export class WhatsAppChannel implements Channel {
             isGroup,
           );
 
-          // Deliver full message for registered groups, basic text for all others (passive scan)
+          // Only deliver full message for registered groups
           const groups = this.opts.registeredGroups();
-          const isRegistered = !!groups[chatJid];
-
-          if (!isRegistered) {
-            // Passive scan: store text content only (no voice transcription, no document capture)
-            const content =
-              normalized.conversation ||
-              normalized.extendedTextMessage?.text ||
-              '';
-            if (!content) continue;
-
-            const sender = msg.key.participant || msg.key.remoteJid || '';
-            const senderName = msg.pushName || sender.split('@')[0];
-
-            this.opts.onMessage(chatJid, {
-              id: msg.key.id || '',
-              chat_jid: chatJid,
-              sender,
-              sender_name: senderName,
-              content,
-              timestamp,
-              is_from_me: msg.key.fromMe || false,
-              is_bot_message: false,
-            });
-          } else if (isRegistered) {
+          if (groups[chatJid]) {
             let content =
               normalized.conversation ||
               normalized.extendedTextMessage?.text ||
