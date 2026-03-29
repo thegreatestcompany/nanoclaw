@@ -250,3 +250,75 @@ D'après ces post-mortem, le script de provisioning client doit :
 **Justification** : le container fournit déjà l'isolation (filesystem, réseau, user non-root). Les hooks `PreToolUse` ajoutent la sécurité applicative (blocage rm -rf, SQL destructif, écriture hors workspace). La sandbox SDK bloquait python3, pandoc, ffmpeg qu'on a installés exprès.
 
 **Priorité** : HAUTE — à appliquer sur tout déploiement containerisé.
+
+---
+
+## 14. Stratégie globale des permissions multi-tenant
+
+### Le problème récurrent
+
+4 incidents distincts causés par la même racine : **root crée des fichiers sur le host, le container tourne en user `node` (uid 1000)**.
+
+| # | Incident | Symptôme | Cause |
+|---|----------|----------|-------|
+| 1 | IPC EACCES | Container ne peut pas lire les messages IPC | Host crée les fichiers IPC en root:root |
+| 2 | `.claude/session-env/` | Bash tool échoue silencieusement | SDK ne peut pas écrire dans .claude/ |
+| 3 | WhatsApp creds | Auth sauvée au mauvais endroit | STORE_DIR pas configuré, permissions incorrectes |
+| 4 | Documents générés | Fichiers créés par le container illisibles par le host | Mismatch uid/gid |
+
+### Architecture des permissions
+
+```
+Host (PM2, root)                    Container (Docker, node uid=1000 gid=1000)
+─────────────────                   ──────────────────────────────────────────
+Crée les dossiers clients           Lit/écrit dans les dossiers montés
+Écrit les fichiers IPC              Lit les fichiers IPC, écrit les réponses
+Lance les containers                Exécute le SDK Claude + agent
+                                    SDK crée .claude/session-env/ au runtime
+
+        ┌──── Volume mounts (bind) ────┐
+        │                              │
+  /opt/otto/clients/{id}/         /workspace/group/
+        groups/main/              /workspace/ipc/
+        data/sessions/.claude/    /home/node/.claude/
+        store/                    (etc.)
+```
+
+### Solution appliquée : group-based ownership
+
+**Principe** : `chown root:1000` + `chmod u=rwX,g=rwX,o=` (770/660)
+
+- **root** (owner) : accès complet — le host peut tout lire/écrire
+- **gid 1000** (group) : accès complet — le container (node) peut tout lire/écrire
+- **others** : aucun accès — les autres clients ne voient rien
+
+**Où c'est appliqué** :
+
+1. **`src/container-runner.ts`** — Boucle sur TOUS les mounts writable avant le lancement du container. C'est le point centralisé : tout nouveau mount est automatiquement couvert.
+
+2. **`api/src/provision.ts`** — Au provisioning initial du client (groups/, data/, store/).
+
+**Ce qui reste en `umask 000`** : le wrapper PM2 utilise `umask 000` pour les fichiers créés au runtime (IPC). C'est acceptable car le répertoire parent est déjà en 770 — seuls root et gid 1000 peuvent y accéder.
+
+### Règles pour les contributeurs
+
+1. **Ne jamais utiliser `chmod 777`** — Utiliser `chown root:1000` + `chmod u=rwX,g=rwX,o=`
+2. **Ne pas créer de fichiers dans les dossiers clients sans fixer les permissions** — Le host tourne en root, les fichiers seront inaccessibles au container sans chown
+3. **Tout nouveau mount writable est automatiquement couvert** par la boucle dans `container-runner.ts`
+4. **Le `.env` client reste en `0o600 root:root`** — Jamais monté dans le container, lu uniquement par le credential proxy
+5. **Le SDK Claude nécessite l'écriture dans `~/.claude/`** — Ne jamais monter ce dossier en readonly
+
+### Vérification
+
+Pour vérifier que les permissions sont correctes pour un client :
+```bash
+ls -la /opt/otto/clients/{id}/groups/main/
+# Attendu : drwxrwx--- root 1000
+
+ls -la /opt/otto/clients/{id}/data/sessions/main/.claude/
+# Attendu : drwxrwx--- root 1000
+
+# Aucun fichier ne doit être en 777 ou world-readable
+find /opt/otto/clients/{id}/ -perm -o=r -not -path "*/node_modules/*" 2>/dev/null
+# Attendu : aucun résultat
+```
