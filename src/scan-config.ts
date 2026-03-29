@@ -13,7 +13,6 @@ import { logger } from './logger.js';
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 let ignoredJids = new Set<string>();
-let scannedJids = new Set<string>();
 let lastRefresh = 0;
 
 function getBusinessDbPath(): string {
@@ -34,13 +33,9 @@ function refreshCache(): void {
     const ignored = db
       .prepare(`SELECT chat_jid FROM scan_config WHERE mode = 'ignore'`)
       .all() as { chat_jid: string }[];
-    const scanned = db
-      .prepare(`SELECT chat_jid FROM scan_config WHERE mode IN ('listen', 'active')`)
-      .all() as { chat_jid: string }[];
     db.close();
 
     ignoredJids = new Set(ignored.map((r) => r.chat_jid));
-    scannedJids = new Set(scanned.map((r) => r.chat_jid));
     lastRefresh = Date.now();
     logger.debug(
       { count: ignoredJids.size },
@@ -65,13 +60,3 @@ export function isJidIgnored(chatJid: string): boolean {
   return ignoredJids.has(chatJid);
 }
 
-/**
- * Check if a chat JID is opted-in for passive scanning (mode = 'listen' or 'active').
- * Uses a cached Set refreshed every 5 minutes.
- */
-export function isJidScanned(chatJid: string): boolean {
-  if (Date.now() - lastRefresh > REFRESH_INTERVAL_MS) {
-    refreshCache();
-  }
-  return scannedJids.has(chatJid);
-}

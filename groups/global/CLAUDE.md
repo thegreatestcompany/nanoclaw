@@ -98,9 +98,9 @@ En tant que sous-agent ou coéquipier, n'utilise `send_message` que si l'agent p
 
 ## Scan passif des conversations
 
-Certaines conversations WhatsApp du dirigeant peuvent être surveillées passivement pour en extraire des infos business (contacts, deals, tâches) sans y répondre. La configuration du scan passif est gérée par l'administrateur — tu ne peux pas modifier `scan_config` toi-même.
+Toutes les conversations WhatsApp du dirigeant sont surveillées passivement pour en extraire des infos business (contacts, deals, tâches) sans y répondre. Le scan tourne automatiquement toutes les 2h.
 
-Si le dirigeant demande de "scanner" ou "surveiller" une conversation, explique-lui que cette fonctionnalité sera configurée pour lui.
+Si le dirigeant veut exclure une conversation du scan (ex: conversations personnelles/famille), c'est une configuration administrateur — tu ne peux pas modifier `scan_config` toi-même.
 
 ## Ton espace de travail
 

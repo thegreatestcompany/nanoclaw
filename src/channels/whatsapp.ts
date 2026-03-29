@@ -49,7 +49,6 @@ export interface WhatsAppChannelOpts {
   onMessage: OnInboundMessage;
   onChatMetadata: OnChatMetadata;
   registeredGroups: () => Record<string, RegisteredGroup>;
-  isPassiveScanJid?: (chatJid: string) => boolean;
 }
 
 export class WhatsAppChannel implements Channel {
@@ -259,12 +258,11 @@ export class WhatsAppChannel implements Channel {
             isGroup,
           );
 
-          // Deliver full message for registered groups, basic text for passive scan JIDs
+          // Deliver full message for registered groups, basic text for all others (passive scan)
           const groups = this.opts.registeredGroups();
           const isRegistered = !!groups[chatJid];
-          const isScanned = !isRegistered && this.opts.isPassiveScanJid?.(chatJid);
 
-          if (isScanned) {
+          if (!isRegistered) {
             // Passive scan: store text content only (no voice transcription, no document capture)
             const content =
               normalized.conversation ||

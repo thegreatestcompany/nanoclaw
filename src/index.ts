@@ -65,7 +65,7 @@ import {
   runWeeklyAutoDream,
 } from './memory-consolidator.js';
 import { runPassiveScan } from './passive-scanner.js';
-import { isJidIgnored, isJidScanned } from './scan-config.js';
+import { isJidIgnored } from './scan-config.js';
 import { startSchedulerLoop } from './task-scheduler.js';
 import { Channel, NewMessage, RegisteredGroup } from './types.js';
 import { logger } from './logger.js';
@@ -640,7 +640,6 @@ async function main(): Promise<void> {
       isGroup?: boolean,
     ) => storeChatMetadata(chatJid, timestamp, name, channel, isGroup),
     registeredGroups: () => registeredGroups,
-    isPassiveScanJid: isJidScanned,
   };
 
   // Create and connect all registered channels.
