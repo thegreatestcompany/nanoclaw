@@ -283,6 +283,15 @@ function createPreToolUseHook(): HookCallback {
   return async (input) => {
     const hookInput = input as PreToolUseHookInput;
 
+    // Log ALL tool calls for debugging
+    const toolInput = hookInput.tool_input as Record<string, unknown>;
+    const summary = hookInput.tool_name === 'Bash'
+      ? (toolInput.command as string || '').slice(0, 200)
+      : hookInput.tool_name === 'Write' || hookInput.tool_name === 'Edit'
+        ? (toolInput.file_path as string || '')
+        : JSON.stringify(toolInput).slice(0, 150);
+    log(`[TOOL] ${hookInput.tool_name}: ${summary}`);
+
     if (hookInput.tool_name === 'Bash') {
       const command = (hookInput.tool_input as { command?: string })?.command || '';
       for (const pattern of BLOCKED_PATTERNS) {
@@ -323,6 +332,18 @@ function createPreToolUseHook(): HookCallback {
 function createPostToolUseHook(): HookCallback {
   return async (input) => {
     const hookInput = input as PostToolUseHookInput;
+
+    // Log tool result for debugging
+    const toolResult = (hookInput as unknown as { tool_result?: { stdout?: string; stderr?: string; output?: string; error?: string } }).tool_result;
+    if (toolResult) {
+      const output = toolResult.stdout || toolResult.output || '';
+      const error = toolResult.stderr || toolResult.error || '';
+      if (error) {
+        log(`[TOOL_RESULT] ${hookInput.tool_name} ERROR: ${error.slice(0, 300)}`);
+      } else {
+        log(`[TOOL_RESULT] ${hookInput.tool_name} OK: ${output.slice(0, 200)}`);
+      }
+    }
 
     if (hookInput.tool_name === 'Bash') {
       const command = (hookInput.tool_input as { command?: string })?.command || '';
