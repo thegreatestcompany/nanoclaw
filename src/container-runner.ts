@@ -28,6 +28,7 @@ import {
 } from './container-runtime.js';
 import { detectAuthMode } from './credential-proxy.js';
 import { validateAdditionalMounts } from './mount-security.js';
+import { getAllChats } from './db.js';
 import { RegisteredGroup } from './types.js';
 
 // Sentinel markers for robust output parsing (must match agent-runner)
@@ -742,6 +743,16 @@ export function writeGroupsSnapshot(
 
   // Main sees all groups; others see nothing (they can't activate groups)
   const visibleGroups = isMain ? groups : [];
+
+  // Also write a chats snapshot so the agent can match contact names to JIDs
+  // (needed for passive scan configuration)
+  try {
+    const chats = getAllChats();
+    const chatsFile = path.join(groupIpcDir, 'available_chats.json');
+    fs.writeFileSync(chatsFile, JSON.stringify(chats, null, 2));
+  } catch {
+    /* db may not be initialized yet */
+  }
 
   const groupsFile = path.join(groupIpcDir, 'available_groups.json');
   fs.writeFileSync(

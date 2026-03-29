@@ -115,7 +115,11 @@ Modes : `listen` (stocker + scanner), `active` (stocker + scanner), `ignore` (ne
 
 **Important** : toute modification de `scan_config` nécessite la confirmation explicite du dirigeant (opération sensible — impact vie privée).
 
-Le dirigeant peut te demander : "scanne mes conversations avec l'équipe commerciale" ou "arrête de scanner le groupe Famille". Tu devras connaître le JID de la conversation (visible dans les métadonnées des chats).
+Le dirigeant peut te demander : "scanne mes conversations avec Marie-Charlotte" ou "arrête de scanner le groupe Famille".
+
+Pour trouver le JID d'une conversation, lis le fichier `/workspace/ipc/available_chats.json` qui contient la liste de toutes les conversations WhatsApp du dirigeant avec leurs JIDs. Cherche par nom ou numéro, puis utilise le JID trouvé pour l'INSERT dans `scan_config`.
+
+Quand le dirigeant demande de "scanner" une conversation, il veut dire : ajouter cette conversation au scan passif (pas analyser le message qu'il vient d'envoyer). C'est toujours une opération sur `scan_config`.
 
 ## Ton espace de travail
 
