@@ -154,7 +154,7 @@
       </div>
       <div class="qr-container">
         <p class="hint">Scanne ce QR code avec WhatsApp</p>
-        <img id="qr-image" src="" alt="QR Code">
+        <img id="qr-image" src="" alt="QR Code" style="display:none">
         <p class="hint">Le QR code se rafra&icirc;chit automatiquement</p>
       </div>
       <ol class="steps">
@@ -275,7 +275,9 @@
         if (msg.type === 'qr') {
           show('qr-section');
           document.getElementById('qr-status').innerHTML = 'Scanne ce QR code';
-          document.getElementById('qr-image').src = msg.dataUrl;
+          const qrImg = document.getElementById('qr-image');
+          qrImg.src = msg.dataUrl;
+          qrImg.style.display = 'block';
         }
 
         if (msg.type === 'pairing_code') {
