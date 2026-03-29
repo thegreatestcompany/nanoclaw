@@ -127,12 +127,6 @@ function buildVolumeMounts(
     '.claude',
   );
   fs.mkdirSync(groupSessionsDir, { recursive: true });
-  // Ensure the entire .claude/ tree is writable by the container's node user (uid 1000)
-  try {
-    execSync(`chmod -R 777 "${groupSessionsDir}"`);
-  } catch {
-    /* best effort */
-  }
   // Always write settings.json (overwrite on each launch to pick up config changes)
   const settingsFile = path.join(groupSessionsDir, 'settings.json');
   fs.writeFileSync(
@@ -237,6 +231,22 @@ function buildVolumeMounts(
       isMain,
     );
     mounts.push(...validatedMounts);
+  }
+
+  // Fix permissions on ALL writable mounts before container launch.
+  // Host runs as root, container runs as node (uid 1000). Without this,
+  // the container can't write to host-created directories.
+  // Uses chown root:1000 + chmod g+rwX instead of chmod 777 for multi-tenant safety.
+  for (const mount of mounts) {
+    if (!mount.readonly) {
+      try {
+        execSync(
+          `chown -R root:1000 "${mount.hostPath}" && chmod -R u=rwX,g=rwX,o= "${mount.hostPath}"`,
+        );
+      } catch {
+        // Fallback: some paths (like /dev/null) can't be chowned
+      }
+    }
   }
 
   return mounts;

@@ -214,9 +214,13 @@ exec node ${APP_DIR}/dist/index.js 2>&1
 `;
   fs.writeFileSync(path.join(clientDir, 'start-pm2.sh'), wrapperContent, { mode: 0o755 });
 
-  // 9. Fix permissions for Docker containers (agent runs as non-root user "node")
+  // 9. Fix permissions for Docker containers (agent runs as user "node", uid 1000, gid 1000)
+  // Use group ownership instead of world-writable for multi-tenant safety.
   try {
-    execSync(`chmod -R 777 "${clientDir}/groups/" "${clientDir}/data/" "${clientDir}/store/"`);
+    execSync(
+      `chown -R root:1000 "${clientDir}/groups/" "${clientDir}/data/" "${clientDir}/store/" && ` +
+      `chmod -R u=rwX,g=rwX,o= "${clientDir}/groups/" "${clientDir}/data/" "${clientDir}/store/"`,
+    );
   } catch { /* best effort */ }
 
   // 10. On Linux (prod): create Linux user + UFW rule
