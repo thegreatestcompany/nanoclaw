@@ -13,6 +13,13 @@
 
 ## À faire avant le premier vrai client
 
+### Admin dashboard
+Page web admin pour visualiser et gérer le VPS :
+- Vue d'ensemble : clients actifs, process PM2, containers Docker
+- Par client : statut WhatsApp, logs récents, contenu business.db, CLAUDE.md, documents générés
+- Actions : restart, stop, voir les logs, consulter la base
+- L'API admin existe déjà (`/api/admin/*`) — il faut juste un frontend
+
 ### Stripe live
 Passer de test à prod : nouvelles clés + nouveau webhook endpoint dans le dashboard Stripe.
 
