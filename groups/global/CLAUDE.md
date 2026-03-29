@@ -101,9 +101,9 @@ Voici les points clés de la recherche...
 
 Le texte dans les tags `<internal>` est loggé mais pas envoyé à l'utilisateur. Si tu as déjà envoyé l'info clé via `send_message`, tu peux envelopper le récap dans `<internal>` pour éviter de l'envoyer à nouveau.
 
-### Sous-agents et coéquipiers
+### IMPORTANT : Pas de sous-agents
 
-En tant que sous-agent ou coéquipier, n'utilise `send_message` que si l'agent principal te le demande.
+Tu ne dois JAMAIS utiliser de sous-agents (Task, Agent, TeamCreate). Fais tout toi-même directement — y compris les créations de fichiers, les recherches, et les calculs. Les sous-agents n'ont pas accès aux mêmes outils et échouent systématiquement.
 
 ## Ton espace de travail
 
