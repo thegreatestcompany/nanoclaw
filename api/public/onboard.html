@@ -34,25 +34,31 @@
     }
     .waiting { background: #fff; color: #1a1a1a; border: 1px solid #e0e0e0; }
     .success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-    .error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .error-pill { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
 
-    .phone-form {
+    .card {
       background: #fff; padding: 28px 32px; border-radius: 16px;
       border: 1px solid #eee; margin-bottom: 24px;
     }
-    .phone-form label { display: block; text-align: left; font-size: 0.9rem; color: #555; margin-bottom: 8px; }
-    .phone-form input {
+    .card label { display: block; text-align: left; font-size: 0.9rem; color: #555; margin-bottom: 8px; }
+    .card input {
       width: 100%; padding: 12px 16px; border: 1px solid #ddd; border-radius: 8px;
       font-size: 1rem; font-family: inherit; outline: none; margin-bottom: 16px;
     }
-    .phone-form input:focus { border-color: #1a1a1a; }
-    .phone-form button {
+    .card input:focus { border-color: #1a1a1a; }
+
+    .btn {
       width: 100%; padding: 12px; background: #1a1a1a; color: #fff; border: none;
       border-radius: 8px; font-size: 1rem; font-family: inherit; cursor: pointer;
       font-weight: 500; transition: opacity 0.2s;
     }
-    .phone-form button:hover { opacity: 0.8; }
-    .phone-form button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn:hover { opacity: 0.8; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary {
+      background: #fff; color: #555; border: 1px solid #ddd;
+      margin-top: 12px; font-size: 0.9rem;
+    }
+    .btn-secondary:hover { background: #f5f5f5; }
     .phone-hint { font-size: 0.8rem; color: #999; text-align: left; margin-top: -8px; margin-bottom: 16px; }
 
     .pairing-code {
@@ -65,6 +71,14 @@
       font-family: 'SF Mono', 'Fira Code', monospace; margin: 16px 0;
     }
     .pairing-code .hint { font-size: 0.9rem; color: #888; }
+
+    .qr-container {
+      background: #fff; padding: 32px; border-radius: 16px;
+      border: 1px solid #eee; margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.04);
+    }
+    .qr-container canvas { margin: 16px auto; display: block; }
+    .qr-container .hint { font-size: 0.9rem; color: #888; }
 
     .steps {
       text-align: left; background: #fff; padding: 28px 32px; border-radius: 16px;
@@ -97,6 +111,7 @@
     .muted { color: #aaa; font-size: 0.9rem; }
     .hidden { display: none; }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -104,20 +119,57 @@
     <h1>Otto</h1>
     <p class="byline">by HNTIC</p>
 
-    <!-- Step 1: Enter phone number -->
-    <div id="phone-section">
+    <!-- Loading state -->
+    <div id="loading-section">
+      <p class="tagline"><span class="spinner"></span> Connexion...</p>
+    </div>
+
+    <!-- Step 1: Enter phone number (first time onboarding) -->
+    <div id="phone-section" class="hidden">
       <p class="tagline">Connecte ton WhatsApp pour activer ton assistant.</p>
-      <div class="phone-form">
+      <div class="card">
         <label for="phone">Ton num&eacute;ro de t&eacute;l&eacute;phone WhatsApp</label>
         <input type="tel" id="phone" placeholder="33612345678" autocomplete="tel">
         <p class="phone-hint">Indicatif pays + num&eacute;ro, sans +, espaces ni tirets. Ex : 33612345678</p>
-        <button id="start-btn" onclick="startAuth()">Connecter WhatsApp</button>
+        <button class="btn" id="start-btn" onclick="startPairingAuth()">Connecter avec un code</button>
+        <button class="btn btn-secondary" onclick="startQrAuth()">Scanner un QR code</button>
       </div>
     </div>
 
-    <!-- Step 2: Enter pairing code in WhatsApp -->
+    <!-- Reconnection mode -->
+    <div id="reconnect-section" class="hidden">
+      <p class="tagline">WhatsApp d&eacute;connect&eacute; &mdash; reconnecte ton compte.</p>
+      <div class="card">
+        <label for="reconnect-phone">Ton num&eacute;ro de t&eacute;l&eacute;phone WhatsApp</label>
+        <input type="tel" id="reconnect-phone" placeholder="33612345678" autocomplete="tel">
+        <p class="phone-hint">Indicatif pays + num&eacute;ro, sans +, espaces ni tirets.</p>
+        <button class="btn" onclick="startReconnectPairing()">Reconnecter avec un code</button>
+        <button class="btn btn-secondary" onclick="startReconnectQr()">Scanner un QR code</button>
+      </div>
+    </div>
+
+    <!-- QR code display -->
+    <div id="qr-section" class="hidden">
+      <div class="status waiting" id="qr-status">
+        <span class="spinner"></span> En attente du QR code...
+      </div>
+      <div class="qr-container">
+        <p class="hint">Scanne ce QR code avec WhatsApp</p>
+        <canvas id="qr-canvas"></canvas>
+        <p class="hint">Le QR code se rafra&icirc;chit automatiquement</p>
+      </div>
+      <ol class="steps">
+        <li>Ouvre <strong>WhatsApp</strong> sur ton t&eacute;l&eacute;phone</li>
+        <li>Va dans <strong>Param&egrave;tres</strong> &rarr; <strong>Appareils li&eacute;s</strong></li>
+        <li>Appuie sur <strong>Lier un appareil</strong></li>
+        <li>Scanne le <strong>QR code ci-dessus</strong></li>
+      </ol>
+      <button class="btn btn-secondary" onclick="switchToPairing()">Utiliser un code &agrave; la place</button>
+    </div>
+
+    <!-- Pairing code display -->
     <div id="code-section" class="hidden">
-      <div class="status waiting" id="status">
+      <div class="status waiting" id="code-status">
         <span class="spinner"></span> G&eacute;n&eacute;ration du code...
       </div>
       <div class="pairing-code">
@@ -134,7 +186,7 @@
       </ol>
     </div>
 
-    <!-- Step 3: Connected -->
+    <!-- Connected -->
     <div id="success-section" class="hidden">
       <div style="font-size:3rem;margin-bottom:16px">&#10003;</div>
       <div class="status success">WhatsApp connect&eacute;</div>
@@ -142,10 +194,33 @@
       <p class="muted">Tu peux fermer cette page.</p>
     </div>
 
+    <!-- Already connected -->
+    <div id="already-connected-section" class="hidden">
+      <div style="font-size:3rem;margin-bottom:16px">&#10003;</div>
+      <div class="status success">Tout fonctionne</div>
+      <p class="success-text">Otto est actif et connect&eacute; &agrave; ton WhatsApp.</p>
+      <p class="muted">Tu peux fermer cette page et utiliser WhatsApp.</p>
+    </div>
+
+    <!-- Payment failed -->
+    <div id="payment-failed-section" class="hidden">
+      <div style="font-size:3rem;margin-bottom:16px">&#9888;</div>
+      <div class="status error-pill">Paiement &eacute;chou&eacute;</div>
+      <p class="success-text">Mets &agrave; jour ton moyen de paiement pour r&eacute;activer Otto.</p>
+    </div>
+
+    <!-- Cancelled -->
+    <div id="cancelled-section" class="hidden">
+      <div style="font-size:3rem;margin-bottom:16px">&#10005;</div>
+      <div class="status error-pill">Abonnement r&eacute;sili&eacute;</div>
+      <p class="success-text">Ton abonnement Otto a &eacute;t&eacute; r&eacute;sili&eacute;.</p>
+    </div>
+
     <!-- Error -->
     <div id="error-section" class="hidden">
-      <div class="status error" id="error-msg">Erreur de connexion</div>
-      <p class="success-text">Recharge la page pour r&eacute;essayer.</p>
+      <div class="status error-pill" id="error-msg">Erreur de connexion</div>
+      <p class="success-text" id="error-detail"></p>
+      <button class="btn" onclick="location.reload()">R&eacute;essayer</button>
     </div>
 
     <div class="footer"><p><a href="https://hntic.fr">HNTIC</a></p></div>
@@ -153,12 +228,30 @@
 
   <script>
     let ws;
+    let currentMode = null; // 'pairing' or 'qr'
     const token = window.location.pathname.split('/onboard/')[1];
 
-    if (!token) {
-      document.getElementById('phone-section').classList.add('hidden');
+    function hideAll() {
+      ['loading-section','phone-section','reconnect-section','qr-section','code-section',
+       'success-section','already-connected-section','payment-failed-section',
+       'cancelled-section','error-section'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+    }
+
+    function show(id) {
+      hideAll();
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function showError(msg) {
+      hideAll();
       document.getElementById('error-section').classList.remove('hidden');
-      document.getElementById('error-msg').textContent = 'Lien invalide';
+      document.getElementById('error-msg').textContent = msg || 'Erreur';
+    }
+
+    if (!token) {
+      showError('Lien invalide');
     } else {
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(`${protocol}//${location.host}/ws/${token}`);
@@ -166,49 +259,100 @@
       ws.onmessage = (e) => {
         const msg = JSON.parse(e.data);
 
+        if (msg.type === 'status') {
+          if (msg.status === 'active' && msg.connected) {
+            show('already-connected-section');
+          } else if (msg.status === 'active' && !msg.connected) {
+            show('reconnect-section');
+          } else if (msg.status === 'payment_failed') {
+            show('payment-failed-section');
+          } else if (msg.status === 'cancelled') {
+            show('cancelled-section');
+          } else {
+            show('phone-section');
+          }
+        }
+
+        if (msg.type === 'qr') {
+          show('qr-section');
+          document.getElementById('qr-status').innerHTML = 'Scanne ce QR code';
+          const canvas = document.getElementById('qr-canvas');
+          QRCode.toCanvas(canvas, msg.data, { width: 280, margin: 2 }, function(err) {
+            if (err) console.error('QR render error:', err);
+          });
+        }
+
         if (msg.type === 'pairing_code') {
-          document.getElementById('status').innerHTML = 'Entre ce code dans WhatsApp';
-          document.getElementById('status').className = 'status waiting';
+          show('code-section');
+          document.getElementById('code-status').innerHTML = 'Entre ce code dans WhatsApp';
           document.getElementById('pairing-code').textContent = msg.code;
         }
 
         if (msg.type === 'connected') {
-          document.getElementById('phone-section').classList.add('hidden');
-          document.getElementById('code-section').classList.add('hidden');
-          document.getElementById('success-section').classList.remove('hidden');
+          show('success-section');
         }
 
         if (msg.type === 'error') {
-          document.getElementById('phone-section').classList.add('hidden');
-          document.getElementById('code-section').classList.add('hidden');
-          document.getElementById('error-section').classList.remove('hidden');
-          document.getElementById('error-msg').textContent = msg.message || 'Erreur';
+          showError(msg.message);
         }
       };
 
-      ws.onerror = () => {
-        document.getElementById('error-section').classList.remove('hidden');
-        document.getElementById('error-msg').textContent = 'Erreur de connexion. Recharge la page.';
+      ws.onerror = () => showError('Erreur de connexion. Recharge la page.');
+      ws.onclose = () => {
+        // Don't show error if already on success page
+        if (!document.getElementById('success-section').classList.contains('hidden')) return;
+        if (!document.getElementById('already-connected-section').classList.contains('hidden')) return;
       };
     }
 
-    function startAuth() {
+    function startPairingAuth() {
       const phone = document.getElementById('phone').value.replace(/\D/g, '');
       if (!phone || phone.length < 10) {
         alert('Entre un num\u00e9ro valide (indicatif + num\u00e9ro, ex: 33612345678)');
         return;
       }
-
-      document.getElementById('start-btn').disabled = true;
-      document.getElementById('phone-section').classList.add('hidden');
-      document.getElementById('code-section').classList.remove('hidden');
-
+      currentMode = 'pairing';
+      show('code-section');
       ws.send(JSON.stringify({ type: 'start_auth', phone: phone }));
     }
 
-    // Allow Enter key to submit
-    document.getElementById('phone').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') startAuth();
+    function startQrAuth() {
+      currentMode = 'qr';
+      show('qr-section');
+      ws.send(JSON.stringify({ type: 'start_qr_auth' }));
+    }
+
+    function startReconnectPairing() {
+      const phone = document.getElementById('reconnect-phone').value.replace(/\D/g, '');
+      if (!phone || phone.length < 10) {
+        alert('Entre un num\u00e9ro valide');
+        return;
+      }
+      currentMode = 'pairing';
+      show('code-section');
+      ws.send(JSON.stringify({ type: 'start_reconnect', phone: phone }));
+    }
+
+    function startReconnectQr() {
+      currentMode = 'qr';
+      show('qr-section');
+      ws.send(JSON.stringify({ type: 'start_reconnect' }));
+    }
+
+    function switchToPairing() {
+      const phone = prompt('Entre ton num\u00e9ro (ex: 33612345678):');
+      if (!phone) return;
+      currentMode = 'pairing';
+      show('code-section');
+      ws.send(JSON.stringify({ type: 'start_auth', phone: phone.replace(/\D/g, '') }));
+    }
+
+    // Allow Enter key on phone inputs
+    document.getElementById('phone')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') startPairingAuth();
+    });
+    document.getElementById('reconnect-phone')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') startReconnectPairing();
     });
   </script>
 </body>

@@ -2,6 +2,7 @@
  * Onboarding database — tracks clients, provisioning status, and onboard tokens.
  */
 
+import crypto from 'crypto';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
@@ -99,4 +100,17 @@ export function getNextProxyPort(): number {
 
 export function setClientProxyPort(clientId: string, port: number): void {
   db.prepare(`UPDATE clients SET proxy_port = ?, updated_at = datetime('now') WHERE id = ?`).run(port, clientId);
+}
+
+export function getClientByEmail(email: string): Client | undefined {
+  return db.prepare('SELECT * FROM clients WHERE email = ?').get(email) as Client | undefined;
+}
+
+export function renewOnboardToken(clientId: string): { token: string; expiresAt: string } {
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  db.prepare(
+    `UPDATE clients SET onboard_token = ?, onboard_token_expires_at = ?, updated_at = datetime('now') WHERE id = ?`
+  ).run(token, expiresAt, clientId);
+  return { token, expiresAt };
 }

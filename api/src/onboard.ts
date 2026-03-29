@@ -1,6 +1,8 @@
 /**
- * Onboarding routes — serves the QR code page and handles WebSocket
- * for live QR code updates during WhatsApp linking.
+ * Onboarding routes — serves the onboarding page and handles WebSocket
+ * for live QR code / pairing code updates during WhatsApp linking.
+ *
+ * Also provides a reconnection endpoint for clients who need to re-link.
  */
 
 import type { Express } from 'express';
@@ -11,7 +13,12 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { getClientByToken, updateClientStatus } from './db.js';
+import {
+  getClientByToken,
+  getClientByEmail,
+  renewOnboardToken,
+  updateClientStatus,
+} from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -23,8 +30,74 @@ const activeAuthProcesses = new Map<string, ChildProcess>();
 const CLIENTS_DIR = process.env.CLIENTS_DIR || path.join(process.cwd(), '..', 'clients');
 const APP_DIR = process.env.APP_DIR || path.join(process.cwd(), '..', 'app');
 
+/**
+ * Check if a client's PM2 process is running.
+ */
+function isClientProcessRunning(clientId: string): boolean {
+  try {
+    const result = execSync(`pm2 jlist`, { timeout: 5000 }).toString();
+    const list = JSON.parse(result);
+    const proc = list.find((p: { name: string }) => p.name === `otto-${clientId}`);
+    return proc?.pm2_env?.status === 'online';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Broadcast a message to all WebSocket clients for a given client ID.
+ */
+function broadcast(clientId: string, data: object): void {
+  const connections = activeConnections.get(clientId);
+  if (!connections) return;
+  const msg = JSON.stringify(data);
+  for (const ws of connections) {
+    if (ws.readyState === WebSocket.OPEN) ws.send(msg);
+  }
+}
+
 export function setupOnboardRoutes(app: Express, server: Server): void {
-  // Serve onboarding page
+  // --- Reconnection page ---
+  app.get('/reconnect', (_req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'reconnect.html'));
+  });
+
+  app.post('/api/reconnect', (req, res) => {
+    // Parse body manually since express.json() may not be applied globally
+    let body = '';
+    req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const { email } = JSON.parse(body);
+        if (!email) {
+          res.status(400).json({ error: 'Email requis' });
+          return;
+        }
+
+        const client = getClientByEmail(email);
+        if (!client) {
+          res.status(404).json({ error: 'Aucun compte trouv\u00e9 avec cet email' });
+          return;
+        }
+
+        if (client.status === 'cancelled') {
+          res.status(403).json({ error: 'Abonnement r\u00e9sili\u00e9' });
+          return;
+        }
+
+        const { token } = renewOnboardToken(client.id);
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const onboardUrl = `${baseUrl}/onboard/${token}`;
+
+        console.log(`Reconnection link generated for ${client.id}: ${onboardUrl}`);
+        res.json({ ok: true, onboardUrl });
+      } catch {
+        res.status(400).json({ error: 'Invalid JSON' });
+      }
+    });
+  });
+
+  // --- Onboarding page ---
   app.get('/onboard/:token', (req, res) => {
     const client = getClientByToken(req.params.token);
 
@@ -32,30 +105,21 @@ export function setupOnboardRoutes(app: Express, server: Server): void {
       res.status(404).send(`
         <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-        <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fafafa;color:#1a1a1a;padding:40px 20px;text-align:center}</style></head>
+        <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fafafa;color:#1a1a1a;padding:40px 20px;text-align:center}
+        .btn{display:inline-block;margin-top:24px;padding:10px 24px;background:#1a1a1a;color:#fff;text-decoration:none;border-radius:8px;font-size:0.95rem}</style></head>
         <body><div><img src="/static/hntic-logo.png" alt="HNTIC" style="width:48px;margin-bottom:24px">
         <h1 style="font-weight:300;letter-spacing:0.2em;margin-bottom:16px">Lien expir&eacute;</h1>
-        <p style="color:#888">Ce lien a expir&eacute; ou a d&eacute;j&agrave; &eacute;t&eacute; utilis&eacute;.<br>V&eacute;rifie tes emails pour un lien valide.</p></div></body></html>
+        <p style="color:#888">Ce lien a expir&eacute; ou a d&eacute;j&agrave; &eacute;t&eacute; utilis&eacute;.</p>
+        <a href="/reconnect" class="btn">Obtenir un nouveau lien</a></div></body></html>
       `);
       return;
     }
 
-    if (client.status === 'active') {
-      res.send(`
-        <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-        <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fafafa;color:#1a1a1a;padding:40px 20px;text-align:center}</style></head>
-        <body><div><img src="/static/hntic-logo.png" alt="HNTIC" style="width:48px;margin-bottom:24px">
-        <h1 style="font-weight:300;letter-spacing:0.2em;margin-bottom:16px;color:#166534">WhatsApp connect&eacute;</h1>
-        <p style="color:#888">Otto est actif. Tu peux fermer cette page et ouvrir WhatsApp.</p></div></body></html>
-      `);
-      return;
-    }
-
+    // All valid states go through onboard.html — the page handles state via WebSocket
     res.sendFile(path.join(__dirname, '..', 'public', 'onboard.html'));
   });
 
-  // WebSocket server for live QR code updates
+  // --- WebSocket server ---
   const wss = new WebSocketServer({ noServer: true });
 
   server.on('upgrade', (req, socket, head) => {
@@ -86,66 +150,87 @@ export function setupOnboardRoutes(app: Express, server: Server): void {
         connections?.delete(ws);
         if (connections?.size === 0) {
           activeConnections.delete(client.id);
+          // Kill orphaned auth process when all connections close
+          const proc = activeAuthProcesses.get(client.id);
+          if (proc) {
+            console.log(`All WebSocket connections closed for ${client.id} — killing auth process`);
+            proc.kill('SIGTERM');
+            activeAuthProcesses.delete(client.id);
+          }
         }
       });
 
-      // Send initial status
-      ws.send(JSON.stringify({ type: 'status', status: client.status }));
-
-      // If client is awaiting WhatsApp, start the auth process
-      if (client.status === 'awaiting_whatsapp' && !activeAuthProcesses.has(client.id)) {
-        startWhatsAppAuth(client.id, ws);
+      // Determine client state and send to frontend
+      if (client.status === 'active') {
+        const running = isClientProcessRunning(client.id);
+        const credsPath = path.join(CLIENTS_DIR, client.id, 'store', 'auth', 'creds.json');
+        const hasCreds = fs.existsSync(credsPath);
+        ws.send(JSON.stringify({
+          type: 'status',
+          status: 'active',
+          connected: running && hasCreds,
+        }));
+      } else if (client.status === 'payment_failed') {
+        ws.send(JSON.stringify({ type: 'status', status: 'payment_failed' }));
+      } else if (client.status === 'cancelled') {
+        ws.send(JSON.stringify({ type: 'status', status: 'cancelled' }));
+      } else {
+        // awaiting_whatsapp or other — start auth flow
+        ws.send(JSON.stringify({ type: 'status', status: 'awaiting_whatsapp' }));
       }
+
+      // Listen for auth commands from the frontend
+      ws.on('message', (data) => {
+        try {
+          const msg = JSON.parse(data.toString());
+          if (msg.type === 'start_auth' && msg.phone) {
+            launchAuth(client.id, msg.phone, 'pairing-code');
+          } else if (msg.type === 'start_qr_auth') {
+            launchAuth(client.id, undefined, 'qr');
+          } else if (msg.type === 'start_reconnect') {
+            // Reconnection: clear old auth and restart
+            const authDir = path.join(CLIENTS_DIR, client.id, 'store', 'auth');
+            try { fs.rmSync(authDir, { recursive: true, force: true }); } catch { /* ok */ }
+            if (msg.phone) {
+              launchAuth(client.id, msg.phone, 'pairing-code');
+            } else {
+              launchAuth(client.id, undefined, 'qr');
+            }
+          }
+        } catch { /* ignore non-JSON messages */ }
+      });
     });
   });
 }
 
 /**
- * Start WhatsApp auth for a client using pairing code method.
- * The page will ask the client for their phone number, then display
- * the pairing code to enter in WhatsApp.
+ * Launch WhatsApp auth process (QR code or pairing code).
+ * Kills any existing auth process for this client first.
  */
-function startWhatsAppAuth(clientId: string, ws: WebSocket): void {
-  const clientDir = path.join(CLIENTS_DIR, clientId);
-  const authCredsPath = path.join(APP_DIR, 'store', 'auth');
-
-  console.log(`WhatsApp auth ready for client ${clientId} — waiting for phone number`);
-
-  // Listen for phone number from the WebSocket
-  ws.on('message', (data) => {
-    try {
-      const msg = JSON.parse(data.toString());
-      if (msg.type === 'start_auth' && msg.phone) {
-        launchPairingCode(clientId, msg.phone, ws);
-      }
-    } catch { /* ignore non-JSON messages */ }
-  });
-
-  // Send ready signal to the page
-  ws.send(JSON.stringify({ type: 'auth_ready' }));
-}
-
-/**
- * Launch the pairing code auth process for a client.
- */
-function launchPairingCode(clientId: string, phone: string, ws: WebSocket): void {
-  if (activeAuthProcesses.has(clientId)) {
-    console.log(`Auth already in progress for ${clientId}`);
-    return;
+function launchAuth(clientId: string, phone: string | undefined, method: 'qr' | 'pairing-code'): void {
+  // Kill existing auth process if any
+  const existing = activeAuthProcesses.get(clientId);
+  if (existing) {
+    console.log(`Killing existing auth process for ${clientId}`);
+    existing.kill('SIGTERM');
+    activeAuthProcesses.delete(clientId);
   }
 
   const clientDir = path.join(CLIENTS_DIR, clientId);
-  console.log(`Starting WhatsApp pairing code auth for ${clientId} (phone: ${phone})`);
+  console.log(`Starting WhatsApp auth for ${clientId} (method: ${method}${phone ? ', phone: ' + phone : ''})`);
 
   // Ensure store directory exists
   fs.mkdirSync(path.join(clientDir, 'store', 'auth'), { recursive: true });
 
-  const proc = spawn('npx', [
-    'tsx', path.join(APP_DIR, 'setup', 'index.ts'),
-    '--step', 'whatsapp-auth',
-    '--', '--method', 'pairing-code', '--phone', phone,
-  ], {
-    cwd: APP_DIR, // Must be APP_DIR for module resolution. STORE_DIR env var directs credentials to client's store.
+  const args = ['tsx', path.join(APP_DIR, 'setup', 'index.ts'), '--step', 'whatsapp-auth', '--'];
+  if (method === 'pairing-code' && phone) {
+    args.push('--method', 'pairing-code', '--phone', phone);
+  } else {
+    args.push('--method', 'qr-browser');
+  }
+
+  const proc = spawn('npx', args, {
+    cwd: APP_DIR,
     env: {
       ...process.env,
       STORE_DIR: path.join(clientDir, 'store'),
@@ -157,6 +242,25 @@ function launchPairingCode(clientId: string, phone: string, ws: WebSocket): void
 
   activeAuthProcesses.set(clientId, proc);
 
+  // Watch for QR code file (updated by whatsapp-auth.ts)
+  const qrFile = path.join(clientDir, 'store', 'qr-data.txt');
+  let qrPollInterval: ReturnType<typeof setInterval> | null = null;
+  let lastQrData = '';
+
+  if (method === 'qr') {
+    qrPollInterval = setInterval(() => {
+      try {
+        if (fs.existsSync(qrFile)) {
+          const qrData = fs.readFileSync(qrFile, 'utf-8').trim();
+          if (qrData && qrData !== lastQrData) {
+            lastQrData = qrData;
+            broadcast(clientId, { type: 'qr', data: qrData });
+          }
+        }
+      } catch { /* file may be mid-write */ }
+    }, 1000);
+  }
+
   const handleData = (data: Buffer) => {
     const text = data.toString();
 
@@ -164,23 +268,25 @@ function launchPairingCode(clientId: string, phone: string, ws: WebSocket): void
     const pairingMatch = text.match(/PAIRING_CODE:\s*(\S+)/);
     if (pairingMatch) {
       console.log(`Pairing code for ${clientId}: ${pairingMatch[1]}`);
-      ws.send(JSON.stringify({ type: 'pairing_code', code: pairingMatch[1] }));
+      broadcast(clientId, { type: 'pairing_code', code: pairingMatch[1] });
     }
 
-    // Also check the pairing-code.txt file
+    // Also check pairing-code.txt file
     const codeFile = path.join(clientDir, 'store', 'pairing-code.txt');
     if (fs.existsSync(codeFile)) {
-      const code = fs.readFileSync(codeFile, 'utf-8').trim();
-      if (code) {
-        console.log(`Pairing code from file for ${clientId}: ${code}`);
-        ws.send(JSON.stringify({ type: 'pairing_code', code }));
-      }
+      try {
+        const code = fs.readFileSync(codeFile, 'utf-8').trim();
+        if (code) {
+          broadcast(clientId, { type: 'pairing_code', code });
+        }
+      } catch { /* ok */ }
     }
 
     // Check for successful auth
     if (text.includes('AUTH_STATUS: authenticated') || text.includes('authenticated')) {
       console.log(`WhatsApp authenticated for client ${clientId}`);
-      broadcastConnected(clientId);
+      if (qrPollInterval) clearInterval(qrPollInterval);
+      broadcast(clientId, { type: 'connected' });
       registerClientChannel(clientId);
     }
   };
@@ -191,27 +297,30 @@ function launchPairingCode(clientId: string, phone: string, ws: WebSocket): void
   proc.on('close', (code) => {
     console.log(`WhatsApp auth process exited for ${clientId} with code ${code}`);
     activeAuthProcesses.delete(clientId);
+    if (qrPollInterval) clearInterval(qrPollInterval);
 
+    // If process exited successfully and creds exist, register
     const credsPath = path.join(clientDir, 'store', 'auth', 'creds.json');
     if (fs.existsSync(credsPath)) {
-      broadcastConnected(clientId);
+      broadcast(clientId, { type: 'connected' });
       registerClientChannel(clientId);
     }
   });
 
   // Timeout after 5 minutes
   setTimeout(() => {
-    if (activeAuthProcesses.has(clientId)) {
+    if (activeAuthProcesses.get(clientId) === proc) {
       proc.kill();
       activeAuthProcesses.delete(clientId);
-      ws.send(JSON.stringify({ type: 'error', message: 'Délai expiré. Recharge la page pour réessayer.' }));
+      if (qrPollInterval) clearInterval(qrPollInterval);
+      broadcast(clientId, { type: 'error', message: 'D\u00e9lai expir\u00e9. Recharge la page pour r\u00e9essayer.' });
     }
   }, 5 * 60 * 1000);
 }
 
 /**
  * After WhatsApp auth, register the client's channel and start their Otto process.
- * Includes retry logic — creds.json may not have the `me` field immediately.
+ * Sends errors to WebSocket if anything fails.
  */
 function registerClientChannel(clientId: string): void {
   const clientDir = path.join(CLIENTS_DIR, clientId);
@@ -229,6 +338,7 @@ function registerClientChannel(clientId: string): void {
         return;
       }
       console.error(`No creds.json found for ${clientId} after ${maxAttempts} attempts`);
+      broadcast(clientId, { type: 'error', message: 'Authentification \u00e9chou\u00e9e. Recharge la page pour r\u00e9essayer.' });
       return;
     }
 
@@ -243,6 +353,7 @@ function registerClientChannel(clientId: string): void {
           return;
         }
         console.error(`No me.id in creds.json for ${clientId} after ${maxAttempts} attempts`);
+        broadcast(clientId, { type: 'error', message: 'Le num\u00e9ro WhatsApp n\'a pas \u00e9t\u00e9 d\u00e9tect\u00e9. Recharge la page pour r\u00e9essayer.' });
         return;
       }
 
@@ -279,12 +390,15 @@ function registerClientChannel(clientId: string): void {
           startClientProcess(clientId);
         } else {
           console.error(`Channel registration failed for ${clientId} with code ${code}`);
+          broadcast(clientId, { type: 'error', message: 'L\'enregistrement a \u00e9chou\u00e9. Recharge la page pour r\u00e9essayer.' });
         }
       });
     } catch (err) {
       console.error(`Error reading creds for ${clientId}:`, err);
       if (attempts < maxAttempts) {
         setTimeout(tryRegister, 3000);
+      } else {
+        broadcast(clientId, { type: 'error', message: 'Erreur lors de l\'enregistrement. Recharge la page.' });
       }
     }
   };
@@ -294,7 +408,6 @@ function registerClientChannel(clientId: string): void {
 
 /**
  * Start the client's Otto PM2 process.
- * The wrapper was already created by provision.ts — recreate if missing.
  */
 function startClientProcess(clientId: string): void {
   const clientDir = path.join(CLIENTS_DIR, clientId);
@@ -326,38 +439,6 @@ exec node ${APP_DIR}/dist/index.js 2>&1
     console.log(`PM2 process otto-${clientId} started`);
   } catch (err) {
     console.error(`Failed to start PM2 process for ${clientId}:`, err);
-  }
-}
-
-/**
- * Broadcast a QR code to all connected WebSocket clients for a given client ID.
- * Called by the NanoClaw process via PM2 IPC bus (production) or direct call (dev).
- */
-export function broadcastQrCode(clientId: string, qrData: string): void {
-  const connections = activeConnections.get(clientId);
-  if (!connections) return;
-
-  const message = JSON.stringify({ type: 'qr', data: qrData });
-  for (const ws of connections) {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(message);
-    }
-  }
-}
-
-/**
- * Notify all connected WebSocket clients that WhatsApp is connected.
- */
-export function broadcastConnected(clientId: string): void {
-  updateClientStatus(clientId, 'active');
-
-  const connections = activeConnections.get(clientId);
-  if (!connections) return;
-
-  const message = JSON.stringify({ type: 'connected' });
-  for (const ws of connections) {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(message);
-    }
+    broadcast(clientId, { type: 'error', message: 'Le d\u00e9marrage d\'Otto a \u00e9chou\u00e9. Contacte le support.' });
   }
 }
