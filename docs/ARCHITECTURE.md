@@ -276,3 +276,66 @@ Les permissions fichier (`root:1000, 770`) ajoutent l'isolation **entre clients*
           ├─ .env
           └─ ...
 ```
+
+---
+
+## Scalabilité — limites actuelles et évolution
+
+### Architecture actuelle : 1 process par client
+
+Chaque client a son propre process Node.js (PM2), sa propre connexion WhatsApp, et son propre port credential proxy.
+
+```
+otto-api       (1 process, partagé)
+otto-dupont    (1 process, port 3002, ~180MB RAM)
+otto-martin    (1 process, port 3003, ~180MB RAM)
+otto-garcia    (1 process, port 3004, ~180MB RAM)
+```
+
+**Limites :**
+
+| Ressource | Limite | Impact |
+|-----------|--------|--------|
+| RAM | ~180MB par client | CCX33 (32GB) ≈ 150 clients max théorique, ~35 confortable |
+| Ports | 1 port proxy par client + 1 règle UFW | 65535 ports max, gestion UFW lourde |
+| PM2 | 1 process par client | Overhead de gestion, redémarrages individuels |
+| CPU | 1 connexion WhatsApp par process | Baileys idle consomme peu, mais les reconnexions peuvent être coûteuses |
+
+**Suffisant pour :** ~35 clients sur CCX33 (48€/mois).
+
+### Architecture cible : process multi-tenant
+
+Quand on approchera la centaine de clients, migrer vers un process unique qui gère toutes les connexions WhatsApp :
+
+```
+AVANT (1 process par client)                 APRÈS (1 process multi-tenant)
+──────────────────────────                   ──────────────────────────────
+
+otto-dupont  (180MB, port 3002)              otto (180MB total)
+otto-martin  (180MB, port 3003)                ├─ WhatsApp Dupont ──┐
+otto-garcia  (180MB, port 3004)                ├─ WhatsApp Martin   ├─ routing par JID
+= 540MB, 3 ports, 3 processes                 ├─ WhatsApp Garcia ──┘
+                                               └─ 1 credential proxy (port 3001)
+                                                    └─ routing par header X-Client-Id
+                                             = 180MB, 1 port, 1 process
+```
+
+**Changements nécessaires :**
+
+1. **Credential proxy unique** — Un seul port, le container passe un `X-Client-Id` header, le proxy lookup la bonne clé API en base.
+
+2. **Connexions WhatsApp multi-tenant** — Un seul process maintient toutes les connexions Baileys. Le routing se fait par JID (déjà supporté par le système de `registered_groups`). Chaque connexion a son propre dossier `store/auth/`.
+
+3. **Isolation des données** — Déjà en place (dossiers par client, permissions `root:1000`). Ne change pas.
+
+4. **Container spawning** — Le process unique lance les containers avec les bons volumes montés. Déjà compatible (le `group.folder` détermine quels volumes monter).
+
+5. **PM2** — Un seul process `otto` au lieu de N. Plus simple à monitorer.
+
+**Ce qui ne change PAS :**
+- Les containers Docker (déjà éphémères et isolés)
+- La base de données par client (déjà séparée)
+- Le CLAUDE.md et les skills (déjà par groupe)
+- L'API d'onboarding (déjà centralisée)
+
+**Quand migrer :** Quand la RAM ou le nombre de ports devient un bottleneck (~100 clients). Pas avant — l'architecture actuelle est plus simple à debugger et chaque client peut être redémarré indépendamment.
