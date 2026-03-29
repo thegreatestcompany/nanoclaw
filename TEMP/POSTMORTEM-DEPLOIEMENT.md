@@ -211,3 +211,42 @@ D'après ces post-mortem, le script de provisioning client doit :
 4. [ ] Donner les permissions correctes aux dossiers montés (chmod 777 ou user matching)
 5. [ ] Ne JAMAIS réutiliser une session SDK après un changement de credentials → vider `sessions` table
 6. [ ] Documenter que le credential proxy écoute sur `172.17.0.1`, pas `localhost`
+7. [x] `chmod -R 777` sur `.claude/` pour que le SDK puisse créer `session-env/`
+8. [x] `sandbox: { enabled: false }` dans les options du SDK (redondant avec Docker)
+
+---
+
+## 12. Bash tool SDK échoue silencieusement dans les containers
+
+**Symptôme** : l'agent essaie `python3 -c "from docx import Document..."` via le Bash tool, la commande est acceptée (pas bloquée par les hooks), mais rien ne se passe — pas de fichier créé, pas d'erreur. L'agent finit par abandonner et créer un .html ou .rtf en fallback.
+
+**Diagnostic** :
+- `docker exec -u node <container> python3 -c "..."` → fonctionne
+- Le même commande via le Bash tool du SDK → échoue silencieusement
+- L'agent rapporte "permission denied sur /home/node/.claude/session-env"
+
+**Cause racine** : le dossier `/home/node/.claude/` est monté depuis le host où il est créé par root (PM2 tourne en root). Le container tourne en user `node` (uid 1000). Le SDK Claude essaie de créer `/home/node/.claude/session-env/` pour configurer l'environnement d'exécution du Bash tool. Sans permissions d'écriture → échec silencieux de TOUTES les commandes Bash.
+
+**Fix** : `chmod -R 777` sur le dossier `.claude/` du host avant de lancer le container (`src/container-runner.ts`).
+
+**Leçon** : le Bash tool du SDK a un prérequis non documenté — il doit pouvoir écrire dans `~/.claude/session-env/`. C'est distinct des permissions (`bypassPermissions`) et du sandbox (`sandbox: { enabled: false }`).
+
+**Faux-pistes explorées** (toutes inutiles car ne traitaient pas la cause racine) :
+- Retirer Task/Team des allowedTools → `allowedTools` ne bloque pas les outils
+- Ajouter `disallowedTools` → bloquait des features utiles pour rien
+- Hardcoder des instructions python-docx dans CLAUDE.md → patch symptomatique
+- Interdire les sub-agents dans CLAUDE.md → même chose
+
+**Priorité** : CRITIQUE — sans ce fix, aucun outil Bash ne fonctionne dans les containers.
+
+---
+
+## 13. Sandbox SDK redondante avec Docker
+
+**Constat** : le SDK Claude a un sandbox Linux (via `unshare`) activé par défaut qui restreint filesystem et réseau des commandes Bash. Dans un container Docker, c'est redondant et contre-productif.
+
+**Fix** : `sandbox: { enabled: false }` dans les options `query()`.
+
+**Justification** : le container fournit déjà l'isolation (filesystem, réseau, user non-root). Les hooks `PreToolUse` ajoutent la sécurité applicative (blocage rm -rf, SQL destructif, écriture hors workspace). La sandbox SDK bloquait python3, pandoc, ffmpeg qu'on a installés exprès.
+
+**Priorité** : HAUTE — à appliquer sur tout déploiement containerisé.
