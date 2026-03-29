@@ -301,7 +301,7 @@ function createPreToolUseHook(): HookCallback {
 
     if (hookInput.tool_name === 'Write' || hookInput.tool_name === 'Edit') {
       const filePath = (hookInput.tool_input as { file_path?: string })?.file_path || '';
-      if (filePath && !filePath.startsWith('/workspace/group/')) {
+      if (filePath && !filePath.startsWith('/workspace/group/') && !filePath.startsWith('/tmp/')) {
         log(`[SECURITY] Blocked write outside workspace: ${filePath}`);
         return {
           hookSpecificOutput: {
