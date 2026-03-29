@@ -333,16 +333,11 @@ function createPostToolUseHook(): HookCallback {
   return async (input) => {
     const hookInput = input as PostToolUseHookInput;
 
-    // Log tool result for debugging
-    const toolResult = (hookInput as unknown as { tool_result?: { stdout?: string; stderr?: string; output?: string; error?: string } }).tool_result;
-    if (toolResult) {
-      const output = toolResult.stdout || toolResult.output || '';
-      const error = toolResult.stderr || toolResult.error || '';
-      if (error) {
-        log(`[TOOL_RESULT] ${hookInput.tool_name} ERROR: ${error.slice(0, 300)}`);
-      } else {
-        log(`[TOOL_RESULT] ${hookInput.tool_name} OK: ${output.slice(0, 200)}`);
-      }
+    // Log tool response for debugging
+    const toolResponse = (hookInput as unknown as { tool_response?: unknown }).tool_response;
+    if (toolResponse) {
+      const responseStr = typeof toolResponse === 'string' ? toolResponse : JSON.stringify(toolResponse);
+      log(`[TOOL_RESPONSE] ${hookInput.tool_name}: ${responseStr.slice(0, 500)}`);
     }
 
     if (hookInput.tool_name === 'Bash') {
