@@ -507,7 +507,12 @@ exec node ${APP_DIR}/dist/index.js 2>&1
       `chown -R root:1000 "${clientDir}/groups/" "${clientDir}/data/" "${clientDir}/store/" && ` +
       `chmod -R u=rwX,g=rwX,o= "${clientDir}/groups/" "${clientDir}/data/" "${clientDir}/store/"`,
     );
-    execSync(`pm2 start ${wrapperPath} --name otto-${clientId} --interpreter bash`);
+    // Try restart first (process may exist from previous onboarding), fall back to start
+    try {
+      execSync(`pm2 restart otto-${clientId} 2>/dev/null`);
+    } catch {
+      execSync(`pm2 start ${wrapperPath} --name otto-${clientId} --interpreter bash`);
+    }
     execSync('pm2 save');
     console.log(`PM2 process otto-${clientId} started`);
   } catch (err) {
