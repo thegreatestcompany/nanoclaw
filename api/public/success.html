@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Otto by HNTIC — Paiement reçu</title>
+  <link rel="icon" href="/static/hntic-logo.png" type="image/png">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fafafa;
+      color: #1a1a1a;
+      padding: 40px 20px;
+    }
+
+    .container { max-width: 440px; width: 100%; text-align: center; }
+    .logo-img { width: 56px; height: 56px; margin-bottom: 32px; }
+    h1 { font-size: 1.8rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 4px; }
+    .byline { font-size: 0.95rem; color: #999; font-style: italic; letter-spacing: 0.15em; margin-bottom: 40px; }
+
+    .status {
+      font-size: 0.95rem; margin-bottom: 24px; padding: 10px 24px;
+      border-radius: 100px; display: inline-block; font-weight: 400;
+    }
+    .success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .waiting { background: #fff; color: #1a1a1a; border: 1px solid #e0e0e0; }
+    .error-pill { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+    .success-text { font-size: 1.05rem; color: #555; margin: 20px 0; line-height: 1.6; }
+    .muted { color: #aaa; font-size: 0.9rem; }
+
+    .spinner {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid #ddd; border-top-color: #1a1a1a;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      vertical-align: middle; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer { color: #bbb; font-size: 0.8rem; letter-spacing: 0.05em; margin-top: 40px; }
+    .footer a { color: #999; text-decoration: none; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/static/hntic-logo.png" alt="HNTIC" class="logo-img">
+    <h1>Otto</h1>
+    <p class="byline">by HNTIC</p>
+
+    <!-- Waiting for provisioning -->
+    <div id="waiting-section">
+      <div class="status success">Paiement re&ccedil;u</div>
+      <p class="success-text"><span class="spinner"></span> Pr&eacute;paration de ton compte en cours...</p>
+      <p class="muted">Redirection automatique dans quelques secondes.</p>
+    </div>
+
+    <!-- Error -->
+    <div id="error-section" class="hidden">
+      <div class="status error-pill">Erreur</div>
+      <p class="success-text" id="error-msg">Le provisioning a pris trop de temps.</p>
+      <p class="muted">Contacte le support ou r&eacute;essaie dans quelques minutes.</p>
+    </div>
+
+    <div class="footer"><p><a href="https://hntic.fr">HNTIC</a></p></div>
+  </div>
+
+  <script>
+    // Stripe passes checkout session ID in the URL
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+
+    if (!sessionId) {
+      document.getElementById('waiting-section').classList.add('hidden');
+      document.getElementById('error-section').classList.remove('hidden');
+      document.getElementById('error-msg').textContent = 'Lien invalide — session_id manquant.';
+    } else {
+      let attempts = 0;
+      const maxAttempts = 30; // 30 x 2s = 60s max
+
+      async function pollStatus() {
+        attempts++;
+        try {
+          const res = await fetch(`/api/onboard/status/${sessionId}`);
+          const data = await res.json();
+
+          if (data.status === 'ready' && data.onboardUrl) {
+            window.location.href = data.onboardUrl;
+            return;
+          }
+
+          if (attempts >= maxAttempts) {
+            document.getElementById('waiting-section').classList.add('hidden');
+            document.getElementById('error-section').classList.remove('hidden');
+            return;
+          }
+
+          setTimeout(pollStatus, 2000);
+        } catch {
+          if (attempts >= maxAttempts) {
+            document.getElementById('waiting-section').classList.add('hidden');
+            document.getElementById('error-section').classList.remove('hidden');
+          } else {
+            setTimeout(pollStatus, 2000);
+          }
+        }
+      }
+
+      pollStatus();
+    }
+  </script>
+</body>
+</html>

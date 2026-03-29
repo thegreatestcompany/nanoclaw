@@ -11,6 +11,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { spawn, execSync, ChildProcess } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+// @ts-ignore — types installed on VPS only
 import QRCode from 'qrcode';
 import { fileURLToPath } from 'url';
 
@@ -58,6 +59,55 @@ function broadcast(clientId: string, data: object): void {
 }
 
 export function setupOnboardRoutes(app: Express, server: Server): void {
+  // --- Post-payment success page ---
+  app.get('/onboard/success', (_req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'success.html'));
+  });
+
+  // API to check provisioning status by Stripe checkout session ID
+  app.get('/api/onboard/status/:sessionId', async (req, res) => {
+    const sessionId = req.params.sessionId;
+    try {
+      // Look up the checkout session to get the customer email
+      const stripeKey = process.env.STRIPE_SECRET_KEY;
+      if (!stripeKey) {
+        res.status(503).json({ error: 'Stripe not configured' });
+        return;
+      }
+      const { default: Stripe } = await import('stripe');
+      const stripe = new Stripe(stripeKey);
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      const email =
+        session.customer_email ||
+        session.customer_details?.email;
+
+      if (!email) {
+        res.json({ status: 'pending', message: 'En attente du provisioning...' });
+        return;
+      }
+
+      const client = getClientByEmail(email);
+      if (!client) {
+        res.json({ status: 'pending', message: 'En attente du provisioning...' });
+        return;
+      }
+
+      if (client.onboard_token) {
+        const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+        res.json({
+          status: 'ready',
+          onboardUrl: `${baseUrl}/onboard/${client.onboard_token}`,
+        });
+      } else {
+        res.json({ status: 'pending', message: 'En attente du provisioning...' });
+      }
+    } catch (err) {
+      console.error('Status check error:', err);
+      res.json({ status: 'pending', message: 'En attente...' });
+    }
+  });
+
   // --- Reconnection page ---
   app.get('/reconnect', (_req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'reconnect.html'));
