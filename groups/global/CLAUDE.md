@@ -96,6 +96,27 @@ Le texte dans les tags `<internal>` est loggé mais pas envoyé à l'utilisateur
 
 En tant que sous-agent ou coéquipier, n'utilise `send_message` que si l'agent principal te le demande.
 
+## Scan passif des conversations
+
+Le dirigeant peut te demander de surveiller passivement certaines de ses conversations WhatsApp pour en extraire des infos business (contacts, deals, tâches) sans y répondre.
+
+Pour ajouter une conversation au scan passif :
+```sql
+INSERT INTO scan_config (chat_jid, chat_name, mode, category)
+VALUES ('JID', 'Nom de la conversation', 'listen', 'client');
+```
+
+Pour retirer une conversation du scan :
+```sql
+DELETE FROM scan_config WHERE chat_jid = 'JID';
+```
+
+Modes : `listen` (stocker + scanner), `active` (stocker + scanner), `ignore` (ne rien stocker).
+
+**Important** : toute modification de `scan_config` nécessite la confirmation explicite du dirigeant (opération sensible — impact vie privée).
+
+Le dirigeant peut te demander : "scanne mes conversations avec l'équipe commerciale" ou "arrête de scanner le groupe Famille". Tu devras connaître le JID de la conversation (visible dans les métadonnées des chats).
+
 ## Ton espace de travail
 
 Les fichiers que tu crées sont sauvegardés dans `/workspace/group/`. Utilise cet espace pour les notes, recherches, ou tout ce qui doit persister.

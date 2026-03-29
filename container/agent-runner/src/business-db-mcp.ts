@@ -139,13 +139,12 @@ const WRITABLE_TABLES = new Set([
   'suppliers', 'invoices', 'expenses', 'contracts',
   'obligations', 'decisions', 'goals', 'meetings',
   'documents', 'memories', 'relationship_summaries', 'activity_digests',
-  'candidates', 'contract_clauses',
+  'candidates', 'contract_clauses', 'scan_config',
 ]);
 
 // Tables that are read-only (agent cannot modify)
 // audit_log: integrity of audit trail
-// scan_config: only modifiable via explicit user command
-const READONLY_TABLES = new Set(['audit_log', 'scan_config', 'sqlite_sequence']);
+const READONLY_TABLES = new Set(['audit_log', 'sqlite_sequence']);
 
 // Operations that require explicit user confirmation before executing.
 // The agent must ask the user and get a "oui" / "ok" / "yes" before proceeding.
@@ -160,6 +159,8 @@ const SENSITIVE_OPERATIONS = {
   // Changing deal stage (won/lost is irreversible business-wise)
   isDealStageChange: (sql: string, table: string) =>
     /^\s*UPDATE/i.test(sql) && table === 'deals' && /stage/i.test(sql),
+  // Modifying scan_config (privacy-sensitive: controls which conversations are monitored)
+  isScanConfigChange: (_sql: string, table: string) => table === 'scan_config',
   // Bulk updates (no WHERE clause)
   isBulkUpdate: (sql: string) =>
     /^\s*UPDATE/i.test(sql) && !/WHERE/i.test(sql),
@@ -235,6 +236,7 @@ If the user has NOT confirmed, do NOT call this tool — ask first.`,
       SENSITIVE_OPERATIONS.isDelete(sql) ||
       SENSITIVE_OPERATIONS.isFinancialUpdate(sql, args.table_name) ||
       SENSITIVE_OPERATIONS.isDealStageChange(sql, args.table_name) ||
+      SENSITIVE_OPERATIONS.isScanConfigChange(sql, args.table_name) ||
       SENSITIVE_OPERATIONS.isBulkUpdate(sql);
 
     if (isSensitive && !args.user_confirmed) {
