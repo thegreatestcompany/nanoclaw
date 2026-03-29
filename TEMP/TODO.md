@@ -20,11 +20,6 @@ L'intégration Gmail est actuellement manuelle (copie de credentials via scp). P
 3. Le client clique un lien, autorise Gmail, et c'est configuré automatiquement
 4. Refresh token stocké dans le dossier client, monté dans le container
 
-### Notifications WhatsApp
-Le self-chat ne génère pas de notifications. Solutions par ordre de priorité :
-1. **Immédiat** : groupe solo (créer un groupe WhatsApp, retirer les autres, Otto reste membre → notifs)
-2. **Premiers clients** : numéro dédié par client (eSIM ~5€/mois, pairing code depuis le VPS)
-
 ## Roadmap (moyen terme)
 
 ### Migration WhatsApp Business API
