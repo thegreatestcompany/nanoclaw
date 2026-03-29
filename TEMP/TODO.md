@@ -3,11 +3,18 @@
 ## À faire (court terme)
 
 ### Passive scanner opt-in
-Le channel WhatsApp ne transmet actuellement que les messages des chats enregistrés. Pour que le passive scanner fonctionne, il faut :
-1. Modifier le channel WhatsApp pour transmettre aussi les messages des JIDs présents dans `scan_config` (mode `listen` ou `active`)
-2. Ajouter une commande pour que le dirigeant puisse dire "scanne cette conversation" → insert dans `scan_config`
-3. Le passive scanner analyse ensuite ces conversations toutes les 2h avec Haiku
-4. Approche opt-in uniquement (pas de stockage par défaut → RGPD)
+L'infra est en place (channel WhatsApp stocke les messages des JIDs dans `scan_config`, passive scanner les analyse toutes les 2h). Il manque l'interface pour que le client configure quelles conversations scanner.
+
+**Fait :**
+- [x] `isJidScanned()` dans scan-config.ts
+- [x] Channel WhatsApp transmet les messages des JIDs scannés
+- [x] `scan_config` est read-only pour l'agent (l'agent contourne le human-in-the-loop)
+- [x] Chats snapshot écrit dans available_chats.json
+
+**À faire :**
+1. Ajouter un endpoint admin API pour gérer scan_config (add/remove JID)
+2. Ajouter une page dans l'interface d'onboarding où le client voit ses conversations et coche celles à scanner
+3. Ou implémenter un mécanisme d'approbation asynchrone robuste (IPC → message → attente confirmation → exécution)
 
 ### Gmail OAuth automatisé
 L'intégration Gmail est actuellement manuelle (copie de credentials via scp). Pour l'onboarding self-service :
