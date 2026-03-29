@@ -317,7 +317,10 @@ exec node ${APP_DIR}/dist/index.js 2>&1
   }
 
   try {
-    execSync(`chmod -R 777 ${clientDir}/groups/ ${clientDir}/data/ ${clientDir}/store/`);
+    execSync(
+      `chown -R root:1000 "${clientDir}/groups/" "${clientDir}/data/" "${clientDir}/store/" && ` +
+      `chmod -R u=rwX,g=rwX,o= "${clientDir}/groups/" "${clientDir}/data/" "${clientDir}/store/"`,
+    );
     execSync(`pm2 start ${wrapperPath} --name otto-${clientId} --interpreter bash`);
     execSync('pm2 save');
     console.log(`PM2 process otto-${clientId} started`);

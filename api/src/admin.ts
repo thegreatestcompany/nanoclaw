@@ -31,12 +31,29 @@ function requireAdmin(req: Request, res: Response, next: NextFunction): void {
   next();
 }
 
+const SAFE_ID_PATTERN = /^[a-z0-9-]+$/;
+
+function validateClientId(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+  value: string,
+): void {
+  if (!SAFE_ID_PATTERN.test(value)) {
+    res.status(400).json({ error: 'Invalid client ID' });
+    return;
+  }
+  next();
+}
+
 function getClientDbPath(clientId: string): string {
   return path.join(CLIENTS_DIR, clientId, 'groups', 'main', 'business.db');
 }
 
 export function setupAdminRoutes(app: Express): void {
   app.use('/api/admin', express.json(), requireAdmin);
+  // Validate :id param on all client-specific routes to prevent injection
+  app.param('id', validateClientId as unknown as (req: Request, res: Response, next: NextFunction, value: string, name: string) => void);
 
   // List all clients with status and stats
   app.get('/api/admin/clients', (_req, res) => {
