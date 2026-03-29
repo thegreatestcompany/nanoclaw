@@ -30,7 +30,11 @@ const logger = Object.assign(appLogger, {
   level: 'warn',
   child: () => logger,
   trace: appLogger.debug.bind(appLogger),
-}) as typeof appLogger & { level: string; child: () => any; trace: (...args: any[]) => void };
+}) as typeof appLogger & {
+  level: string;
+  child: () => any;
+  trace: (...args: any[]) => void;
+};
 import {
   Channel,
   OnInboundMessage,
@@ -299,19 +303,36 @@ export class WhatsAppChannel implements Channel {
               const filename = docMsg.fileName || `document_${Date.now()}`;
               const ext = path.extname(filename).toLowerCase();
               const BUSINESS_EXTENSIONS = new Set([
-                '.pdf', '.docx', '.doc', '.xlsx', '.xls',
-                '.pptx', '.ppt', '.csv', '.txt', '.rtf',
+                '.pdf',
+                '.docx',
+                '.doc',
+                '.xlsx',
+                '.xls',
+                '.pptx',
+                '.ppt',
+                '.csv',
+                '.txt',
+                '.rtf',
               ]);
 
               if (BUSINESS_EXTENSIONS.has(ext)) {
                 try {
-                  const buffer = await downloadMediaMessage(
-                    msg, 'buffer', {},
-                    { logger: console as any, reuploadRequest: this.sock!.updateMediaMessage },
-                  ) as Buffer;
+                  const buffer = (await downloadMediaMessage(
+                    msg,
+                    'buffer',
+                    {},
+                    {
+                      logger: console as any,
+                      reuploadRequest: this.sock!.updateMediaMessage,
+                    },
+                  )) as Buffer;
 
                   const groupFolder = groups[chatJid]?.folder || 'main';
-                  const docDir = path.join(GROUPS_DIR, groupFolder, 'documents');
+                  const docDir = path.join(
+                    GROUPS_DIR,
+                    groupFolder,
+                    'documents',
+                  );
                   fs.mkdirSync(docDir, { recursive: true });
                   const savedName = `${Date.now()}_${filename}`;
                   const filePath = path.join(docDir, savedName);
@@ -320,11 +341,18 @@ export class WhatsAppChannel implements Channel {
                   mediaType = 'document';
                   mediaPath = `documents/${savedName}`;
                   mediaFilename = filename;
-                  content = `[Document reçu : ${filename}] (stocké à ${mediaPath})\n${content || ''}`.trim();
+                  content =
+                    `[Document reçu : ${filename}] (stocké à ${mediaPath})\n${content || ''}`.trim();
 
-                  logger.info({ filename, size: buffer.length, path: mediaPath }, 'Document captured');
+                  logger.info(
+                    { filename, size: buffer.length, path: mediaPath },
+                    'Document captured',
+                  );
                 } catch (err) {
-                  logger.error({ err, filename }, 'Failed to download document');
+                  logger.error(
+                    { err, filename },
+                    'Failed to download document',
+                  );
                 }
               }
             }

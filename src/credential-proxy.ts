@@ -39,8 +39,10 @@ export function startCredentialProxy(
   const apiKey = secrets.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY;
   const authMode: AuthMode = apiKey ? 'api-key' : 'oauth';
   const oauthToken =
-    secrets.CLAUDE_CODE_OAUTH_TOKEN || process.env.CLAUDE_CODE_OAUTH_TOKEN ||
-    secrets.ANTHROPIC_AUTH_TOKEN || process.env.ANTHROPIC_AUTH_TOKEN;
+    secrets.CLAUDE_CODE_OAUTH_TOKEN ||
+    process.env.CLAUDE_CODE_OAUTH_TOKEN ||
+    secrets.ANTHROPIC_AUTH_TOKEN ||
+    process.env.ANTHROPIC_AUTH_TOKEN;
 
   const upstreamUrl = new URL(
     secrets.ANTHROPIC_BASE_URL || 'https://api.anthropic.com',
@@ -125,5 +127,7 @@ export function startCredentialProxy(
 /** Detect which auth mode the host is configured for. */
 export function detectAuthMode(): AuthMode {
   const secrets = readEnvFile(['ANTHROPIC_API_KEY']);
-  return (secrets.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY) ? 'api-key' : 'oauth';
+  return secrets.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY
+    ? 'api-key'
+    : 'oauth';
 }
