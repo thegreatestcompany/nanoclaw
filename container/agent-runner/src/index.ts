@@ -592,6 +592,7 @@ async function runQuery(
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
+      sandbox: { enabled: false },
       settingSources: ['project', 'user'],
       mcpServers: {
         nanoclaw: {
