@@ -11,10 +11,65 @@ const execFileAsync = promisify(execFile);
 const WHISPER_BIN = process.env.WHISPER_BIN || 'whisper-cli';
 const WHISPER_MODEL =
   process.env.WHISPER_MODEL ||
-  path.join(process.cwd(), 'data', 'models', 'ggml-base.bin');
+  path.join(process.cwd(), 'data', 'models', 'ggml-small.bin');
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 
 const FALLBACK_MESSAGE = '[Voice Message - transcription unavailable]';
 
+/**
+ * Transcribe audio using OpenAI Whisper API.
+ * Faster and more accurate than local whisper.cpp, especially for French.
+ * Cost: ~$0.006/minute of audio.
+ */
+async function transcribeWithOpenAI(
+  audioBuffer: Buffer,
+): Promise<string | null> {
+  const tmpDir = os.tmpdir();
+  const tmpOgg = path.join(tmpDir, `nanoclaw-voice-${Date.now()}.ogg`);
+
+  try {
+    fs.writeFileSync(tmpOgg, audioBuffer);
+
+    const formData = new FormData();
+    formData.append('file', new Blob([audioBuffer]), 'audio.ogg');
+    formData.append('model', 'whisper-1');
+    formData.append('language', 'fr');
+
+    const t0 = Date.now();
+    const response = await fetch(
+      'https://api.openai.com/v1/audio/transcriptions',
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: formData,
+      },
+    );
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error(`[voice] OpenAI API error: ${response.status} ${err}`);
+      return null;
+    }
+
+    const result = (await response.json()) as { text: string };
+    console.log(`[voice] OpenAI API: ${Date.now() - t0}ms`);
+    return result.text || null;
+  } catch (err) {
+    console.error('[voice] OpenAI transcription failed:', err);
+    return null;
+  } finally {
+    try {
+      fs.unlinkSync(tmpOgg);
+    } catch {
+      /* best effort */
+    }
+  }
+}
+
+/**
+ * Transcribe audio using local whisper.cpp.
+ * Fallback when OPENAI_API_KEY is not configured.
+ */
 async function transcribeWithWhisperCpp(
   audioBuffer: Buffer,
 ): Promise<string | null> {
@@ -41,7 +96,7 @@ async function transcribeWithWhisperCpp(
       ['-m', WHISPER_MODEL, '-f', tmpWav, '--no-timestamps', '-nt'],
       { timeout: 60_000 },
     );
-    console.log(`[voice] whisper: ${Date.now() - t2}ms`);
+    console.log(`[voice] whisper.cpp: ${Date.now() - t2}ms`);
 
     const transcript = stdout.trim();
     return transcript || null;
@@ -85,13 +140,18 @@ export async function transcribeAudioMessage(
     const t0 = Date.now();
     console.log(`[voice] Downloaded audio: ${buffer.length} bytes`);
 
-    const transcript = await transcribeWithWhisperCpp(buffer);
+    // Use OpenAI API if configured, otherwise fall back to local whisper.cpp
+    const transcript = OPENAI_API_KEY
+      ? await transcribeWithOpenAI(buffer)
+      : await transcribeWithWhisperCpp(buffer);
 
     if (!transcript) {
       return FALLBACK_MESSAGE;
     }
 
-    console.log(`[voice] Transcribed in ${Date.now() - t0}ms: ${transcript.length} chars`);
+    console.log(
+      `[voice] Transcribed in ${Date.now() - t0}ms: ${transcript.length} chars`,
+    );
     return transcript.trim();
   } catch (err) {
     console.error('Transcription error:', err);
