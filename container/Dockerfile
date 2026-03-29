@@ -62,10 +62,11 @@ RUN mkdir -p /workspace/group /workspace/global /workspace/extra /workspace/ipc/
 # Follow-up messages arrive via IPC files in /workspace/ipc/input/
 # Pre-compile agent-runner at build time (warm cache)
 RUN cd /app && npx tsc --outDir /tmp/dist-cache 2>&1 >&2 \
-    && ln -s /app/node_modules /tmp/dist-cache/node_modules
+    && ln -s /app/node_modules /tmp/dist-cache/node_modules \
+    && md5sum /app/src/index.ts | cut -d' ' -f1 > /tmp/dist-cache/.src-hash
 
-# Entrypoint: recompile only if source changed, otherwise use cache
-RUN printf '#!/bin/bash\nset -e\nSRC_HASH=$(md5sum /app/src/index.ts 2>/dev/null | cut -d" " -f1)\nCACHE_HASH=$(cat /tmp/.src-hash 2>/dev/null)\nif [ "$SRC_HASH" != "$CACHE_HASH" ]; then\n  cd /app && npx tsc --outDir /tmp/dist 2>&1 >&2\n  ln -sf /app/node_modules /tmp/dist/node_modules\n  echo "$SRC_HASH" > /tmp/.src-hash\nelse\n  cp -r /tmp/dist-cache /tmp/dist 2>/dev/null || { cd /app && npx tsc --outDir /tmp/dist 2>&1 >&2 && ln -s /app/node_modules /tmp/dist/node_modules; }\nfi\ncat > /tmp/input.json\nnode /tmp/dist/index.js < /tmp/input.json\n' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+# Entrypoint: use pre-built cache if source unchanged, recompile otherwise
+RUN printf '#!/bin/bash\nset -e\nSRC_HASH=$(md5sum /app/src/index.ts 2>/dev/null | cut -d" " -f1 || echo "none")\nCACHE_HASH=$(cat /tmp/dist-cache/.src-hash 2>/dev/null || echo "")\nif [ "$SRC_HASH" = "$CACHE_HASH" ] && [ -f /tmp/dist-cache/index.js ]; then\n  ln -sf /tmp/dist-cache /tmp/dist\nelse\n  cd /app && npx tsc --outDir /tmp/dist 2>&1 >&2\n  ln -sf /app/node_modules /tmp/dist/node_modules\nfi\ncat > /tmp/input.json\nnode /tmp/dist/index.js < /tmp/input.json\n' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 # Set ownership to node user (non-root) for writable directories
 RUN chown -R node:node /workspace && chmod 777 /home/node
