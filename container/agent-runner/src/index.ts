@@ -784,6 +784,19 @@ async function runQuery(
         return { newSessionId: undefined, lastAssistantUuid: undefined, closedDuringQuery: false, resumeFailed: true };
       }
 
+      // Budget exceeded — send a clear error and stop the container
+      if (message.subtype === 'error_max_budget_usd') {
+        log(`Budget exceeded ($${costUsd?.toFixed(4) || '?'}) — stopping container`);
+        writeOutput({
+          status: 'error',
+          result: 'Désolé, cette demande a consommé trop de ressources. Réessaie avec une question plus simple.',
+          error: 'Budget exceeded',
+        });
+        ipcPolling = false;
+        closeDb();
+        process.exit(0);
+      }
+
       writeOutput({
         status: 'success',
         result: textResult || null,
