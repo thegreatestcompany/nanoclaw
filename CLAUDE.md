@@ -1,80 +1,94 @@
-# NanoClaw
+# Otto by HNTIC
 
-Personal Claude assistant. See [README.md](README.md) for philosophy and setup. See [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) for architecture decisions.
+AI Chief of Staff SaaS accessible via WhatsApp, built on NanoClaw (Claude Agent SDK). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture guide and [docs/SECURITY.md](docs/SECURITY.md) for the security model.
 
 ## Quick Context
 
-Single Node.js process with skill-based channel system. Channels (WhatsApp, Telegram, Slack, Discord, Gmail) are skills that self-register at startup. Messages route to Claude Agent SDK running in containers (Linux VMs). Each group has isolated filesystem and memory.
+Multi-tenant SaaS on a single Hetzner VPS. Each client gets their own PM2 process, WhatsApp connection (Baileys), credential proxy port, and isolated data directory. Messages route to Claude Agent SDK running in ephemeral Docker containers. 53 skills (Anthropic official + knowledge-work + HNTIC custom).
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `src/index.ts` | Orchestrator: state, message loop, agent invocation |
-| `src/channels/registry.ts` | Channel registry (self-registration at startup) |
+| `src/container-runner.ts` | Spawns agent containers with mounts, fixes permissions |
+| `src/credential-proxy.ts` | HTTP proxy that injects API keys into container requests |
+| `src/channels/whatsapp.ts` | WhatsApp channel (Baileys) |
+| `src/transcription.ts` | Voice transcription (OpenAI Whisper API, fallback whisper.cpp) |
+| `src/memory-consolidator.ts` | Daily learnings + weekly AutoDream |
+| `src/passive-scanner.ts` | Scans unregistered conversations for business data |
 | `src/ipc.ts` | IPC watcher and task processing |
-| `src/router.ts` | Message formatting and outbound routing |
-| `src/config.ts` | Trigger pattern, paths, intervals |
-| `src/container-runner.ts` | Spawns agent containers with mounts |
-| `src/task-scheduler.ts` | Runs scheduled tasks |
-| `src/db.ts` | SQLite operations |
-| `groups/{name}/CLAUDE.md` | Per-group memory (isolated) |
-| `container/skills/` | Skills loaded inside agent containers (browser, status, formatting) |
+| `src/db.ts` | SQLite operations (messages.db) |
+| `container/agent-runner/src/index.ts` | Code running inside the container |
+| `container/agent-runner/src/business-db-mcp.ts` | MCP server for business.db (query/mutate with audit) |
+| `container/skills/` | 53 skills loaded inside agent containers |
+| `groups/global/CLAUDE.md` | Global agent instructions (shared across clients) |
+| `scripts/init-business-db.sql` | Business DB schema (25 tables) |
+| `api/src/stripe.ts` | Stripe webhook → auto-provisioning |
+| `api/src/onboard.ts` | WhatsApp QR code/pairing + reconnection flow |
+| `api/src/mailer.ts` | Transactional emails (Gmail SMTP) |
+| `api/src/admin.ts` | Admin back-office API |
 
-## Secrets / Credentials / Proxy (OneCLI)
+## Secrets / Credentials
 
-API keys, secret keys, OAuth tokens, and auth credentials are managed by the OneCLI gateway — which handles secret injection into containers at request time, so no keys or tokens are ever passed to containers directly. Run `onecli --help`.
+API keys are managed by the native credential proxy (`src/credential-proxy.ts`). Each client has a `.env` with their own API key, read by the proxy at request time. Containers never see real keys — they get `ANTHROPIC_BASE_URL` pointing to the proxy.
 
-## Skills
+The API's `.env` is at `api/.env` (gitignored) and contains Stripe, SMTP, and admin credentials.
 
-Four types of skills exist in NanoClaw. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full taxonomy and guidelines.
+## VPS Architecture
 
-- **Feature skills** — merge a `skill/*` branch to add capabilities (e.g. `/add-telegram`, `/add-slack`)
-- **Utility skills** — ship code files alongside SKILL.md (e.g. `/claw`)
-- **Operational skills** — instruction-only workflows, always on `main` (e.g. `/setup`, `/debug`)
-- **Container skills** — loaded inside agent containers at runtime (`container/skills/`)
+```
+/opt/otto/
+  app/           ← This repo (git pull to update)
+    api/         ← Onboarding API (runs as PM2 process otto-api)
+    src/         ← Host process code
+    container/   ← Docker image + skills
+    groups/      ← Global CLAUDE.md template
+  clients/       ← Per-client isolated directories
+    {id}/
+      .env       ← Client API key (never mounted in containers)
+      groups/    ← Client data (business.db, CLAUDE.md, documents/)
+      data/      ← Sessions, skills cache
+      store/     ← WhatsApp auth credentials
+```
 
-| Skill | When to Use |
-|-------|-------------|
-| `/setup` | First-time installation, authentication, service configuration |
-| `/customize` | Adding channels, integrations, changing behavior |
-| `/debug` | Container issues, logs, troubleshooting |
-| `/update-nanoclaw` | Bring upstream NanoClaw updates into a customized install |
-| `/init-onecli` | Install OneCLI Agent Vault and migrate `.env` credentials to it |
-| `/qodo-pr-resolver` | Fetch and fix Qodo PR review issues interactively or in batch |
-| `/get-qodo-rules` | Load org- and repo-level coding rules from Qodo before code tasks |
+## Permissions
 
-## Contributing
+Host runs as root, containers run as node (uid 1000). All writable mounts get `chown root:1000 + chmod u=rwX,g=rwX,o=` automatically before each container launch. Never use `chmod 777`.
 
-Before creating a PR, adding a skill, or preparing any contribution, you MUST read [CONTRIBUTING.md](CONTRIBUTING.md). It covers accepted change types, the four skill types and their guidelines, SKILL.md format rules, PR requirements, and the pre-submission checklist (searching for existing PRs/issues, testing, description format).
+The SDK sandbox is disabled (`sandbox: { enabled: false }`) — Docker IS the sandbox.
 
 ## Development
 
-Run commands directly—don't tell the user to run them.
-
 ```bash
-npm run dev          # Run with hot reload
-npm run build        # Compile TypeScript
-./container/build.sh # Rebuild agent container
+npm run build              # Compile TypeScript
+npm run dev                # Run with hot reload
+./container/build.sh       # Rebuild agent container
 ```
 
-Service management:
-```bash
-# macOS (launchd)
-launchctl load ~/Library/LaunchAgents/com.nanoclaw.plist
-launchctl unload ~/Library/LaunchAgents/com.nanoclaw.plist
-launchctl kickstart -k gui/$(id -u)/com.nanoclaw  # restart
+## Deployment
 
-# Linux (systemd)
-systemctl --user start nanoclaw
-systemctl --user stop nanoclaw
-systemctl --user restart nanoclaw
+```bash
+cd /opt/otto/app && git pull origin main && npm run build
+cd api && npm run build && pm2 restart otto-api
+# If Dockerfile or skills changed:
+cd /opt/otto/app/container && ./build.sh
+pm2 restart otto-test  # or the client process
 ```
+
+## Key Decisions
+
+- **register_group via IPC is disabled** — agents cannot add themselves to new WhatsApp groups (security)
+- **scan_config is read-only for agents** — passive scan configuration is admin-only (privacy)
+- **Session resume is enabled** — sessions persist across container restarts via mounted .claude/
+- **maxTurns: 30, maxBudgetUsd: 0.50** — guardrails against infinite loops
+- **Whisper: OpenAI API** when OPENAI_API_KEY is set, local whisper.cpp (ggml-small) as fallback
 
 ## Troubleshooting
 
-**WhatsApp not connecting after upgrade:** WhatsApp is now a separate skill, not bundled in core. Run `/add-whatsapp` (or `npx tsx scripts/apply-skill.ts .claude/skills/add-whatsapp && npm run build`) to install it. Existing auth credentials and groups are preserved.
+See [TEMP/POSTMORTEM-DEPLOIEMENT.md](TEMP/POSTMORTEM-DEPLOIEMENT.md) for all known issues and fixes. Key gotchas:
 
-## Container Build Cache
-
-The container buildkit caches the build context aggressively. `--no-cache` alone does NOT invalidate COPY steps — the builder's volume retains stale files. To force a truly clean rebuild, prune the builder then re-run `./container/build.sh`.
+- **Bash tool fails silently**: Check `.claude/` permissions (must be writable by uid 1000)
+- **Container crashes on start**: Check entrypoint — TypeScript compilation may fail if source changed
+- **WhatsApp not connecting**: Check `store/auth/` exists and has valid creds. Use `/reconnect` page.
+- **PM2 "Script already launched"**: Use `pm2 restart` instead of `pm2 start`
