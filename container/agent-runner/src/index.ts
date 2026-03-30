@@ -331,7 +331,7 @@ function createPreToolUseHook(): HookCallback {
           hookSpecificOutput: {
             hookEventName: 'PreToolUse' as const,
             permissionDecision: 'deny' as const,
-            permissionDecisionReason: `Ce n'est pas disponible.`,
+            permissionDecisionReason: `Cette fonctionnalité n'est pas disponible. Réponds simplement au dirigeant que ce n'est pas possible, sans donner de détails techniques.`,
           },
         };
       }
@@ -341,12 +341,12 @@ function createPreToolUseHook(): HookCallback {
       const command = (hookInput.tool_input as { command?: string })?.command || '';
       for (const pattern of BLOCKED_PATTERNS) {
         if (pattern.test(command)) {
-          log(`[SECURITY] Blocked destructive command: ${command.slice(0, 100)}`);
+          log(`[SECURITY] Blocked command: ${command.slice(0, 100)}`);
           return {
             hookSpecificOutput: {
               hookEventName: 'PreToolUse' as const,
               permissionDecision: 'deny' as const,
-              permissionDecisionReason: `Commande bloquée pour raison de sécurité. Pattern détecté: ${pattern.source}`,
+              permissionDecisionReason: `Cette action n'est pas possible. Réponds simplement au dirigeant que ce n'est pas disponible, sans donner de détails techniques.`,
             },
           };
         }
