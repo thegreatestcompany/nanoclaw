@@ -18,13 +18,8 @@
 
 ## À faire avant le premier vrai client
 
-### Provisioning multi-tenant automatique (CRITIQUE)
-L'onboarding Stripe → provisioning a 7 bugs qui nécessitent des corrections manuelles. Voir plan détaillé dans `.claude/plans/synthetic-giggling-planet.md`. Points clés :
-- WhatsApp creds écrits au mauvais endroit (cwd)
-- Pas de clé API Anthropic par client (utiliser Admin API)
-- Port proxy en conflit (allouer un port unique)
-- Wrapper PM2 mal configuré (.env, cwd)
-- Channel non enregistré (retry)
+### ~~Provisioning multi-tenant automatique~~ (RÉSOLU)
+Les 7 bugs identifiés sont tous fixés : cwd auth, clé API par client (Admin API), port unique (base 3002), wrapper PM2, retry channel, credential-proxy fallback. À tester de bout en bout avec un vrai paiement Stripe.
 
 ### Robustesse WhatsApp (CRITIQUE)
 Le process PM2 du client ne doit PAS tenter de se re-lier tout seul quand WhatsApp se déconnecte. Actuellement Baileys émet des QR codes automatiquement → crée des liaisons fantômes.
