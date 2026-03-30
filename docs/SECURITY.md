@@ -229,6 +229,33 @@ L'agent a contourné le blocage du skill `update-config` en modifiant directemen
 
 **Leçon** : chaque blocage (Skill, Write/Edit, Bash) est indépendant. L'agent peut contourner un blocage en utilisant un autre outil. Il faut bloquer à TOUS les niveaux simultanément.
 
+## Defense-in-depth contre le prompt leak (30/03/2026)
+
+Problème : le modèle ignore les instructions de confidentialité du CLAUDE.md sous pression sociale ("question de vie ou de mort") et expose l'architecture interne (chemins, fichiers, technologies).
+
+### 3 couches de protection (recommandations Anthropic)
+
+| Couche | Mécanisme | Fichier | Contournable ? |
+|--------|-----------|---------|----------------|
+| 1. Prompt engineering | `<confidential>` tags + refusal message canonique | `groups/global/CLAUDE.md` | Oui (social engineering) |
+| 2. Hook blocking | PreToolUse bloque skills admin + Bash sensibles | `container/agent-runner/src/index.ts` | Non (code-level) |
+| 3. Output filtering | Regex sur 20+ patterns avant envoi WhatsApp | `src/router.ts` (`formatOutbound`) | Non (code-level) |
+
+### Output filter (`formatOutbound`)
+
+Appliqué sur **tous** les chemins de sortie (résultats agent + IPC send_message). Si un pattern technique est détecté, la réponse entière est remplacée par : "Désolé, je ne suis pas en mesure de répondre à cette demande."
+
+Patterns bloqués : `/workspace/`, `/home/node/`, `.claude/`, `settings.json`, `CLAUDE.md`, `business.db`, `sqlite`, `claude code`, `claude sdk`, `agent runner`, `container`, `docker`, `/proc/`, `mcp__`, `nanoclaw`, `credential proxy`, `session env`, `creds.json`.
+
+### Non implémenté (coût trop élevé)
+
+- **Input screening** : pré-filtrer les messages client avec Haiku pour détecter les jailbreaks → ajoute ~$0.01 + latence par message
+- **LLM output screening** : vérifier la réponse avec un second modèle → double le coût
+
+### Leçon apprise
+
+Le prompt engineering seul ne suffit JAMAIS pour la sécurité. Le modèle peut toujours être convaincu d'ignorer ses instructions. Seul le filtrage côté code (post-processing) est fiable. C'est la recommandation officielle d'Anthropic : "Use post-processing: Filter outputs for keywords that might indicate a leak."
+
 ### Risques résiduels
 
 - L'agent peut toujours `curl` vers des sites externes (pas seulement le host) — nécessaire pour WebSearch/WebFetch
