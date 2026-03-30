@@ -381,7 +381,7 @@ async function runAgent(
         assistantName: ASSISTANT_NAME,
         model: 'sonnet',
         maxTurns: 30,
-        maxBudgetUsd: 2.0,
+        maxBudgetUsd: 1.0,
       },
       (proc, containerName) =>
         queue.registerProcess(chatJid, proc, containerName, group.folder),
