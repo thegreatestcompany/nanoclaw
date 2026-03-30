@@ -3,8 +3,9 @@
 
 FROM node:22-slim
 
-# Install system dependencies for Chromium
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
+    # Chromium + rendering
     chromium \
     fonts-liberation \
     fonts-noto-cjk \
@@ -22,13 +23,22 @@ RUN apt-get update && apt-get install -y \
     libcups2 \
     libdrm2 \
     libxshmfence1 \
+    # CLI tools
     curl \
     git \
     poppler-utils \
     pandoc \
     ffmpeg \
     python3-pip \
-    && pip3 install --break-system-packages python-docx openpyxl python-pptx reportlab pandas Pillow "markitdown[pptx]" pypdf pdfplumber \
+    # Document skills dependencies
+    libreoffice-nogui \
+    qpdf \
+    tesseract-ocr \
+    && pip3 install --break-system-packages \
+        python-docx openpyxl python-pptx reportlab pandas Pillow \
+        "markitdown[pptx]" \
+        pypdf pdfplumber pdf2image pytesseract \
+        defusedxml lxml \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Chromium path for agent-browser
