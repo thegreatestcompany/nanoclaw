@@ -367,7 +367,7 @@ async function runAgent(
       group,
       {
         prompt,
-        sessionId,
+        // sessionId, // TEMP: disabled to measure baseline cost without session history
         groupFolder: group.folder,
         chatJid,
         isMain,
