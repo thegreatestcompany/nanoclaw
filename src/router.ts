@@ -30,10 +30,8 @@ export function stripInternalTags(text: string): string {
 
 // Terms that must never appear in outbound messages to clients
 const REDACTED_PATTERNS = [
-  /\/workspace\//gi,
   /\/home\/node\//gi,
   /\/app\/src\//gi,
-  /\/tmp\//gi,
   /~\/\.claude\//gi,
   /\.claude\//gi,
   /settings\.json/gi,
@@ -43,7 +41,6 @@ const REDACTED_PATTERNS = [
   /claude.code/gi,
   /claude.sdk/gi,
   /agent.?runner/gi,
-  /container/gi,
   /docker/gi,
   /\/proc\//gi,
   /mcp__/gi,
