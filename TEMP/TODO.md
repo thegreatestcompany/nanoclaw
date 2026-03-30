@@ -57,6 +57,47 @@ L'intégration Gmail est actuellement manuelle (copie de credentials via scp). P
 3. Le client clique un lien, autorise Gmail, et c'est configuré automatiquement
 4. Refresh token stocké dans le dossier client, monté dans le container
 
+## Optimisation des coûts API (documenté le 30/03/2026)
+
+### Résumé
+
+Le coût par message était de **$0.41** et est descendu à **$0.09** (~78% de réduction).
+
+### Cause racine
+
+Le session resume du SDK chargeait ~80K tokens d'historique de session à chaque query. Combiné au system prompt interne de Claude Code (~23K tokens), chaque message coûtait ~$0.40-0.50.
+
+### Mesures prises
+
+| Changement | Impact |
+|-----------|--------|
+| Retrait du preset `claude_code` dans systemPrompt | -0K (le SDK charge son propre prompt de toute façon) |
+| `settingSources: []` | Empêche le chargement des settings/CLAUDE.md additionnels |
+| Passage du CLAUDE.md global en string direct | Contrôle total du system prompt |
+| **Désactivation du session resume** | **-80K tokens, -$0.32/message** |
+| `MAX_MESSAGES_PER_PROMPT` de 10 → 30 | Compense la perte de session resume avec le contexte WhatsApp récent |
+| Option `tools` en array explicite | Réduit légèrement les tool definitions |
+
+### Coûts mesurés (Sonnet 4.6)
+
+| Message | Cold (1er msg) | Warm (2e+ msg) |
+|---------|---------------|----------------|
+| Simple ("Bonjour") | $0.09 | $0.02-0.05 |
+| Moyen (query DB) | $0.10-0.15 | $0.05-0.10 |
+| Complexe (création doc) | $0.15-0.25 | $0.10-0.20 |
+
+### Projection mensuelle
+
+~20 messages/jour × ~$0.10/msg = **~$60/mois** par client.
+À 447€/mois → **~370€ de marge**.
+
+### Limites connues
+
+- Le system prompt interne du SDK (~23K tokens) est incompressible — Anthropic ne prévoit pas de le réduire ([issue #18744](https://github.com/anthropics/claude-code/issues/18744), closed "not planned")
+- L'option `tools` en array ne réduit pas les tool definitions internes ([issue #21773](https://github.com/anthropics/claude-code/issues/21773))
+- Sans session resume, Otto ne se souvient pas des conversations passées au-delà des 30 derniers messages WhatsApp — la mémoire long terme repose sur CLAUDE.md + business.db + conversations/
+- Si un jour les prix API baissent ou le SDK est optimisé, on pourra réactiver le session resume
+
 ## Roadmap (moyen terme)
 
 ### Migration WhatsApp Business API
