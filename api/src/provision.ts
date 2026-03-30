@@ -64,29 +64,12 @@ async function createAnthropicCredentials(clientId: string): Promise<{
       return { apiKey: sharedKey || null, workspaceId: null, apiKeyId: null };
     }
 
-    // 2. Create API key in this workspace
-    const keyRes = await fetch('https://api.anthropic.com/v1/organizations/api_keys', {
-      method: 'POST',
-      headers: {
-        'x-api-key': ANTHROPIC_ADMIN_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: `otto-${clientId}`,
-        workspace_id: workspace.id,
-      }),
-    });
-    const apiKeyData = await keyRes.json() as { id: string; key: string };
-
-    if (!apiKeyData.key) {
-      console.error('Failed to create Anthropic API key:', apiKeyData);
-      const sharedKey = process.env.ANTHROPIC_API_KEY || '';
-      return { apiKey: sharedKey || null, workspaceId: workspace.id, apiKeyId: null };
-    }
-
-    console.log(`Anthropic workspace ${workspace.id} + API key created for ${clientId}`);
-    return { apiKey: apiKeyData.key, workspaceId: workspace.id, apiKeyId: apiKeyData.id };
+    // Note: Anthropic Admin API does NOT support creating API keys programmatically.
+    // Keys can only be created in the Console. We use the shared API key for all
+    // clients but track costs per workspace via the usage_report API.
+    const sharedKey = process.env.ANTHROPIC_API_KEY || '';
+    console.log(`Anthropic workspace ${workspace.id} created for ${clientId} (using shared API key)`);
+    return { apiKey: sharedKey || null, workspaceId: workspace.id, apiKeyId: null };
   } catch (err) {
     console.error('Anthropic Admin API error:', err);
     const sharedKey = process.env.ANTHROPIC_API_KEY || '';
