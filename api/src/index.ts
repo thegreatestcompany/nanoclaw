@@ -11,6 +11,7 @@
 
 import express from 'express';
 import { createServer } from 'http';
+import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -49,10 +50,9 @@ setupAdminRoutes(app);
  * We send a reconnection email so the user can re-link.
  */
 function setupPm2IpcListener(): void {
-  // pm2 is installed globally on the VPS — use dynamic import to avoid
-  // hard dependency and TypeScript compilation issues in dev.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  import('pm2' as string).then((pm2: any) => {
+  try {
+    const require = createRequire(import.meta.url);
+    const pm2 = require('pm2');
     pm2.launchBus((err: Error | null, bus: any) => {
       if (err) {
         console.error('Failed to launch PM2 bus:', err);
@@ -89,9 +89,9 @@ function setupPm2IpcListener(): void {
         );
       });
     });
-  }).catch(() => {
+  } catch {
     console.log('PM2 not available — IPC listener skipped (dev mode)');
-  });
+  }
 }
 
 server.listen(PORT, () => {
