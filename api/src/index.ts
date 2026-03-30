@@ -61,7 +61,8 @@ function setupPm2IpcListener(): void {
       console.log('PM2 IPC bus connected — listening for client disconnections');
 
       bus.on('process:msg', (packet: any) => {
-        if (packet.data?.type !== 'disconnected_needs_reauth') return;
+        // PM2 bus packets have { process, raw, at } — the message is in `raw`
+        if (packet.raw?.type !== 'disconnected_needs_reauth') return;
 
         const processName = packet.process?.name || '';
         // Process names follow the pattern "otto-{clientId}"
