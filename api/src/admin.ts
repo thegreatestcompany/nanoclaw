@@ -93,7 +93,14 @@ export function setupAdminRoutes(app: Express): void {
         } catch { /* pm2 not available */ }
       }
 
-      return { ...client, stats, ...pm2Stats };
+      // WhatsApp status: check if auth credentials exist
+      const authDir = path.join(CLIENTS_DIR, client.id, 'store', 'auth');
+      const hasWhatsAppAuth = fs.existsSync(authDir) && fs.readdirSync(authDir).length > 0;
+      const whatsappStatus = !hasWhatsAppAuth ? 'no_auth'
+        : pm2Stats.pm2_status === 'online' ? 'connected'
+        : 'disconnected';
+
+      return { ...client, stats, ...pm2Stats, whatsapp_status: whatsappStatus };
     });
 
     res.json(enriched);
@@ -227,6 +234,68 @@ export function setupAdminRoutes(app: Express): void {
     try {
       execSync(`pm2 stop otto-${req.params.id}`);
       res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  // PM2 logs for a client
+  app.get('/api/admin/clients/:id/logs', (req, res) => {
+    if (!IS_LINUX) {
+      res.json({ lines: ['PM2 logs only available on Linux (production)'] });
+      return;
+    }
+    const lines = parseInt(req.query.lines as string) || 50;
+    const cap = Math.min(lines, 200);
+    try {
+      const stdout = execSync(`pm2 logs otto-${req.params.id} --lines ${cap} --nostream --raw 2>/dev/null || true`, { timeout: 5000 }).toString();
+      res.json({ lines: stdout.split('\n').filter(l => l.trim()) });
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  // List documents for a client
+  app.get('/api/admin/clients/:id/documents', (req, res) => {
+    const docsDir = path.join(CLIENTS_DIR, req.params.id, 'groups', 'main', 'documents');
+    if (!fs.existsSync(docsDir)) {
+      res.json({ documents: [] });
+      return;
+    }
+    try {
+      const files = fs.readdirSync(docsDir).map(name => {
+        const fullPath = path.join(docsDir, name);
+        const stat = fs.statSync(fullPath);
+        return {
+          name,
+          size_kb: Math.round(stat.size / 1024),
+          modified: stat.mtime.toISOString(),
+        };
+      });
+      files.sort((a, b) => b.modified.localeCompare(a.modified));
+      res.json({ documents: files });
+    } catch (err) {
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  // Disk usage per client
+  app.get('/api/admin/clients/:id/disk', (req, res) => {
+    const clientDir = path.join(CLIENTS_DIR, req.params.id);
+    if (!fs.existsSync(clientDir)) {
+      res.status(404).json({ error: 'Client directory not found' });
+      return;
+    }
+    try {
+      const total = execSync(`du -sh ${clientDir} 2>/dev/null | cut -f1`, { timeout: 5000 }).toString().trim();
+      const breakdown: Record<string, string> = {};
+      for (const sub of ['groups', 'data', 'store']) {
+        const subDir = path.join(clientDir, sub);
+        if (fs.existsSync(subDir)) {
+          breakdown[sub] = execSync(`du -sh ${subDir} 2>/dev/null | cut -f1`, { timeout: 5000 }).toString().trim();
+        }
+      }
+      res.json({ total, breakdown });
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
     }
