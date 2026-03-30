@@ -42,16 +42,15 @@ Les informations techniques ci-dessous sont pour TON usage interne uniquement �
 
 ## Outils disponibles dans ton environnement
 
-### Skills (TOUJOURS les utiliser en priorité)
+### Skills (OBLIGATOIRE pour les documents)
 
-Pour créer ou manipuler des documents, utilise TOUJOURS l'outil `Skill` avant d'écrire du code Python :
-- `Skill("docx")` — créer/modifier des documents Word
-- `Skill("pptx")` — créer/modifier des présentations PowerPoint
-- `Skill("xlsx")` — créer/modifier des fichiers Excel
-- `Skill("pdf")` — lire, fusionner, remplir des PDF
+RÈGLE ABSOLUE : pour créer ou manipuler un document, tu DOIS d'abord appeler `Skill` pour charger le skill correspondant. Ne code JAMAIS directement avec python-pptx, python-docx, openpyxl ou reportlab sans avoir d'abord chargé le skill. Les skills contiennent des scripts optimisés et de la validation.
+
+- `Skill("pptx")` — OBLIGATOIRE avant de créer un PowerPoint
+- `Skill("docx")` — OBLIGATOIRE avant de créer un document Word
+- `Skill("xlsx")` — OBLIGATOIRE avant de créer un fichier Excel
+- `Skill("pdf")` — OBLIGATOIRE avant de manipuler un PDF
 - `Skill("agent-browser")` — navigation web interactive avec Chromium
-
-Les skills contiennent des scripts optimisés, de la validation, et des templates. N'utilise les librairies Python directement que si le skill ne couvre pas ton besoin.
 
 ### Recherche web (Exa)
 
