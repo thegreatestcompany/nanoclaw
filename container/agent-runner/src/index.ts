@@ -589,9 +589,14 @@ function drainIpcInput(): string[] {
 /**
  * Wait for a new IPC message or _close sentinel.
  * Returns the messages as a single string, or null if _close.
+ * Times out after IPC_IDLE_TIMEOUT_MS to avoid blocking forever
+ * if the host crashes or never sends _close.
  */
+const IPC_IDLE_TIMEOUT_MS = 600_000; // 10 minutes
+
 function waitForIpcMessage(): Promise<string | null> {
   return new Promise((resolve) => {
+    const deadline = Date.now() + IPC_IDLE_TIMEOUT_MS;
     const poll = () => {
       if (shouldClose()) {
         resolve(null);
@@ -600,6 +605,11 @@ function waitForIpcMessage(): Promise<string | null> {
       const messages = drainIpcInput();
       if (messages.length > 0) {
         resolve(messages.join('\n'));
+        return;
+      }
+      if (Date.now() >= deadline) {
+        log(`IPC idle timeout (${IPC_IDLE_TIMEOUT_MS / 1000}s) — no message received, exiting`);
+        resolve(null);
         return;
       }
       setTimeout(poll, IPC_POLL_MS);
@@ -683,7 +693,7 @@ async function runQuery(
       resumeSessionAt: resumeAt,
       model: containerInput.model || 'sonnet',
       maxTurns: containerInput.maxTurns || 30,
-      maxBudgetUsd: containerInput.maxBudgetUsd || 0.50,
+      maxBudgetUsd: containerInput.maxBudgetUsd || 1.00,
       systemPrompt: globalClaudeMd || undefined,
       tools: [
         'Bash',
@@ -923,7 +933,9 @@ async function main(): Promise<void> {
   // Query loop: run query → wait for IPC message → run new query → repeat
   // Each IPC message starts a FRESH session (no session resume) to avoid
   // accumulating 100K+ tokens of session history that drives costs to $1+.
-  const QUERY_TIMEOUT_MS = 120_000; // 2 minutes max per query
+  // Budget exceeded triggers process.exit(0) in runQuery().
+  // 5-min timeout per query as ultimate safety net (network hang, infinite tool loop).
+  const QUERY_TIMEOUT_MS = 300_000; // 5 minutes
 
   try {
     while (true) {
@@ -939,17 +951,14 @@ async function main(): Promise<void> {
         queryResult = await Promise.race([queryPromise, timeoutPromise]);
       } catch (err) {
         if (err instanceof Error && err.message === 'QUERY_TIMEOUT') {
-          log(`Query timed out after ${QUERY_TIMEOUT_MS / 1000}s — sending error and continuing`);
+          log(`Query timed out after ${QUERY_TIMEOUT_MS / 1000}s — exiting container`);
           writeOutput({
             status: 'error',
-            result: 'Désolé, cette demande a pris trop de temps. Essayez de reformuler.',
-            error: 'Query timeout',
+            result: 'Désolé, cette demande a pris trop de temps. Réessaie avec une question plus simple.',
+            error: 'Query timeout (5 min)',
           });
-          // Wait for next IPC message instead of exiting
-          const nextMsg = await waitForIpcMessage();
-          if (nextMsg === null) break;
-          prompt = nextMsg;
-          continue;
+          closeDb();
+          process.exit(0);
         }
         throw err;
       }

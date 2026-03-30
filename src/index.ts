@@ -289,11 +289,12 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
         await channel.sendMessage(chatJid, text);
         outputSentToUser = true;
       }
-      // Only reset idle timer on actual results, not session-update markers (result: null)
-      resetIdleTimer();
     }
 
     if (result.status === 'success') {
+      // Reset idle timer on every successful result (including null-text ones)
+      // so IPC-only tasks don't leave the container open for 30 min.
+      resetIdleTimer();
       queue.notifyIdle(chatJid);
     }
 
