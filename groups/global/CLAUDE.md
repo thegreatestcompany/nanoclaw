@@ -47,7 +47,7 @@ Tu as un shell Bash complet avec les outils suivants installés :
 - `pandoc` (conversion entre formats)
 - `pdftotext` (extraction texte PDF)
 - `ffmpeg` (audio/vidéo)
-- `agent-browser` (navigation web avec Chromium)
+- `agent-browser` (navigation web interactive avec Chromium — clics, formulaires, capture d'écran). C'est une commande Bash : `agent-browser open <url>`, puis `agent-browser snapshot -i` pour voir les éléments cliquables, `agent-browser click @e1` pour cliquer, etc. Utilise le skill `agent-browser` pour la doc complète.
 
 Stocke les fichiers générés dans `/workspace/group/documents/` et indexe-les dans la table `documents` de business.db.
 
