@@ -30,8 +30,8 @@ Passer de test à prod : nouvelles clés + nouveau webhook endpoint dans le dash
 ### Migration automatique business.db
 Système de versioning avec `PRAGMA user_version` : au démarrage du process client, comparer la version de la base avec la version attendue et exécuter les migrations manquantes automatiquement.
 
-### Admin dashboard
-Page web admin pour visualiser et gérer le VPS. L'API admin existe déjà (`/api/admin/*`) — il faut juste un frontend.
+### ~~Admin dashboard~~ (RÉSOLU 30/03/2026)
+Dashboard à /admin avec auth token, vue clients, logs PM2, SQL console, CLAUDE.md/mémoire, audit log, documents, disk usage, coûts API (usage_report avec pricing réel).
 
 ### Monitoring
 - PM2 auto-restart en cas de crash (`--max-memory-restart`)
