@@ -223,20 +223,27 @@ async function loadDashboard() {
 
   const clients = await apiFetch('/clients');
 
-  // Load API costs
-  let costTotal = 0;
+  // Load API costs — filter by workspace (Otto clients only, not personal Claude Code usage)
+  let costOtto = 0;
+  let costOther = 0;
   let costData = [];
   try {
     const costs = await apiFetch('/costs');
     if (costs.data) {
       costData = costs.data;
-      costTotal = costs.data.reduce((s, day) => {
-        const dayTotal = (day.results || []).reduce((ds, r) => ds + parseFloat(r.amount || '0'), 0);
-        return s + dayTotal;
-      }, 0);
+      for (const day of costs.data) {
+        for (const r of (day.results || [])) {
+          const amt = parseFloat(r.amount || '0');
+          if (r.workspace_id) {
+            costOtto += amt;  // workspace = Otto client
+          } else {
+            costOther += amt; // null workspace = personal/Claude Code
+          }
+        }
+      }
     }
   } catch { /* ANTHROPIC_ADMIN_KEY not set */ }
-  const costHtml = costTotal > 0 ? `$${costTotal.toFixed(2)}` : '—';
+  const costHtml = costOtto > 0 ? `$${costOtto.toFixed(2)}` : '—';
   _costData = costData;
 
   // Overview
@@ -253,7 +260,7 @@ async function loadDashboard() {
     <div class="card"><div class="label">Contacts</div><div class="value">${totalContacts}</div></div>
     <div class="card"><div class="label">Deals</div><div class="value">${totalDeals}</div></div>
     <div class="card"><div class="label">Interactions 7j</div><div class="value">${totalInteractions}</div></div>
-    <div class="card" style="cursor:pointer" onclick="toggleCostDetail()"><div class="label">Coût Anthropic (org)</div><div class="value yellow">${costHtml}</div><div class="sub">tout le compte — cliquer pour le détail</div></div>
+    <div class="card" style="cursor:pointer" onclick="toggleCostDetail()"><div class="label">Coût Otto ce mois</div><div class="value yellow">${costHtml}</div><div class="sub">${costOther > 0 ? `+ $${costOther.toFixed(2)} hors Otto` : ''} — cliquer pour le détail</div></div>
   `;
 
   // Clients table
@@ -288,18 +295,22 @@ function toggleCostDetail() {
     if (_costData.length === 0) {
       el.innerHTML = '<div class="card"><pre>Pas de données de coûts</pre></div>';
     } else {
-      // Build a table with daily costs
       let html = '<div class="card"><div class="section-title">Détail des coûts API — mois en cours</div>';
-      html += '<div style="overflow-x:auto"><table style="font-size:0.8rem"><thead><tr><th>Date</th><th style="text-align:right">Montant ($)</th></tr></thead><tbody>';
-      let total = 0;
+      html += '<div style="overflow-x:auto"><table style="font-size:0.8rem"><thead><tr><th>Date</th><th style="text-align:right">Otto ($)</th><th style="text-align:right">Autre ($)</th></tr></thead><tbody>';
+      let totalOtto = 0, totalOther = 0;
       for (const day of _costData) {
         const date = new Date(day.starting_at).toLocaleDateString('fr-FR', { timeZone: PARIS_TZ, weekday: 'short', day: '2-digit', month: '2-digit' });
-        const amount = (day.results || []).reduce((s, r) => s + parseFloat(r.amount || '0'), 0);
-        if (amount === 0) continue;
-        total += amount;
-        html += `<tr><td>${date}</td><td style="text-align:right;font-family:monospace">${amount.toFixed(2)}</td></tr>`;
+        let dayOtto = 0, dayOther = 0;
+        for (const r of (day.results || [])) {
+          const amt = parseFloat(r.amount || '0');
+          if (r.workspace_id) dayOtto += amt; else dayOther += amt;
+        }
+        if (dayOtto === 0 && dayOther === 0) continue;
+        totalOtto += dayOtto;
+        totalOther += dayOther;
+        html += `<tr><td>${date}</td><td style="text-align:right;font-family:monospace">${dayOtto > 0 ? dayOtto.toFixed(2) : '—'}</td><td style="text-align:right;font-family:monospace;color:#666">${dayOther > 0 ? dayOther.toFixed(2) : '—'}</td></tr>`;
       }
-      html += `<tr style="font-weight:bold;border-top:2px solid #333"><td>Total</td><td style="text-align:right;font-family:monospace">$${total.toFixed(2)}</td></tr>`;
+      html += `<tr style="font-weight:bold;border-top:2px solid #333"><td>Total</td><td style="text-align:right;font-family:monospace">$${totalOtto.toFixed(2)}</td><td style="text-align:right;font-family:monospace;color:#666">$${totalOther.toFixed(2)}</td></tr>`;
       html += '</tbody></table></div></div>';
       el.innerHTML = html;
     }
