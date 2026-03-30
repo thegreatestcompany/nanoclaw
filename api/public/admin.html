@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Otto Admin</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #0a0a0f; color: #e0e0e0; min-height: 100vh; }
+
+    /* Auth screen */
+    .auth-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .auth-box { background: #1a1a2e; padding: 40px; border-radius: 12px; width: 360px; }
+    .auth-box h1 { font-size: 1.2rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; text-align: center; margin-bottom: 24px; }
+    .auth-box input { width: 100%; padding: 12px 16px; background: #0a0a0f; border: 1px solid #333; border-radius: 8px; color: #fff; font-size: 0.95rem; margin-bottom: 16px; }
+    .auth-box button { width: 100%; padding: 12px; background: #fff; color: #0a0a0f; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 500; cursor: pointer; }
+    .auth-box button:hover { background: #ddd; }
+    .auth-error { color: #ff6b6b; font-size: 0.85rem; text-align: center; margin-top: 8px; }
+
+    /* Layout */
+    .dashboard { display: none; }
+    header { padding: 16px 32px; border-bottom: 1px solid #1a1a2e; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 1rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; }
+    header .refresh-btn { padding: 6px 16px; background: #1a1a2e; border: 1px solid #333; border-radius: 6px; color: #aaa; cursor: pointer; font-size: 0.85rem; }
+    header .refresh-btn:hover { background: #2a2a3e; color: #fff; }
+
+    .content { padding: 24px 32px; max-width: 1200px; margin: 0 auto; }
+
+    /* Overview cards */
+    .overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .card { background: #1a1a2e; border-radius: 10px; padding: 20px; }
+    .card .label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .card .value { font-size: 1.8rem; font-weight: 600; }
+    .card .value.green { color: #4ade80; }
+    .card .value.red { color: #ff6b6b; }
+    .card .value.blue { color: #60a5fa; }
+
+    /* Client table */
+    .section-title { font-size: 0.85rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 12px; }
+    table { width: 100%; border-collapse: collapse; background: #1a1a2e; border-radius: 10px; overflow: hidden; }
+    th { background: #12121e; padding: 10px 16px; text-align: left; font-size: 0.75rem; font-weight: 500; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 12px 16px; border-top: 1px solid #12121e; font-size: 0.9rem; }
+    tr:hover td { background: #1e1e32; }
+    .status-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; }
+    .status-badge.online { background: #064e3b; color: #4ade80; }
+    .status-badge.stopped { background: #4a1515; color: #ff6b6b; }
+    .status-badge.active { background: #1e3a5f; color: #60a5fa; }
+
+    /* Actions */
+    .btn-sm { padding: 4px 12px; border-radius: 6px; border: 1px solid #333; background: transparent; color: #aaa; cursor: pointer; font-size: 0.8rem; margin-right: 4px; }
+    .btn-sm:hover { background: #2a2a3e; color: #fff; }
+    .btn-sm.danger { border-color: #4a1515; color: #ff6b6b; }
+    .btn-sm.danger:hover { background: #4a1515; }
+
+    /* Detail panel */
+    .detail-panel { display: none; background: #1a1a2e; border-radius: 10px; padding: 24px; margin-top: 24px; }
+    .detail-panel.open { display: block; }
+    .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .detail-header h2 { font-size: 1.1rem; font-weight: 500; }
+    .close-btn { background: none; border: none; color: #888; cursor: pointer; font-size: 1.2rem; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid #12121e; padding-bottom: 8px; }
+    .tab { padding: 6px 16px; border-radius: 6px; background: transparent; border: none; color: #888; cursor: pointer; font-size: 0.85rem; }
+    .tab.active { background: #2a2a3e; color: #fff; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    pre { background: #0a0a0f; border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 0.8rem; line-height: 1.5; max-height: 400px; overflow-y: auto; }
+
+    /* SQL console */
+    .sql-input { display: flex; gap: 8px; margin-bottom: 12px; }
+    .sql-input input { flex: 1; padding: 10px 14px; background: #0a0a0f; border: 1px solid #333; border-radius: 8px; color: #fff; font-family: monospace; font-size: 0.85rem; }
+    .sql-input button { padding: 10px 20px; background: #2a2a3e; border: 1px solid #333; border-radius: 8px; color: #fff; cursor: pointer; font-size: 0.85rem; white-space: nowrap; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .content { padding: 16px; }
+      .overview { grid-template-columns: repeat(2, 1fr); }
+      table { font-size: 0.8rem; }
+      th, td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Auth -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-box">
+    <h1>Otto Admin</h1>
+    <input type="password" id="token-input" placeholder="Admin token" autocomplete="off">
+    <button onclick="login()">Connexion</button>
+    <div class="auth-error" id="auth-error"></div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div class="dashboard" id="dashboard">
+  <header>
+    <h1>Otto Admin</h1>
+    <button class="refresh-btn" onclick="loadDashboard()">Actualiser</button>
+  </header>
+
+  <div class="content">
+    <div class="overview" id="overview"></div>
+
+    <div class="section-title">Clients</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th>Email</th>
+          <th>Statut</th>
+          <th>PM2</th>
+          <th>RAM</th>
+          <th>Contacts</th>
+          <th>Deals</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="clients-body"></tbody>
+    </table>
+
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-header">
+        <h2 id="detail-title"></h2>
+        <button class="close-btn" onclick="closeDetail()">&times;</button>
+      </div>
+      <div class="tabs" id="detail-tabs"></div>
+      <div id="detail-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let TOKEN = localStorage.getItem('otto_admin_token') || '';
+const API = '/api/admin';
+
+function headers() {
+  return { 'x-admin-token': TOKEN, 'Content-Type': 'application/json' };
+}
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(`${API}${path}`, { headers: headers(), ...opts });
+  if (res.status === 401) { logout(); throw new Error('Unauthorized'); }
+  return res.json();
+}
+
+async function login() {
+  TOKEN = document.getElementById('token-input').value;
+  try {
+    await apiFetch('/clients');
+    localStorage.setItem('otto_admin_token', TOKEN);
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadDashboard();
+  } catch {
+    document.getElementById('auth-error').textContent = 'Token invalide';
+  }
+}
+
+function logout() {
+  TOKEN = '';
+  localStorage.removeItem('otto_admin_token');
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('dashboard').style.display = 'none';
+}
+
+async function loadDashboard() {
+  const clients = await apiFetch('/clients');
+
+  // Overview
+  const online = clients.filter(c => c.pm2_status === 'online').length;
+  const stopped = clients.filter(c => c.pm2_status !== 'online').length;
+  const totalContacts = clients.reduce((s, c) => s + (c.stats?.contacts || 0), 0);
+  const totalDeals = clients.reduce((s, c) => s + (c.stats?.deals || 0), 0);
+
+  document.getElementById('overview').innerHTML = `
+    <div class="card"><div class="label">Clients actifs</div><div class="value green">${online}</div></div>
+    <div class="card"><div class="label">Clients arrêtés</div><div class="value red">${stopped}</div></div>
+    <div class="card"><div class="label">Contacts total</div><div class="value blue">${totalContacts}</div></div>
+    <div class="card"><div class="label">Deals total</div><div class="value blue">${totalDeals}</div></div>
+    <div class="card"><div class="label">Interactions 7j</div><div class="value">${clients.reduce((s, c) => s + (c.stats?.interactions_7d || 0), 0)}</div></div>
+  `;
+
+  // Clients table
+  document.getElementById('clients-body').innerHTML = clients.map(c => `
+    <tr>
+      <td><strong>${c.name || c.id}</strong></td>
+      <td>${c.email}</td>
+      <td><span class="status-badge ${c.status === 'active' ? 'active' : 'stopped'}">${c.status}</span></td>
+      <td><span class="status-badge ${c.pm2_status === 'online' ? 'online' : 'stopped'}">${c.pm2_status || '—'}</span></td>
+      <td>${c.memory_mb ? c.memory_mb + ' MB' : '—'}</td>
+      <td>${c.stats?.contacts ?? '—'}</td>
+      <td>${c.stats?.deals ?? '—'}</td>
+      <td>
+        <button class="btn-sm" onclick="openDetail('${c.id}')">Détail</button>
+        <button class="btn-sm" onclick="restartClient('${c.id}')">Restart</button>
+        <button class="btn-sm danger" onclick="stopClient('${c.id}')">Stop</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function restartClient(id) {
+  if (!confirm(`Restart otto-${id} ?`)) return;
+  const res = await apiFetch(`/clients/${id}/restart`, { method: 'POST' });
+  alert(res.ok ? 'Redémarré' : res.message || res.error);
+  loadDashboard();
+}
+
+async function stopClient(id) {
+  if (!confirm(`Stop otto-${id} ?`)) return;
+  const res = await apiFetch(`/clients/${id}/stop`, { method: 'POST' });
+  alert(res.ok ? 'Arrêté' : res.message || res.error);
+  loadDashboard();
+}
+
+// Detail panel
+let currentClientId = null;
+
+async function openDetail(id) {
+  currentClientId = id;
+  const panel = document.getElementById('detail-panel');
+  panel.classList.add('open');
+  document.getElementById('detail-title').textContent = `Client: ${id}`;
+
+  const tabDefs = [
+    { id: 'db', label: 'Base de données' },
+    { id: 'memory', label: 'Mémoire' },
+    { id: 'audit', label: 'Audit log' },
+  ];
+
+  document.getElementById('detail-tabs').innerHTML = tabDefs.map((t, i) =>
+    `<button class="tab ${i === 0 ? 'active' : ''}" onclick="switchTab('${t.id}')">${t.label}</button>`
+  ).join('');
+
+  switchTab('db');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  currentClientId = null;
+}
+
+async function switchTab(tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab[onclick*="${tabId}"]`)?.classList.add('active');
+
+  const content = document.getElementById('detail-content');
+
+  if (tabId === 'db') {
+    content.innerHTML = `
+      <div class="sql-input">
+        <input type="text" id="sql-query" placeholder="SELECT * FROM contacts LIMIT 10" value="SELECT name, email, company FROM contacts WHERE deleted_at IS NULL LIMIT 20">
+        <button onclick="runQuery()">Exécuter</button>
+      </div>
+      <pre id="sql-result">Clique Exécuter pour lancer la requête</pre>
+    `;
+  } else if (tabId === 'memory') {
+    try {
+      const data = await apiFetch(`/clients/${currentClientId}/memory`);
+      let html = '<h3 style="margin-bottom:8px;font-size:0.9rem">CLAUDE.md</h3>';
+      html += `<pre>${escapeHtml(data.claudeMd)}</pre>`;
+      if (Object.keys(data.memoryFiles).length > 0) {
+        html += '<h3 style="margin:16px 0 8px;font-size:0.9rem">Fichiers mémoire</h3>';
+        for (const [name, content] of Object.entries(data.memoryFiles)) {
+          html += `<div style="color:#888;font-size:0.8rem;margin-top:8px">${escapeHtml(name)}</div>`;
+          html += `<pre>${escapeHtml(content)}</pre>`;
+        }
+      }
+      content.innerHTML = html;
+    } catch (err) {
+      content.innerHTML = `<pre>Erreur: ${err.message}</pre>`;
+    }
+  } else if (tabId === 'audit') {
+    try {
+      const logs = await apiFetch(`/clients/${currentClientId}/audit`);
+      if (logs.length === 0) {
+        content.innerHTML = '<pre>Aucune entrée dans le journal d\'audit</pre>';
+      } else {
+        let html = '<table style="font-size:0.8rem"><thead><tr><th>Date</th><th>Table</th><th>Action</th><th>Record</th><th>Raison</th></tr></thead><tbody>';
+        for (const log of logs) {
+          html += `<tr><td>${log.created_at}</td><td>${log.table_name}</td><td>${log.action}</td><td>${log.record_id || '—'}</td><td>${escapeHtml(log.reason || '—')}</td></tr>`;
+        }
+        html += '</tbody></table>';
+        content.innerHTML = html;
+      }
+    } catch (err) {
+      content.innerHTML = `<pre>Erreur: ${err.message}</pre>`;
+    }
+  }
+}
+
+async function runQuery() {
+  const sql = document.getElementById('sql-query').value;
+  const result = document.getElementById('sql-result');
+  try {
+    const data = await apiFetch(`/clients/${currentClientId}/query`, {
+      method: 'POST',
+      body: JSON.stringify({ sql }),
+    });
+    result.textContent = JSON.stringify(data.rows, null, 2);
+  } catch (err) {
+    result.textContent = `Erreur: ${err.message}`;
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Auto-login if token saved
+if (TOKEN) {
+  apiFetch('/clients').then(() => {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadDashboard();
+  }).catch(() => {
+    localStorage.removeItem('otto_admin_token');
+  });
+}
+
+// Enter key on token input
+document.getElementById('token-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') login();
+});
+</script>
+</body>
+</html>
