@@ -400,6 +400,26 @@ export function getMessagesSince(
     .all(chatJid, sinceTimestamp, `${botPrefix}:%`, limit) as NewMessage[];
 }
 
+/**
+ * Get recent messages INCLUDING bot responses for context.
+ * Used to build the agent prompt so it knows what it previously said.
+ */
+export function getRecentConversation(
+  chatJid: string,
+  limit: number = 30,
+): NewMessage[] {
+  const sql = `
+    SELECT * FROM (
+      SELECT id, chat_jid, sender, sender_name, content, timestamp, is_from_me, is_bot_message
+      FROM messages
+      WHERE chat_jid = ? AND content != '' AND content IS NOT NULL
+      ORDER BY timestamp DESC
+      LIMIT ?
+    ) ORDER BY timestamp
+  `;
+  return db.prepare(sql).all(chatJid, limit) as NewMessage[];
+}
+
 // --- Passive scanning (HNTIC) ---
 
 export interface UnprocessedBatch {

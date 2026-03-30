@@ -37,6 +37,7 @@ import {
   getLastBotMessageTimestamp,
   getMessagesSince,
   getNewMessages,
+  getRecentConversation,
   getRouterState,
   initDatabase,
   setRegisteredGroup,
@@ -231,7 +232,19 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
     if (!hasTrigger) return true;
   }
 
-  const prompt = formatMessages(missedMessages, TIMEZONE);
+  // Build prompt with recent conversation context (including Otto's responses)
+  // so the agent knows what it previously said, even without session resume.
+  const recentConvo = getRecentConversation(chatJid, MAX_MESSAGES_PER_PROMPT);
+  const contextMessages = recentConvo.filter(
+    (m) => !missedMessages.some((mm) => mm.id === m.id),
+  );
+  let prompt = '';
+  if (contextMessages.length > 0) {
+    prompt += '[Conversation récente pour contexte]\n';
+    prompt += formatMessages(contextMessages, TIMEZONE);
+    prompt += '\n\n[Nouveaux messages à traiter]\n';
+  }
+  prompt += formatMessages(missedMessages, TIMEZONE);
 
   // Advance cursor so the piping path in startMessageLoop won't re-fetch
   // these messages. Save the old cursor so we can roll back on error.
