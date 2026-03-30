@@ -119,6 +119,8 @@
   <div class="content">
     <div class="overview" id="overview"></div>
 
+    <div id="cost-detail" style="display:none;margin-bottom:24px"></div>
+
     <div class="section-title">Clients</div>
     <table>
       <thead>
@@ -221,15 +223,21 @@ async function loadDashboard() {
 
   const clients = await apiFetch('/clients');
 
-  // Try to load costs
-  let costHtml = '—';
+  // Load API costs
+  let costTotal = 0;
+  let costData = [];
   try {
     const costs = await apiFetch('/costs');
     if (costs.data) {
-      const total = costs.data.reduce((s, c) => s + (c.cost_usd || 0), 0);
-      costHtml = `$${total.toFixed(2)}`;
+      costData = costs.data;
+      costTotal = costs.data.reduce((s, day) => {
+        const dayTotal = (day.results || []).reduce((ds, r) => ds + parseFloat(r.amount || '0'), 0);
+        return s + dayTotal;
+      }, 0);
     }
   } catch { /* ANTHROPIC_ADMIN_KEY not set */ }
+  const costHtml = costTotal > 0 ? `$${costTotal.toFixed(2)}` : '—';
+  _costData = costData;
 
   // Overview
   const online = clients.filter(c => c.pm2_status === 'online').length;
@@ -245,7 +253,7 @@ async function loadDashboard() {
     <div class="card"><div class="label">Contacts</div><div class="value">${totalContacts}</div></div>
     <div class="card"><div class="label">Deals</div><div class="value">${totalDeals}</div></div>
     <div class="card"><div class="label">Interactions 7j</div><div class="value">${totalInteractions}</div></div>
-    <div class="card"><div class="label">Coût API ce mois</div><div class="value yellow">${costHtml}</div></div>
+    <div class="card" style="cursor:pointer" onclick="toggleCostDetail()"><div class="label">Coût API ce mois</div><div class="value yellow">${costHtml}</div><div class="sub">cliquer pour le détail</div></div>
   `;
 
   // Clients table
@@ -270,6 +278,35 @@ async function loadDashboard() {
       </td>
     </tr>`;
   }).join('');
+}
+
+let _costData = [];
+
+function toggleCostDetail() {
+  const el = document.getElementById('cost-detail');
+  if (el.style.display === 'none') {
+    if (_costData.length === 0) {
+      el.innerHTML = '<div class="card"><pre>Pas de données de coûts</pre></div>';
+    } else {
+      // Build a table with daily costs
+      let html = '<div class="card"><div class="section-title">Détail des coûts API — mois en cours</div>';
+      html += '<div style="overflow-x:auto"><table style="font-size:0.8rem"><thead><tr><th>Date</th><th style="text-align:right">Montant ($)</th></tr></thead><tbody>';
+      let total = 0;
+      for (const day of _costData) {
+        const date = new Date(day.starting_at).toLocaleDateString('fr-FR', { timeZone: PARIS_TZ, weekday: 'short', day: '2-digit', month: '2-digit' });
+        const amount = (day.results || []).reduce((s, r) => s + parseFloat(r.amount || '0'), 0);
+        if (amount === 0) continue;
+        total += amount;
+        html += `<tr><td>${date}</td><td style="text-align:right;font-family:monospace">${amount.toFixed(2)}</td></tr>`;
+      }
+      html += `<tr style="font-weight:bold;border-top:2px solid #333"><td>Total</td><td style="text-align:right;font-family:monospace">$${total.toFixed(2)}</td></tr>`;
+      html += '</tbody></table></div></div>';
+      el.innerHTML = html;
+    }
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 async function restartClient(id) {
