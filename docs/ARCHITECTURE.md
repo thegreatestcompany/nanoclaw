@@ -377,18 +377,12 @@ Les skills sont chargés automatiquement dans le container via `container/skills
 
 ## Déploiement
 
-Le VPS a deux codebases :
-- `/opt/otto/app/` — code principal (NanoClaw), mis à jour via `git pull`
-- `/opt/otto/api/` — copie séparée de l'API d'onboarding (les fichiers doivent être copiés manuellement après `git pull`)
+Tout le code vit dans `/opt/otto/app/` (repo git). L'API tourne depuis `/opt/otto/app/api/`.
 
 ```bash
-# Déployer le code principal
+# Déployer tout
 cd /opt/otto/app && git pull origin main && npm run build
-
-# Déployer l'API (copie manuelle nécessaire)
-cp api/src/*.ts /opt/otto/api/src/
-cp api/public/*.html /opt/otto/api/public/
-cd /opt/otto/api && npm run build && pm2 restart otto-api
+cd api && npm run build && pm2 restart otto-api
 
 # Rebuild container (si Dockerfile ou skills modifiés)
 cd /opt/otto/app/container && ./build.sh
