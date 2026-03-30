@@ -403,6 +403,7 @@ export function getMessagesSince(
 /**
  * Get recent messages INCLUDING bot responses for context.
  * Used to build the agent prompt so it knows what it previously said.
+ * Messages in DB are already just the WhatsApp text (no tool calls).
  */
 export function getRecentConversation(
   chatJid: string,
