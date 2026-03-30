@@ -392,7 +392,7 @@ async function runAgent(
         chatJid,
         isMain,
         assistantName: ASSISTANT_NAME,
-        model: 'haiku',
+        model: 'sonnet',
         maxTurns: 30,
         maxBudgetUsd: 1.0,
       },
