@@ -313,13 +313,8 @@ export function setupAdminRoutes(app: Express): void {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
     try {
-      const params = new URLSearchParams({
-        starting_at: startOfMonth,
-        ending_at: now.toISOString(),
-      });
-      // URLSearchParams encodes [] properly for the Anthropic API
       const response = await fetch(
-        `https://api.anthropic.com/v1/organizations/cost_report?${params.toString()}&group_by%5B%5D=workspace_id`,
+        `https://api.anthropic.com/v1/organizations/cost_report?starting_at=${startOfMonth}&ending_at=${now.toISOString()}&group_by%5B%5D=workspace_id`,
         {
           headers: {
             'x-api-key': adminKey,
