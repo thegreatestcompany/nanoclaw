@@ -11,31 +11,26 @@
 - [x] Permissions multi-tenant (root:1000, 770)
 - [x] Sécurité 3 couches (PreToolUse hooks + CLAUDE.md confidentiel + output filter formatOutbound)
 - [x] Human-in-the-loop (pending file state machine pour emails et mutations DB sensibles)
-- [x] Containers anti-blocage (session resume off, budget exceeded → exit, timeout 5 min, IPC idle 10 min, idle timer host, SQLite busy_timeout)
+- [x] Containers anti-blocage (session resume off, budget exceeded → exit, timeout 5 min/query avec clearTimeout, IPC idle 10 min, idle timer host, SQLite busy_timeout)
 - [x] Landing page (otto.hntic.fr)
 - [x] Coûts optimisés ($0.09/msg au lieu de $0.41)
 - [x] agent-browser installé + instructions CLAUDE.md
+- [x] Provisioning multi-tenant (7 bugs fixés, Admin API Anthropic, port unique)
+- [x] Robustesse WhatsApp (pause après 3 QR, email reconnexion, debounce, reset sur blip réseau)
+- [x] Admin dashboard (/admin — clients, logs, SQL, mémoire, audit, docs, disk, coûts API réels)
+- [x] PM2 max-memory-restart 500M
+- [x] Système de migration business.db (PRAGMA user_version, prêt pour futures migrations)
+- [x] Personnalisation onboarding (nom + entreprise depuis Stripe → CLAUDE.md, business.db, emails)
+- [x] Exa search API intégrée (web_search, answer, get_contents, find_similar)
+- [x] Symlink /opt/otto/api → /opt/otto/app/api (plus de confusion)
 
 ## À faire avant le premier vrai client
-
-### ~~Provisioning multi-tenant automatique~~ (RÉSOLU)
-Les 7 bugs identifiés sont tous fixés : cwd auth, clé API par client (Admin API), port unique (base 3002), wrapper PM2, retry channel, credential-proxy fallback. À tester de bout en bout avec un vrai paiement Stripe.
-
-### ~~Robustesse WhatsApp~~ (RÉSOLU 30/03/2026)
-Le process pause après 3 QR codes sans connexion, envoie un email de reconnexion au client via PM2 IPC → API. Debounce pour éviter les emails en double. qrCount reset à chaque reconnexion transient (blip réseau). Logout explicite → clear auth + pause + email.
 
 ### Stripe live
 Passer de test à prod : nouvelles clés + nouveau webhook endpoint dans le dashboard Stripe.
 
-### Migration automatique business.db
-Système de versioning avec `PRAGMA user_version` : au démarrage du process client, comparer la version de la base avec la version attendue et exécuter les migrations manquantes automatiquement.
-
-### ~~Admin dashboard~~ (RÉSOLU 30/03/2026)
-Dashboard à /admin avec auth token, vue clients, logs PM2, SQL console, CLAUDE.md/mémoire, audit log, documents, disk usage, coûts API (usage_report avec pricing réel).
-
 ### Monitoring
-- PM2 auto-restart en cas de crash (`--max-memory-restart`)
-- Alerting quand un process client crash
+Alerting quand un process client crash (PM2 auto-restart déjà en place).
 
 ### Passive scanner
 Infra en place, désactivé en dev. Activation = une ligne de code (commit `f332aa7`).
@@ -54,7 +49,7 @@ Remplacer Baileys par l'API officielle Meta. Résout : notifications, multi-tena
 1 process PM2 pour tous les clients au lieu de 1 par client. Prérequis : WhatsApp Business API.
 
 ### Admin key Anthropic par client
-Workspace + clé API isolés par client via Admin API. Isolation des coûts et révocation individuelle.
+Workspace + clé API isolés par client via Admin API. Isolation des coûts et révocation individuelle. Code déjà en place, à activer.
 
 ## Optimisation des coûts API (documenté le 30/03/2026)
 
