@@ -23,6 +23,9 @@ Page web admin pour visualiser et gérer le VPS :
 ### Stripe live
 Passer de test à prod : nouvelles clés + nouveau webhook endpoint dans le dashboard Stripe.
 
+### Timeout par query dans le container (CRITIQUE)
+Un container bloqué (query lente, recherche web qui timeout) empêche tous les messages suivants d'être traités. Il faut un timeout par query (ex: 120s) dans l'agent-runner qui kill la query et envoie un message d'erreur au client. Le maxBudgetUsd à $1.00 et le maxTurns à 30 réduisent le risque mais ne l'éliminent pas.
+
 ### Robustesse WhatsApp (CRITIQUE)
 Le process PM2 du client ne doit PAS tenter de se re-lier tout seul quand WhatsApp se déconnecte. Actuellement Baileys émet des QR codes automatiquement → crée des liaisons fantômes.
 

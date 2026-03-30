@@ -91,9 +91,33 @@ Le coût fixe par query est ~$0.09 (23K tokens de system prompt SDK Claude Code)
 5. **API Messages directe** — remplacerait le SDK, system prompt de 3K au lieu de 23K. Gros chantier.
 6. **Plans avec cap de messages** — limite le risque de perte sur les power users.
 
+## Bug critique découvert le 30/03 : session resume interne au container
+
+### Le problème
+Le session resume était désactivé côté HOST mais le container maintenait une session entre les messages IPC. Après 10 messages dans la même session container (30 min), la session accumulait 944K tokens → coût de $0.97 et container bloqué pendant 22 minutes.
+
+### La cause
+Dans l'agent-runner, le query loop réutilisait le `sessionId` entre les IPC messages :
+```
+query #1 → sessionId = new → OK ($0.09)
+query #2 → sessionId = from #1 → charge #1 history ($0.15)
+query #3 → sessionId = from #2 → charge #1+#2 history ($0.25)
+...
+query #10 → charge tout → 944K tokens ($0.97) → BLOQUE
+```
+
+### Le fix
+Chaque IPC message lance une query fraîche (`sessionId: undefined`). Coût constant ~$0.09 par message.
+
+### Compensation
+Pour que l'agent se souvienne de ses réponses sans session resume, le prompt inclut maintenant les 30 derniers messages **incluant les réponses d'Otto** (via `getRecentConversation()`). Le prompt a deux sections :
+- `[Conversation récente pour contexte]` — historique avec les réponses d'Otto
+- `[Nouveaux messages à traiter]` — les nouveaux messages du client
+
 ## Limites de l'architecture actuelle
 
 - Le SDK Claude Code ajoute ~23K tokens de system prompt incompressible (issue #18744, closed "not planned")
 - L'option `tools` en array ne réduit pas ce system prompt (issue #21773)
 - Sans session resume, l'agent n'a pas de mémoire conversationnelle au-delà des 30 derniers messages WhatsApp
 - La mémoire long terme repose sur CLAUDE.md + business.db + conversations/
+- Un container bloqué (query lente) empêche les messages suivants d'être traités → besoin d'un timeout par query
