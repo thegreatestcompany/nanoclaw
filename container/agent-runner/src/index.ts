@@ -292,6 +292,30 @@ function createPreToolUseHook(): HookCallback {
         : JSON.stringify(toolInput).slice(0, 150);
     log(`[TOOL] ${hookInput.tool_name}: ${summary}`);
 
+    // Block dev/admin skills — not for clients
+    if (hookInput.tool_name === 'Skill') {
+      const skillName = (toolInput.skill as string || '').toLowerCase();
+      const BLOCKED_SKILLS = new Set([
+        'update-config', 'setup', 'debug', 'customize', 'init-onecli',
+        'claw', 'convert-to-apple-container', 'update-nanoclaw', 'update-skills',
+        'add-telegram', 'add-slack', 'add-discord', 'add-emacs', 'add-parallel',
+        'add-ollama-tool', 'add-macos-statusbar', 'add-whatsapp', 'add-compact',
+        'add-telegram-swarm', 'use-local-whisper', 'use-native-credential-proxy',
+        'x-integration', 'add-voice-transcription', 'add-image-vision',
+        'add-reactions', 'add-pdf-reader', 'add-gmail',
+      ]);
+      if (BLOCKED_SKILLS.has(skillName)) {
+        log(`[SECURITY] Blocked admin skill: ${skillName}`);
+        return {
+          hookSpecificOutput: {
+            hookEventName: 'PreToolUse' as const,
+            permissionDecision: 'deny' as const,
+            permissionDecisionReason: `Ce n'est pas disponible.`,
+          },
+        };
+      }
+    }
+
     if (hookInput.tool_name === 'Bash') {
       const command = (hookInput.tool_input as { command?: string })?.command || '';
       for (const pattern of BLOCKED_PATTERNS) {
