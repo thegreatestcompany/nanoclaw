@@ -910,11 +910,36 @@ async function main(): Promise<void> {
   // Query loop: run query → wait for IPC message → run new query → repeat
   // Each IPC message starts a FRESH session (no session resume) to avoid
   // accumulating 100K+ tokens of session history that drives costs to $1+.
+  const QUERY_TIMEOUT_MS = 120_000; // 2 minutes max per query
+
   try {
     while (true) {
       log(`Starting query (session: new)...`);
 
-      const queryResult = await runQuery(prompt, undefined, mcpServerPath, containerInput, sdkEnv, undefined);
+      const queryPromise = runQuery(prompt, undefined, mcpServerPath, containerInput, sdkEnv, undefined);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('QUERY_TIMEOUT')), QUERY_TIMEOUT_MS),
+      );
+
+      let queryResult;
+      try {
+        queryResult = await Promise.race([queryPromise, timeoutPromise]);
+      } catch (err) {
+        if (err instanceof Error && err.message === 'QUERY_TIMEOUT') {
+          log(`Query timed out after ${QUERY_TIMEOUT_MS / 1000}s — sending error and continuing`);
+          writeOutput({
+            status: 'error',
+            result: 'Désolé, cette demande a pris trop de temps. Essayez de reformuler.',
+            error: 'Query timeout',
+          });
+          // Wait for next IPC message instead of exiting
+          const nextMsg = await waitForIpcMessage();
+          if (nextMsg === null) break;
+          prompt = nextMsg;
+          continue;
+        }
+        throw err;
+      }
 
       // If _close was consumed during the query, exit immediately.
       // Don't emit a session-update marker (it would reset the host's
