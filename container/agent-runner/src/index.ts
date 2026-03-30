@@ -946,13 +946,15 @@ async function main(): Promise<void> {
       log(`Starting query (session: new)...`);
 
       const queryPromise = runQuery(prompt, undefined, mcpServerPath, containerInput, sdkEnv, undefined);
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('QUERY_TIMEOUT')), QUERY_TIMEOUT_MS),
-      );
+      let timeoutHandle: ReturnType<typeof setTimeout>;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error('QUERY_TIMEOUT')), QUERY_TIMEOUT_MS);
+      });
 
       let queryResult;
       try {
         queryResult = await Promise.race([queryPromise, timeoutPromise]);
+        clearTimeout(timeoutHandle!); // Cancel timeout on success
       } catch (err) {
         if (err instanceof Error && err.message === 'QUERY_TIMEOUT') {
           log(`Query timed out after ${QUERY_TIMEOUT_MS / 1000}s — exiting container`);
