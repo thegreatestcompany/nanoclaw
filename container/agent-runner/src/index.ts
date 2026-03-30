@@ -641,7 +641,12 @@ async function runQuery(
       resultCount++;
       const textResult = 'result' in message ? (message as { result?: string }).result : null;
       const errorText = (message as { error?: string }).error || '';
+      const costUsd = (message as { total_cost_usd?: number }).total_cost_usd;
+      const usage = (message as { usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number } }).usage;
       log(`Result #${resultCount}: subtype=${message.subtype}${textResult ? ` text=${textResult.slice(0, 200)}` : ''}`);
+      if (costUsd !== undefined || usage) {
+        log(`[COST] $${costUsd?.toFixed(4) || '?'} | input=${usage?.input_tokens || 0} output=${usage?.output_tokens || 0} cache=${usage?.cache_read_input_tokens || 0}`);
+      }
 
       // Detect stale session resume failure
       if (message.subtype === 'error_during_execution' && errorText.includes('No conversation found with session ID')) {
