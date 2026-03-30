@@ -462,7 +462,7 @@ function registerClientChannel(clientId: string): void {
           // Send welcome email
           const client = getClientById(clientId);
           if (client?.email) {
-            sendWelcomeEmail(client.email).catch((err) =>
+            sendWelcomeEmail(client.email, client.name).catch((err) =>
               console.error(`Failed to send welcome email to ${client.email}:`, err),
             );
           }

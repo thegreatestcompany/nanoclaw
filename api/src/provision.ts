@@ -119,6 +119,8 @@ export async function provisionClient(
   email: string,
   stripeCustomerId: string,
   apiKey?: string,
+  customerName?: string | null,
+  companyName?: string | null,
 ): Promise<ProvisionResult> {
   const clientDir = path.join(CLIENTS_DIR, clientId);
   const db = getDb();
@@ -141,23 +143,39 @@ export async function provisionClient(
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  // 2. Initialize business.db
+  // 2. Initialize business.db and seed with client's own contact
   const bizDbPath = path.join(clientDir, 'groups', 'main', 'business.db');
   if (fs.existsSync(INIT_SQL)) {
     execSync(`sqlite3 "${bizDbPath}" < "${INIT_SQL}"`);
+    // Seed the owner as the first contact so Otto knows who it's talking to
+    if (customerName || email) {
+      const Database = (await import('better-sqlite3')).default;
+      const bizDb = new Database(bizDbPath);
+      bizDb.prepare(
+        `INSERT INTO contacts (name, email, role, notes) VALUES (?, ?, 'Dirigeant', 'Contact principal — propriétaire du compte Otto')`
+      ).run(customerName || email.split('@')[0], email);
+      bizDb.close();
+    }
   }
 
-  // 3. Copy CLAUDE.md templates
+  // 3. Copy CLAUDE.md templates (with client-specific substitutions)
   const globalTemplate = path.join(APP_DIR, 'groups', 'global', 'CLAUDE.md');
   const mainTemplate = path.join(APP_DIR, 'groups', 'main', 'CLAUDE.md');
   if (fs.existsSync(globalTemplate)) {
     fs.copyFileSync(globalTemplate, path.join(clientDir, 'groups', 'global', 'CLAUDE.md'));
   }
   if (fs.existsSync(mainTemplate)) {
-    fs.copyFileSync(mainTemplate, path.join(clientDir, 'groups', 'main', 'CLAUDE.md'));
+    let mainContent = fs.readFileSync(mainTemplate, 'utf8');
+    // Replace placeholder section with actual client data
+    const dirigeantSection = `## Dirigeant\n\n- Nom : ${customerName || '[À remplir]'}\n- Email : ${email}\n- Entreprise : ${companyName || '[À remplir]'}\n- Secteur : [À remplir]\n- Taille équipe : [À remplir]\n- Contacts clés : [À remplir]\n- Préférences : [À remplir]`;
+    mainContent = mainContent.replace(
+      /## Dirigeant\n\n[\s\S]*?(?=\n---)/,
+      dirigeantSection,
+    );
+    fs.writeFileSync(path.join(clientDir, 'groups', 'main', 'CLAUDE.md'), mainContent);
   }
 
-  // 4. Create memory template files
+  // 4. Create memory template files (pre-populated with known data)
   const memoryDir = path.join(clientDir, 'groups', 'main', 'memory');
   fs.writeFileSync(
     path.join(memoryDir, 'glossary.md'),
@@ -165,7 +183,7 @@ export async function provisionClient(
   );
   fs.writeFileSync(
     path.join(memoryDir, 'context', 'company.md'),
-    "# Contexte entreprise\n\n[À remplir pendant l'onboarding]\n",
+    `# Contexte entreprise\n\n- Dirigeant : ${customerName || '[À remplir]'}\n- Email : ${email}\n- Entreprise : ${companyName || '[À remplir — demander au dirigeant]'}\n- Secteur : [À remplir]\n- Effectif : [À remplir]\n`,
   );
   fs.writeFileSync(
     path.join(memoryDir, 'context', 'preferences.md'),
@@ -240,9 +258,9 @@ exec node ${APP_DIR}/dist/index.js 2>&1
   const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
   db.prepare(`
-    INSERT OR REPLACE INTO clients (id, email, stripe_customer_id, anthropic_workspace_id, anthropic_api_key_id, proxy_port, onboard_token, onboard_token_expires_at, status, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'awaiting_whatsapp', datetime('now'))
-  `).run(clientId, email, stripeCustomerId, workspaceId, apiKeyId, proxyPort, onboardToken, expiresAt);
+    INSERT OR REPLACE INTO clients (id, email, name, company, stripe_customer_id, anthropic_workspace_id, anthropic_api_key_id, proxy_port, onboard_token, onboard_token_expires_at, status, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'awaiting_whatsapp', datetime('now'))
+  `).run(clientId, email, customerName, companyName, stripeCustomerId, workspaceId, apiKeyId, proxyPort, onboardToken, expiresAt);
 
   // Store the port
   setClientProxyPort(clientId, proxyPort);

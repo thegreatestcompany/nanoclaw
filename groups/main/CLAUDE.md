@@ -137,13 +137,13 @@ Ceci est le canal principal (main). Tu as des privilèges élevés :
 
 ## Dirigeant
 
-[À remplir à l'onboarding]
-- Nom : Matthieu Nguyen
-- Entreprise : HNTIC
-- Secteur :
-- Taille équipe :
-- Contacts clés :
-- Préférences :
+- Nom : [À remplir]
+- Email : [À remplir]
+- Entreprise : [À remplir]
+- Secteur : [À remplir]
+- Taille équipe : [À remplir]
+- Contacts clés : [À remplir]
+- Préférences : [À remplir]
 
 ---
 

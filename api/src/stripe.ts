@@ -69,6 +69,10 @@ async function handleCheckoutCompleted(session: any): Promise<void> {
     return;
   }
 
+  // Extract customer details from Stripe checkout
+  const customerName = (session.customer_details?.name as string) || null;
+  const companyName = (session.customer_details?.business_name as string) || null;
+
   const clientId = slugify(email);
   const db = getDb();
 
@@ -101,7 +105,7 @@ async function handleCheckoutCompleted(session: any): Promise<void> {
   }
 
   try {
-    const result = await provisionClient(clientId, email, session.customer as string);
+    const result = await provisionClient(clientId, email, session.customer as string, undefined, customerName, companyName);
 
     // Store subscription ID and trial end date
     const updates: Record<string, unknown> = {
@@ -115,7 +119,7 @@ async function handleCheckoutCompleted(session: any): Promise<void> {
     ).run(session.subscription || null, trialEndsAt, clientId);
 
     console.log(`Client provisioned via Stripe: ${clientId} → ${result.onboardUrl}`);
-    await sendOnboardingEmail(email, result.onboardUrl).catch((err) =>
+    await sendOnboardingEmail(email, result.onboardUrl, customerName).catch((err) =>
       console.error(`Failed to send onboarding email to ${email}:`, err),
     );
   } catch (err) {

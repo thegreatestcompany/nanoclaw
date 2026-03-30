@@ -27,12 +27,15 @@ const FROM = process.env.SMTP_FROM
 export async function sendOnboardingEmail(
   to: string,
   onboardUrl: string,
+  name?: string | null,
 ): Promise<void> {
   if (!transporter) {
     console.warn('SMTP not configured — onboarding email not sent');
     console.log(`[EMAIL] Would send onboarding link to ${to}: ${onboardUrl}`);
     return;
   }
+
+  const greeting = name ? `Bonjour ${name.split(' ')[0]},` : 'Bonjour,';
 
   await transporter.sendMail({
     from: FROM,
@@ -45,7 +48,7 @@ export async function sendOnboardingEmail(
           <p style="color:#999;font-style:italic;font-size:0.9rem">by HNTIC</p>
         </div>
         <p style="color:#333;font-size:1rem;line-height:1.6;margin-bottom:24px">
-          Ton compte Otto est pr&ecirc;t. Connecte ton WhatsApp pour activer ton assistant IA.
+          ${greeting} Ton compte Otto est pr&ecirc;t. Connecte ton WhatsApp pour activer ton assistant IA.
         </p>
         <div style="text-align:center;margin-bottom:32px">
           <a href="${onboardUrl}" style="display:inline-block;padding:14px 32px;background:#1a1a1a;color:#fff;text-decoration:none;border-radius:8px;font-size:1rem;font-weight:500">
@@ -115,11 +118,13 @@ export async function sendReconnectionEmail(
 /**
  * Send the welcome email after successful WhatsApp connection.
  */
-export async function sendWelcomeEmail(to: string): Promise<void> {
+export async function sendWelcomeEmail(to: string, name?: string | null): Promise<void> {
   if (!transporter) {
     console.warn('SMTP not configured — welcome email not sent');
     return;
   }
+
+  const greeting = name ? `${name.split(' ')[0]}, ton` : 'Ton';
 
   await transporter.sendMail({
     from: FROM,
@@ -133,7 +138,7 @@ export async function sendWelcomeEmail(to: string): Promise<void> {
         </div>
 
         <p style="color:#333;font-size:1rem;line-height:1.6;margin-bottom:24px">
-          Ton assistant IA est connect&eacute; et pr&ecirc;t &agrave; t'aider. Envoie-lui un message sur WhatsApp pour commencer.
+          ${greeting} assistant IA est connect&eacute; et pr&ecirc;t &agrave; t'aider. Envoie-lui un message sur WhatsApp pour commencer.
         </p>
 
         <div style="background:#f9f9f9;border-radius:12px;padding:24px;margin-bottom:24px">
