@@ -893,10 +893,16 @@ async function main(): Promise<void> {
   // Credentials are injected by the host's credential proxy via ANTHROPIC_BASE_URL.
   // No real secrets exist in the container environment.
   const sdkEnv: Record<string, string | undefined> = { ...process.env };
-  // Force the model via env var — the SDK ignores the model option in query()
+
+  // Force the model via settings.json — the SDK ignores model in query() options and env vars
   const targetModel = containerInput.model || 'claude-haiku-4-5-20251001';
-  sdkEnv.CLAUDE_MODEL = targetModel;
-  sdkEnv.CLAUDE_CODE_DEFAULT_MODEL = targetModel;
+  const settingsDir = path.join(process.env.HOME || '/home/node', '.claude');
+  fs.mkdirSync(settingsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(settingsDir, 'settings.json'),
+    JSON.stringify({ model: targetModel }),
+  );
+  log(`Model set to ${targetModel} via settings.json`);
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const mcpServerPath = path.join(__dirname, 'ipc-mcp-stdio.js');
