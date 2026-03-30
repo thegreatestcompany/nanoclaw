@@ -591,7 +591,7 @@ async function runQuery(
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
       sandbox: { enabled: false },
-      settingSources: ['project', 'user'],
+      settingSources: [],
       mcpServers: {
         nanoclaw: {
           command: 'node',
