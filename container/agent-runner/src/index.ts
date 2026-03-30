@@ -640,10 +640,16 @@ async function runQuery(
       const textResult = 'result' in message ? (message as { result?: string }).result : null;
       const errorText = (message as { error?: string }).error || '';
       const costUsd = (message as { total_cost_usd?: number }).total_cost_usd;
-      const usage = (message as { usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number } }).usage;
+      const usage = (message as { usage?: { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number } }).usage;
+      const modelUsage = (message as { modelUsage?: Record<string, { costUSD: number; inputTokens: number; outputTokens: number; cacheReadInputTokens: number; cacheCreationInputTokens: number }> }).modelUsage;
       log(`Result #${resultCount}: subtype=${message.subtype}${textResult ? ` text=${textResult.slice(0, 200)}` : ''}`);
       if (costUsd !== undefined || usage) {
-        log(`[COST] $${costUsd?.toFixed(4) || '?'} | input=${usage?.input_tokens || 0} output=${usage?.output_tokens || 0} cache=${usage?.cache_read_input_tokens || 0}`);
+        log(`[COST] $${costUsd?.toFixed(4) || '?'} | input=${usage?.input_tokens || 0} output=${usage?.output_tokens || 0} cache_read=${usage?.cache_read_input_tokens || 0} cache_write=${usage?.cache_creation_input_tokens || 0}`);
+      }
+      if (modelUsage) {
+        for (const [model, mu] of Object.entries(modelUsage)) {
+          log(`[MODEL] ${model}: $${mu.costUSD.toFixed(4)} | in=${mu.inputTokens} out=${mu.outputTokens} cache_r=${mu.cacheReadInputTokens} cache_w=${mu.cacheCreationInputTokens}`);
+        }
       }
 
       // Detect stale session resume failure
