@@ -260,7 +260,7 @@ async function loadDashboard() {
     <div class="card"><div class="label">Contacts</div><div class="value">${totalContacts}</div></div>
     <div class="card"><div class="label">Deals</div><div class="value">${totalDeals}</div></div>
     <div class="card"><div class="label">Interactions 7j</div><div class="value">${totalInteractions}</div></div>
-    <div class="card" style="cursor:pointer" onclick="toggleCostDetail()"><div class="label">Coût Otto ce mois</div><div class="value yellow">${costHtml}</div><div class="sub">${costOther > 0 ? `+ $${costOther.toFixed(2)} hors Otto` : ''} — cliquer pour le détail</div></div>
+    <div class="card" style="cursor:pointer" onclick="toggleCostDetail()"><div class="label">Usage Otto (tokens)</div><div class="value yellow">${costHtml}</div><div class="sub">valeur API — cliquer pour le détail</div></div>
   `;
 
   // Clients table
@@ -295,7 +295,7 @@ function toggleCostDetail() {
     if (_costData.length === 0) {
       el.innerHTML = '<div class="card"><pre>Pas de données de coûts</pre></div>';
     } else {
-      let html = '<div class="card"><div class="section-title">Détail des coûts API — mois en cours</div>';
+      let html = '<div class="card"><div class="section-title">Usage tokens — mois en cours (valeur au tarif API, pas la facture réelle)</div>';
       html += '<div style="overflow-x:auto"><table style="font-size:0.8rem"><thead><tr><th>Date</th><th style="text-align:right">Otto ($)</th><th style="text-align:right">Autre ($)</th></tr></thead><tbody>';
       let totalOtto = 0, totalOther = 0;
       for (const day of _costData) {
