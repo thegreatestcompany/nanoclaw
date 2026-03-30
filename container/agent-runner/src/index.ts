@@ -370,6 +370,46 @@ function createPreToolUseHook(): HookCallback {
       }
     }
 
+    // Human-in-the-loop for sensitive DB mutations
+    if (hookInput.tool_name === 'mcp__business-db__mutate_business_db') {
+      const sql = ((toolInput as { query?: string }).query || '').trim();
+      const tableName = (toolInput as { table_name?: string }).table_name || '';
+      const isDelete = /^\s*DELETE/i.test(sql);
+      const isFinancial = /^\s*UPDATE/i.test(sql) &&
+        ['deals', 'invoices', 'expenses', 'contracts', 'team_members'].includes(tableName) &&
+        /amount|salary|value|budget|consumed|tax_amount|daily_rate|annual_cost/i.test(sql);
+      const isDealStage = /^\s*UPDATE/i.test(sql) && tableName === 'deals' && /stage/i.test(sql);
+      const isBulkUpdate = /^\s*UPDATE/i.test(sql) && !/WHERE/i.test(sql);
+
+      if (isDelete || isFinancial || isDealStage || isBulkUpdate) {
+        const pendingDir = '/workspace/group/.pending_mutations';
+        const pendingFiles = fs.existsSync(pendingDir) ? fs.readdirSync(pendingDir).filter(f => f.endsWith('.json')) : [];
+
+        if (pendingFiles.length > 0) {
+          const pendingFile = path.join(pendingDir, pendingFiles[0]);
+          log(`[DB] Executing approved mutation (pending: ${pendingFiles[0]})`);
+          try { fs.unlinkSync(pendingFile); } catch { /* ok */ }
+          // Fall through — allow
+        } else {
+          fs.mkdirSync(pendingDir, { recursive: true });
+          const pendingId = `mutation-${Date.now()}.json`;
+          fs.writeFileSync(
+            path.join(pendingDir, pendingId),
+            JSON.stringify({ sql: sql.slice(0, 300), table: tableName, created: new Date().toISOString() }),
+          );
+          const opType = isDelete ? 'Suppression' : isDealStage ? 'Changement de stage' : isFinancial ? 'Modification financière' : 'Modification en masse';
+          log(`[DB] Blocked sensitive mutation — pending approval: ${pendingId}`);
+          return {
+            hookSpecificOutput: {
+              hookEventName: 'PreToolUse' as const,
+              permissionDecision: 'deny' as const,
+              permissionDecisionReason: `Opération sensible en attente de confirmation. Envoie ce résumé au dirigeant via send_message et demande sa confirmation :\n\n${opType} sur ${tableName}\nRequête : ${sql.slice(0, 150)}\n\nQuand le dirigeant confirme, rappelle mutate_business_db avec les mêmes paramètres.`,
+            },
+          };
+        }
+      }
+    }
+
     if (hookInput.tool_name === 'Bash') {
       const command = (hookInput.tool_input as { command?: string })?.command || '';
       for (const pattern of BLOCKED_PATTERNS) {
