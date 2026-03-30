@@ -21,14 +21,8 @@
 ### ~~Provisioning multi-tenant automatique~~ (RÉSOLU)
 Les 7 bugs identifiés sont tous fixés : cwd auth, clé API par client (Admin API), port unique (base 3002), wrapper PM2, retry channel, credential-proxy fallback. À tester de bout en bout avec un vrai paiement Stripe.
 
-### Robustesse WhatsApp (CRITIQUE)
-Le process PM2 du client ne doit PAS tenter de se re-lier tout seul quand WhatsApp se déconnecte. Actuellement Baileys émet des QR codes automatiquement → crée des liaisons fantômes.
-
-À implémenter :
-1. Quand Baileys détecte une déconnexion → le process se met en pause
-2. Envoyer un email automatique au client : "Ton WhatsApp s'est déconnecté, clique ici pour reconnecter"
-3. Le process attend que le client se reconnecte via /onboard
-4. Tester tous les scénarios : déconnexion volontaire, changement de téléphone, timeout, crash
+### ~~Robustesse WhatsApp~~ (RÉSOLU 30/03/2026)
+Le process pause après 3 QR codes sans connexion, envoie un email de reconnexion au client via PM2 IPC → API. Debounce pour éviter les emails en double. qrCount reset à chaque reconnexion transient (blip réseau). Logout explicite → clear auth + pause + email.
 
 ### Stripe live
 Passer de test à prod : nouvelles clés + nouveau webhook endpoint dans le dashboard Stripe.
