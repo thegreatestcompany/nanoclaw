@@ -301,7 +301,7 @@ export function setupAdminRoutes(app: Express): void {
     }
   });
 
-  // API costs (requires ANTHROPIC_ADMIN_KEY)
+  // API costs (requires ANTHROPIC_ADMIN_KEY) — paginates through all days
   app.get('/api/admin/costs', async (_req, res) => {
     const adminKey = process.env.ANTHROPIC_ADMIN_KEY;
     if (!adminKey) {
@@ -311,19 +311,26 @@ export function setupAdminRoutes(app: Express): void {
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const allData: unknown[] = [];
 
     try {
-      const url = `https://api.anthropic.com/v1/organizations/cost_report?starting_at=${startOfMonth}&ending_at=${now.toISOString()}&group_by[]=workspace_id`;
-      const response = await fetch(
-        url,
-        {
+      let nextPage: string | null = null;
+      for (let page = 0; page < 10; page++) {
+        let url = `https://api.anthropic.com/v1/organizations/cost_report?starting_at=${startOfMonth}&ending_at=${now.toISOString()}&group_by[]=workspace_id`;
+        if (nextPage) url += `&page=${nextPage}`;
+
+        const response = await fetch(url, {
           headers: {
             'x-api-key': adminKey,
             'anthropic-version': '2023-06-01',
           },
-        },
-      );
-      res.json(await response.json());
+        });
+        const body = await response.json() as { data?: unknown[]; has_more?: boolean; next_page?: string };
+        if (body.data) allData.push(...body.data);
+        if (!body.has_more) break;
+        nextPage = body.next_page || null;
+      }
+      res.json({ data: allData });
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
     }
