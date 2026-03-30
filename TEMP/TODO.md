@@ -32,6 +32,9 @@ Le process PM2 du client ne doit PAS tenter de se re-lier tout seul quand WhatsA
 3. Le process attend que le client se reconnecte via /onboard (pas via les QR internes de Baileys)
 4. Tester tous les scénarios : déconnexion volontaire, changement de téléphone, timeout, crash process
 
+### Migration automatique business.db
+Les clients existants ne bénéficient pas des nouveaux schémas (tables/colonnes). Implémenter un système de versioning avec `PRAGMA user_version` : au démarrage du process client, comparer la version de la base avec la version attendue et exécuter les migrations manquantes automatiquement. Pattern standard, zéro downtime.
+
 ### Monitoring
 - PM2 auto-restart en cas de crash (`--max-memory-restart`)
 - Alerting quand un process client crash
