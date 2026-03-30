@@ -44,8 +44,10 @@ C'est une boîte isolée, créée à la demande, qui contient Claude et ses outi
 **Ce qu'il fait :**
 - Reçoit le message du dirigeant
 - Claude (via le Agent SDK) réfléchit et utilise des outils
-- Peut créer des fichiers Word/Excel, lire des PDF, chercher sur le web
-- Accède à la base de données métier du client (SQLite)
+- Peut créer des fichiers (Word, PowerPoint, Excel, PDF) via les skills Anthropic officiels
+- Navigue sur le web (agent-browser + Chromium)
+- Transcrit les messages vocaux (API OpenAI Whisper, ~2s)
+- Accède à la base de données métier du client (SQLite via MCP)
 - Renvoie la réponse au host
 
 **Cycle de vie :**
@@ -80,7 +82,24 @@ SDK appelle Claude
 
 ### 4. La base de données métier (SQLite)
 
-Chaque client a sa propre base `business.db` avec ~20 tables : contacts, deals, factures, contrats, tâches, réunions, etc. Claude la lit et la modifie via un serveur MCP (outil structuré).
+Chaque client a sa propre base `business.db` avec 25 tables : contacts, companies, deals, candidates, invoices, contracts, contract_clauses, team_members, projects, meetings, etc. Claude la lit et la modifie via un serveur MCP (outil structuré) avec human-in-the-loop sur les opérations sensibles (modifications financières, changement de stage deal).
+
+### 5. L'API d'onboarding
+
+Serveur Express séparé (`api/`) qui gère :
+- **Stripe webhooks** — paiement → provisioning automatique du client
+- **Onboarding WhatsApp** — page QR code / pairing code pour lier WhatsApp
+- **Reconnexion** — `/reconnect` pour relancer la liaison si déconnexion
+- **Emails transactionnels** — onboarding, bienvenue, reconnexion (via Gmail SMTP)
+- **Admin back-office** — API REST pour gérer les clients
+
+**Flow d'onboarding complet :**
+```
+Payment Link Stripe → paiement → email "Connecte ton WhatsApp"
+     → page /onboard/success (polling) → redirection /onboard/{token}
+     → QR code ou pairing code → WhatsApp connecté
+     → email de bienvenue "Otto est actif"
+```
 
 ---
 
@@ -339,3 +358,39 @@ otto-garcia  (180MB, port 3004)                ├─ WhatsApp Martin   ├─ r
 - L'API d'onboarding (déjà centralisée)
 
 **Quand migrer :** Quand la RAM ou le nombre de ports devient un bottleneck (~100 clients). Pas avant — l'architecture actuelle est plus simple à debugger et chaque client peut être redémarré indépendamment.
+
+---
+
+## Skills de l'agent
+
+L'agent dispose de 53 skills répartis en 3 catégories :
+
+**Skills documentaires (Anthropic officiels)** — `docx`, `pptx`, `xlsx`, `pdf` avec scripts de validation, templates, et QA automatisé.
+
+**Skills métier (knowledge-work-plugins)** — Sales (call-prep, pipeline-review, forecast...), Finance (financial-statements, reconciliation...), Legal (review-contract, compliance-check...), HR (recruiting-pipeline, performance-review...), Operations (status-report, vendor-review...).
+
+**Skills HNTIC (custom)** — Spécifiques à notre base de données : classify, memory, session-learnings, scan-passive, whatsapp-format.
+
+Les skills sont chargés automatiquement dans le container via `container/skills/` → sync dans `/home/node/.claude/skills/`.
+
+---
+
+## Déploiement
+
+Le VPS a deux codebases :
+- `/opt/otto/app/` — code principal (NanoClaw), mis à jour via `git pull`
+- `/opt/otto/api/` — copie séparée de l'API d'onboarding (les fichiers doivent être copiés manuellement après `git pull`)
+
+```bash
+# Déployer le code principal
+cd /opt/otto/app && git pull origin main && npm run build
+
+# Déployer l'API (copie manuelle nécessaire)
+cp api/src/*.ts /opt/otto/api/src/
+cp api/public/*.html /opt/otto/api/public/
+cd /opt/otto/api && npm run build && pm2 restart otto-api
+
+# Rebuild container (si Dockerfile ou skills modifiés)
+cd /opt/otto/app/container && ./build.sh
+pm2 restart otto-test  # ou le client concerné
+```
