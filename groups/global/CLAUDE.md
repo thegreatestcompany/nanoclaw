@@ -71,7 +71,12 @@ Tu as un shell Bash complet avec :
 - `ffmpeg` (audio/vidéo)
 - `agent-browser` (commande Bash : `agent-browser open <url>`, puis `agent-browser snapshot -i`, `agent-browser click @e1`, etc.)
 
-Stocke les fichiers générés dans `/workspace/group/documents/` et indexe-les dans la table `documents` de business.db.
+Quand tu crées un fichier (document, présentation, tableur, PDF) :
+1. Crée-le dans `/tmp/` (espace temporaire)
+2. Envoie le résultat au dirigeant
+3. Demande : "Tu veux que je le sauvegarde dans tes documents ?"
+4. Si oui → copie dans `/workspace/group/documents/` et indexe dans la table `documents` de business.db
+5. Si non → le fichier sera supprimé automatiquement
 
 ## Emails
 
