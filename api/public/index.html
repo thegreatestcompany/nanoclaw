@@ -77,6 +77,7 @@
     .reveal-scale.v { opacity: 1; transform: scale(1); }
 
     .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    @media (max-width: 480px) { .container { padding: 0 16px; } }
 
     /* ═══ HEADER ═══ */
     header {
@@ -107,6 +108,9 @@
     .hero {
       min-height: 100vh; display: flex; align-items: center; justify-content: center;
       padding: 140px 24px 80px; text-align: center;
+    }
+    @media (max-width: 480px) {
+      .hero { padding: 120px 16px 60px; min-height: auto; }
     }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 8px;
@@ -140,6 +144,9 @@
       font-weight: 500; transition: all 0.3s;
       box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     }
+    @media (max-width: 480px) {
+      .cta { padding: 16px 32px; font-size: 0.95rem; width: 100%; justify-content: center; }
+    }
     .cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
     .cta-light {
       background: var(--white); color: var(--black);
@@ -153,6 +160,7 @@
       background: var(--black); color: var(--white);
       padding: 120px 24px; text-align: center;
     }
+    @media (max-width: 480px) { .philo { padding: 80px 16px; } }
     .philo h2 {
       font-size: clamp(1.8rem, 4.5vw, 3.2rem); font-weight: 500;
       letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 28px;
@@ -169,8 +177,10 @@
     .philo-card {
       padding: 36px; border-radius: 20px;
       background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
-      text-align: left;
+      text-align: left; transition: all 0.3s;
     }
+    .philo-card:hover { background: rgba(255,255,255,0.07); transform: translateY(-2px); }
+    @media (max-width: 480px) { .philo-card { padding: 28px; } }
     .philo-card .emoji { font-size: 1.8rem; margin-bottom: 16px; }
     .philo-card h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 10px; }
     .philo-card p { font-size: 0.88rem; color: rgba(255,255,255,0.5); line-height: 1.6; }
@@ -179,6 +189,7 @@
     .demo {
       padding: 120px 24px; text-align: center;
     }
+    @media (max-width: 480px) { .demo { padding: 80px 16px; } }
     .demo h2 {
       font-size: clamp(1.8rem, 4.5vw, 3.2rem); font-weight: 500;
       letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 28px;
@@ -256,7 +267,10 @@
     .replace-item {
       padding: 20px; border-radius: 16px; background: white;
       border: 1px solid rgba(0,0,0,0.05); text-align: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+      transition: all 0.3s;
     }
+    .replace-item:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06); transform: translateY(-2px); }
     .replace-item .old {
       font-size: 0.85rem; color: var(--gray-400);
       text-decoration: line-through; text-decoration-color: #ef4444;
@@ -289,13 +303,16 @@
       display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 20px; max-width: 1000px; margin: 0 auto;
     }
-    @media (max-width: 768px) { .feat-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 960px) { .feat-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 580px) { .feat-grid { grid-template-columns: 1fr; } }
     .feat {
       padding: 36px 28px; border-radius: 20px;
-      background: var(--surface); border: 1px solid rgba(0,0,0,0.03);
-      text-align: left; transition: all 0.3s;
+      background: var(--white); border: 1px solid rgba(0,0,0,0.06);
+      text-align: left; transition: all 0.4s;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
     }
-    .feat:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.06); }
+    .feat:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.1); }
+    @media (max-width: 480px) { .feat { padding: 28px 24px; } }
     .feat h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; }
     .feat p { font-size: 0.88rem; color: var(--gray-500); line-height: 1.6; }
 
@@ -316,6 +333,9 @@
       display: inline-flex; align-items: center; gap: 16px;
       padding: 20px 32px; border-radius: 100px;
       background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    }
+    @media (max-width: 640px) {
+      .voice-demo { flex-direction: column; border-radius: 20px; padding: 24px; gap: 12px; }
     }
     .voice-demo .mic { font-size: 1.5rem; }
     .voice-demo span { font-size: 0.95rem; color: rgba(255,255,255,0.7); }
@@ -340,12 +360,21 @@
     }
     .af-row {
       display: flex; align-items: center; gap: 16px;
-      padding: 16px 24px; border-radius: 12px; background: var(--surface);
+      padding: 16px 24px; border-radius: 16px; background: var(--white);
+      border: 1px solid rgba(0,0,0,0.06);
       text-align: left;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+      transition: all 0.3s;
     }
-    .af-row .af-icon { font-size: 1.3rem; width: 32px; text-align: center; }
-    .af-row .af-label { font-size: 0.85rem; color: var(--gray-400); min-width: 120px; }
-    .af-row .af-value { font-size: 0.95rem; font-weight: 500; flex: 1; }
+    .af-row:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06); transform: translateY(-1px); }
+    .af-row .af-icon { font-size: 1.3rem; width: 32px; text-align: center; flex-shrink: 0; }
+    .af-row .af-label { font-size: 0.85rem; color: var(--gray-400); min-width: 80px; flex-shrink: 0; }
+    .af-row .af-value { font-size: 0.95rem; font-weight: 500; flex: 1; min-width: 0; }
+    @media (max-width: 480px) {
+      .af-row { flex-wrap: wrap; padding: 14px 16px; gap: 8px; }
+      .af-row .af-label { min-width: auto; }
+      .af-row .af-value { width: 100%; }
+    }
     .af-row .af-auto {
       font-size: 0.7rem; padding: 3px 10px; border-radius: 100px;
       background: var(--green-bg); color: #166534; font-weight: 600;
@@ -392,7 +421,9 @@
       max-width: 640px; margin: 0 auto;
       background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
       border-radius: 28px; padding: 40px 48px; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
+    @media (max-width: 480px) { .price-card { padding: 32px 20px; border-radius: 20px; } }
     .price-card .badge {
       display: inline-block; padding: 6px 16px; border-radius: 100px;
       background: rgba(37,211,102,0.12); color: #4ade80;
@@ -444,6 +475,14 @@
     .final .sub {
       font-size: 1.1rem; color: var(--gray-500);
       font-weight: 300; max-width: 480px; margin: 0 auto 40px;
+    }
+
+    /* ═══ MOBILE SECTIONS ═══ */
+    @media (max-width: 480px) {
+      .replaces, .features, .autofill, .how, .pricing, .faq, .final { padding: 80px 16px; }
+      .voice-section { padding: 80px 16px; }
+      .replace-grid { gap: 12px; }
+      .price-card .amount { font-size: 3rem; }
     }
 
     /* ═══ FOOTER ═══ */
