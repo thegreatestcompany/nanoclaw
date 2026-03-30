@@ -60,7 +60,7 @@ export function formatOutbound(rawText: string): string {
   // Check if the response contains forbidden technical terms
   const hasLeakedInfo = REDACTED_PATTERNS.some((p) => p.test(text));
   if (hasLeakedInfo) {
-    return "Je suis Otto, ton assistant business. Comment puis-je t'aider ?";
+    return "Désolé, je ne suis pas en mesure de répondre à cette demande. N'hésite pas à me poser une autre question !";
   }
 
   return text;
