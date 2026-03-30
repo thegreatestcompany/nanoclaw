@@ -790,26 +790,13 @@ async function main(): Promise<void> {
   }
 
   // Query loop: run query → wait for IPC message → run new query → repeat
-  let resumeAt: string | undefined;
+  // Each IPC message starts a FRESH session (no session resume) to avoid
+  // accumulating 100K+ tokens of session history that drives costs to $1+.
   try {
     while (true) {
-      log(`Starting query (session: ${sessionId || 'new'}, resumeAt: ${resumeAt || 'latest'})...`);
+      log(`Starting query (session: new)...`);
 
-      let queryResult = await runQuery(prompt, sessionId, mcpServerPath, containerInput, sdkEnv, resumeAt);
-
-      // If resume failed ("No conversation found"), retry without session resume
-      if (queryResult.resumeFailed) {
-        log('Session resume failed, retrying with fresh session...');
-        sessionId = undefined;
-        resumeAt = undefined;
-        queryResult = await runQuery(prompt, undefined, mcpServerPath, containerInput, sdkEnv, undefined);
-      }
-      if (queryResult.newSessionId) {
-        sessionId = queryResult.newSessionId;
-      }
-      if (queryResult.lastAssistantUuid) {
-        resumeAt = queryResult.lastAssistantUuid;
-      }
+      const queryResult = await runQuery(prompt, undefined, mcpServerPath, containerInput, sdkEnv, undefined);
 
       // If _close was consumed during the query, exit immediately.
       // Don't emit a session-update marker (it would reset the host's
