@@ -55,6 +55,21 @@ C'est une boîte isolée, créée à la demande, qui contient Claude et ses outi
 Message arrive → Container créé → Traite → Reste en veille → 30 min sans message → Détruit
 ```
 
+**Gardes-fous contre le blocage :**
+
+Un container bloqué empêche tous les messages suivants du même groupe. 6 protections empilées :
+
+| Protection | Lieu | Valeur | Rôle |
+|---|---|---|---|
+| maxTurns | Container (SDK) | 30 | Limite les boucles de tool calls |
+| maxBudgetUsd | Container (SDK) | $1.00/query | Limite le coût par query |
+| Budget exceeded → exit | Container | immédiat | Tue le container au lieu de bloquer |
+| Query timeout | Container | 5 min | Hang réseau ou API bloquée |
+| IPC idle timeout | Container | 10 min | Host crash ou `_close` jamais envoyé |
+| Hard timeout | Host | 30.5 min | Ultime filet — `docker stop` |
+
+La cause racine historique était le session resume qui accumulait les tokens (944K → $1.00 → budget exceeded → container zombie). Résolu en désactivant le session resume : chaque message = fresh query.
+
 L'image Docker est la même pour tous les clients (`nanoclaw-agent:latest`). Ce qui change, c'est les dossiers montés dedans (chaque client a les siens).
 
 **Fichiers clés :**

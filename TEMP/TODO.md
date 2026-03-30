@@ -23,8 +23,16 @@ Page web admin pour visualiser et gérer le VPS :
 ### Stripe live
 Passer de test à prod : nouvelles clés + nouveau webhook endpoint dans le dashboard Stripe.
 
-### Timeout par query dans le container (CRITIQUE)
-Un container bloqué (query lente, recherche web qui timeout) empêche tous les messages suivants d'être traités. Il faut un timeout par query (ex: 120s) dans l'agent-runner qui kill la query et envoie un message d'erreur au client. Le maxBudgetUsd à $1.00 et le maxTurns à 30 réduisent le risque mais ne l'éliminent pas.
+### ~~Timeout par query dans le container~~ (RÉSOLU 30/03/2026)
+Résolu par 3 fixes combinés :
+1. **Session resume désactivé** — chaque IPC = fresh query, plus d'accumulation de tokens (cause racine)
+2. **Budget exceeded → exit** — quand `error_max_budget_usd`, le container s'arrête au lieu de bloquer
+3. **Query timeout 5 min** — filet de sécurité ultime (hang réseau, API bloquée)
+4. **IPC idle timeout 10 min** — le container s'auto-termine si le host ne lui envoie jamais `_close`
+5. **Idle timer (host)** — armé sur tous les résultats, pas juste ceux avec du texte
+6. **SQLite busy_timeout 5s** — retry sur lock au lieu de fail immédiat
+
+Watchdog `GroupQueue` (nice-to-have) : si Docker daemon freeze, `active=true` pourrait rester coincé indéfiniment. Risque très faible (3 couches de timeout tuent le container avant). Un timer indépendant dans GroupQueue forcerait `active=false` après 35 min.
 
 ### Robustesse WhatsApp (CRITIQUE)
 Le process PM2 du client ne doit PAS tenter de se re-lier tout seul quand WhatsApp se déconnecte. Actuellement Baileys émet des QR codes automatiquement → crée des liaisons fantômes.
