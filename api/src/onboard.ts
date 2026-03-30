@@ -61,6 +61,11 @@ function broadcast(clientId: string, data: object): void {
 }
 
 export function setupOnboardRoutes(app: Express, server: Server): void {
+  // --- Landing page ---
+  app.get('/', (_req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  });
+
   // --- Post-payment success page ---
   app.get('/onboard/success', (_req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'success.html'));
