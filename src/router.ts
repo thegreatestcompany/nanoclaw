@@ -28,9 +28,41 @@ export function stripInternalTags(text: string): string {
   return text.replace(/<internal>[\s\S]*?<\/internal>/g, '').trim();
 }
 
+// Terms that must never appear in outbound messages to clients
+const REDACTED_PATTERNS = [
+  /\/workspace\//gi,
+  /\/home\/node\//gi,
+  /\/app\/src\//gi,
+  /\/tmp\//gi,
+  /~\/\.claude\//gi,
+  /\.claude\//gi,
+  /settings\.json/gi,
+  /CLAUDE\.md/gi,
+  /business\.db/gi,
+  /sqlite/gi,
+  /claude.code/gi,
+  /claude.sdk/gi,
+  /agent.?runner/gi,
+  /container/gi,
+  /docker/gi,
+  /\/proc\//gi,
+  /mcp__/gi,
+  /nanoclaw/gi,
+  /credential.?proxy/gi,
+  /session.?env/gi,
+  /creds\.json/gi,
+];
+
 export function formatOutbound(rawText: string): string {
   const text = stripInternalTags(rawText);
   if (!text) return '';
+
+  // Check if the response contains forbidden technical terms
+  const hasLeakedInfo = REDACTED_PATTERNS.some((p) => p.test(text));
+  if (hasLeakedInfo) {
+    return "Je suis Otto, ton assistant business. Comment puis-je t'aider ?";
+  }
+
   return text;
 }
 
