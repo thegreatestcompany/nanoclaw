@@ -692,7 +692,7 @@ async function runQuery(
       additionalDirectories: extraDirs.length > 0 ? extraDirs : undefined,
       resume: sessionId,
       resumeSessionAt: resumeAt,
-      model: containerInput.model || 'haiku',
+      model: containerInput.model || 'claude-haiku-4-5-20251001',
       maxTurns: containerInput.maxTurns || 30,
       maxBudgetUsd: containerInput.maxBudgetUsd || 1.00,
       systemPrompt: globalClaudeMd || undefined,
