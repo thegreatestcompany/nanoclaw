@@ -692,7 +692,7 @@ async function runQuery(
       additionalDirectories: extraDirs.length > 0 ? extraDirs : undefined,
       resume: sessionId,
       resumeSessionAt: resumeAt,
-      model: containerInput.model || 'claude-haiku-4-5-20251001',
+      model: containerInput.model || 'sonnet',
       maxTurns: containerInput.maxTurns || 30,
       maxBudgetUsd: containerInput.maxBudgetUsd || 1.00,
       systemPrompt: globalClaudeMd || undefined,
@@ -893,16 +893,6 @@ async function main(): Promise<void> {
   // Credentials are injected by the host's credential proxy via ANTHROPIC_BASE_URL.
   // No real secrets exist in the container environment.
   const sdkEnv: Record<string, string | undefined> = { ...process.env };
-
-  // Force the model via settings.json — the SDK ignores model in query() options and env vars
-  const targetModel = containerInput.model || 'claude-haiku-4-5-20251001';
-  const settingsDir = path.join(process.env.HOME || '/home/node', '.claude');
-  fs.mkdirSync(settingsDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(settingsDir, 'settings.json'),
-    JSON.stringify({ model: targetModel }),
-  );
-  log(`Model set to ${targetModel} via settings.json`);
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const mcpServerPath = path.join(__dirname, 'ipc-mcp-stdio.js');
