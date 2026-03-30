@@ -64,6 +64,15 @@ export class WhatsAppChannel implements Channel {
   private sentMessageCache = new Map<string, proto.IMessage>();
   /** Bot's LID user ID (e.g. "80355281346633") for normalizing group mentions. */
   private botLidUser?: string;
+  /** When true, the process has detected that the WhatsApp session is invalid
+   *  and is waiting for the user to re-authenticate via /reconnect.
+   *  No automatic reconnection attempts are made in this state. */
+  private paused = false;
+  /** Count of consecutive QR codes emitted without a successful connection.
+   *  Used to detect that the session is truly invalid (not just a transient issue). */
+  private qrCount = 0;
+  /** Max QR codes before concluding the session is invalid and pausing. */
+  private static MAX_QR_BEFORE_PAUSE = 2;
 
   private opts: WhatsAppChannelOpts;
 
@@ -117,11 +126,26 @@ export class WhatsAppChannel implements Channel {
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
-        // In production (PM2), send QR to parent process for the onboarding web page.
-        // PM2 captures messages sent via process.send() on its IPC bus.
-        if (process.send) {
+        this.qrCount++;
+
+        if (this.paused) {
+          // Already paused — ignore further QR codes
+          return;
+        }
+
+        // During initial onboarding (first connect), forward QR to parent for the web page
+        if (process.send && this.qrCount <= WhatsAppChannel.MAX_QR_BEFORE_PAUSE) {
           process.send({ type: 'qr', qr });
-          logger.info('QR code sent to parent process (PM2 IPC)');
+          logger.info({ qrCount: this.qrCount }, 'QR code sent to parent process (PM2 IPC)');
+        } else if (process.send && this.qrCount > WhatsAppChannel.MAX_QR_BEFORE_PAUSE) {
+          // Too many QR codes without a successful connection — session is invalid.
+          // Pause the process and notify the API to email the client.
+          this.paused = true;
+          logger.warn(
+            { qrCount: this.qrCount },
+            'Session invalid — too many QR codes without connection. Pausing and requesting reconnection email.',
+          );
+          process.send({ type: 'disconnected_needs_reauth' });
         } else {
           // Local dev: show notification and exit (user should run /setup)
           const msg =
@@ -139,32 +163,48 @@ export class WhatsAppChannel implements Channel {
         const reason = (
           lastDisconnect?.error as { output?: { statusCode?: number } }
         )?.output?.statusCode;
-        const shouldReconnect = reason !== DisconnectReason.loggedOut;
         logger.info(
           {
             reason,
-            shouldReconnect,
+            paused: this.paused,
             queuedMessages: this.outgoingQueue.length,
           },
           'Connection closed',
         );
 
-        if (shouldReconnect) {
-          logger.info('Reconnecting...');
-          this.connectInternal().catch((err) => {
-            logger.error({ err }, 'Failed to reconnect, retrying in 5s');
-            setTimeout(() => {
-              this.connectInternal().catch((err2) => {
-                logger.error({ err: err2 }, 'Reconnection retry failed');
-              });
-            }, 5000);
-          });
-        } else {
-          logger.info('Logged out. Run /setup to re-authenticate.');
-          process.exit(0);
+        // Explicit logout — clear auth and pause for re-auth
+        if (reason === DisconnectReason.loggedOut) {
+          logger.info('Logged out by user. Clearing auth and pausing for re-authentication.');
+          this.paused = true;
+          // Clear stale auth files so the next connect starts fresh
+          const authDir = path.join(STORE_DIR, 'auth');
+          try { fs.rmSync(authDir, { recursive: true, force: true }); } catch {}
+          if (process.send) {
+            process.send({ type: 'disconnected_needs_reauth' });
+          }
+          return;
         }
+
+        // Already paused (waiting for user re-auth) — don't reconnect
+        if (this.paused) {
+          logger.info('Process paused — waiting for user to re-authenticate via /reconnect');
+          return;
+        }
+
+        // Transient disconnection (network issue, server restart) — auto-reconnect
+        logger.info('Transient disconnection, reconnecting...');
+        this.connectInternal().catch((err) => {
+          logger.error({ err }, 'Failed to reconnect, retrying in 5s');
+          setTimeout(() => {
+            this.connectInternal().catch((err2) => {
+              logger.error({ err: err2 }, 'Reconnection retry failed');
+            });
+          }, 5000);
+        });
       } else if (connection === 'open') {
         this.connected = true;
+        this.paused = false;
+        this.qrCount = 0; // Reset QR counter on successful connection
         logger.info('Connected to WhatsApp');
 
         // Notify parent process (PM2) that WhatsApp is connected
