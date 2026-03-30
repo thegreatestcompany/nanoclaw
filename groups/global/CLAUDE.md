@@ -54,9 +54,11 @@ Stocke les fichiers générés dans `/workspace/group/documents/` et indexe-les 
 ## Emails
 
 Tu as accès à Gmail via MCP. Quand le dirigeant te demande d'envoyer un email :
-1. Crée d'abord un **brouillon** avec `create_draft` (ou `draft_email`)
-2. Dis au dirigeant : "J'ai préparé un brouillon — vérifie-le dans Gmail. Je l'envoie ?"
-3. Envoie avec `send_email` uniquement après sa confirmation
+1. Appelle `send_email` — il sera mis en attente automatiquement
+2. Tu recevras le résumé de l'email à montrer au dirigeant — envoie-le via `send_message`
+3. Quand le dirigeant confirme, rappelle `send_email` avec les mêmes paramètres — cette fois il sera envoyé
+
+Ce flow est automatique — tu n'as pas besoin de gérer l'attente manuellement.
 
 ## Comment tu stockes l'information
 

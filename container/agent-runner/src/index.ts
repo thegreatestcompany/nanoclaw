@@ -337,6 +337,39 @@ function createPreToolUseHook(): HookCallback {
       }
     }
 
+    // Human-in-the-loop for email sending
+    if (hookInput.tool_name === 'mcp__gmail__send_email') {
+      const pendingDir = '/workspace/group/.pending_emails';
+      const pendingFiles = fs.existsSync(pendingDir) ? fs.readdirSync(pendingDir).filter(f => f.endsWith('.json')) : [];
+
+      if (pendingFiles.length > 0) {
+        // Pending email exists → user has seen it and confirmed → ALLOW
+        const pendingFile = path.join(pendingDir, pendingFiles[0]);
+        log(`[EMAIL] Sending approved email (pending: ${pendingFiles[0]})`);
+        try { fs.unlinkSync(pendingFile); } catch { /* ok */ }
+        // Fall through — allow the tool call
+      } else {
+        // No pending → save email details and BLOCK
+        fs.mkdirSync(pendingDir, { recursive: true });
+        const emailData = toolInput as { to?: string[]; subject?: string; body?: string };
+        const pendingId = `email-${Date.now()}.json`;
+        fs.writeFileSync(
+          path.join(pendingDir, pendingId),
+          JSON.stringify({ to: emailData.to, subject: emailData.subject, body: emailData.body, created: new Date().toISOString() }),
+        );
+        const to = Array.isArray(emailData.to) ? emailData.to.join(', ') : emailData.to || '?';
+        const subject = emailData.subject || '(sans objet)';
+        log(`[EMAIL] Blocked send_email — pending approval: ${pendingId}`);
+        return {
+          hookSpecificOutput: {
+            hookEventName: 'PreToolUse' as const,
+            permissionDecision: 'deny' as const,
+            permissionDecisionReason: `Email en attente de confirmation. Envoie ce résumé au dirigeant via send_message et demande sa confirmation :\n\nDestinataire : ${to}\nObjet : ${subject}\n\nQuand le dirigeant confirme ("oui", "go", "envoie", etc.), rappelle send_email avec les mêmes paramètres.`,
+          },
+        };
+      }
+    }
+
     if (hookInput.tool_name === 'Bash') {
       const command = (hookInput.tool_input as { command?: string })?.command || '';
       for (const pattern of BLOCKED_PATTERNS) {
