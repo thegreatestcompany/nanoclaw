@@ -555,6 +555,10 @@ async function main(): Promise<void> {
   ensureContainerSystemRunning();
   initDatabase();
   logger.info('Database initialized');
+
+  // Run business.db migrations (safe — skips if already at latest version)
+  const { migrateAllBusinessDbs } = await import('./business-db-migrate.js');
+  migrateAllBusinessDbs();
   loadState();
   restoreRemoteControl();
 
