@@ -313,8 +313,10 @@ export function setupAdminRoutes(app: Express): void {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
     try {
+      const url = `https://api.anthropic.com/v1/organizations/cost_report?starting_at=${startOfMonth}&ending_at=${now.toISOString()}&group_by%5B%5D=workspace_id`;
+      console.log('[COSTS] Fetching:', url);
       const response = await fetch(
-        `https://api.anthropic.com/v1/organizations/cost_report?starting_at=${startOfMonth}&ending_at=${now.toISOString()}&group_by%5B%5D=workspace_id`,
+        url,
         {
           headers: {
             'x-api-key': adminKey,
