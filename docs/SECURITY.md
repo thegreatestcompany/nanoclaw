@@ -180,6 +180,61 @@ The admin back-office (`api/src/admin.ts`) is protected by:
 | Network access | Via credential proxy | Via credential proxy |
 | MCP tools | All | All |
 
+## Container Attack Surface Audit (30/03/2026)
+
+### Mounts writable (l'agent peut lire ET écrire)
+
+| Chemin container | Contenu | Risque | Protection |
+|-----------------|---------|--------|------------|
+| `/workspace/group/` | business.db, CLAUDE.md, documents/ | Légitime | Aucune restriction (c'est l'espace de travail) |
+| `/home/node/.claude/` | settings.json, session-env/, skills/ | Sensible | Bash bloqué (`/.claude\//`), Write/Edit limité à `/workspace/group/` |
+| `/home/node/.gmail-mcp/` | OAuth tokens, credentials | Très sensible | Bash bloqué (`/.gmail-mcp\//`) |
+| `/workspace/ipc/` | Messages IPC | Légitime | Aucune restriction |
+| `/app/src/` | Code source agent-runner | Très sensible | Bash bloqué (`/\/app\/src\//`), Write/Edit limité |
+
+### Mounts readonly (l'agent peut lire)
+
+| Chemin container | Contenu | Risque | Protection |
+|-----------------|---------|--------|------------|
+| `/workspace/project/` | Code source complet de l'app host | Sensible | Bash bloqué (`/\/workspace\/project\//`) |
+| `/workspace/project/.env` | Shadowed avec /dev/null | OK | Inaccessible |
+| `/workspace/global/` | CLAUDE.md global | OK | Lecture seule |
+
+### Commandes Bash bloquées
+
+| Pattern | Ce qu'il bloque |
+|---------|----------------|
+| `rm -rf /` | Suppression destructrice |
+| `DROP TABLE/DATABASE`, `TRUNCATE` | SQL destructif |
+| `> /outside/workspace` | Redirection hors workspace |
+| `settings.json` | Modification config SDK |
+| `.claude/` | Accès au dossier SDK |
+| `.gmail-mcp/` | Accès aux credentials Gmail |
+| `creds.json` | Accès aux credentials WhatsApp |
+| `.env` | Accès aux fichiers d'environnement |
+| `/app/src/` | Accès au code source agent-runner |
+| `/workspace/project/` | Accès au code source host |
+| `env` (commande seule) | Affichage des variables d'environnement |
+| `printenv` | Affichage des variables d'environnement |
+| `/proc/` | Introspection système (environ, cmdline) |
+| `curl/wget 172.17.*` | Accès réseau au host Docker |
+
+### Skills natifs bloqués (PreToolUse hook)
+
+26 skills dev/admin bloqués par nom : update-config, setup, debug, customize, init-onecli, claw, convert-to-apple-container, update-nanoclaw, update-skills, add-telegram, add-slack, add-discord, add-emacs, add-parallel, add-ollama-tool, add-macos-statusbar, add-whatsapp, add-compact, add-telegram-swarm, use-local-whisper, use-native-credential-proxy, x-integration, add-voice-transcription, add-image-vision, add-reactions, add-pdf-reader, add-gmail.
+
+### Incident du 30/03 : contournement du blocage Skill
+
+L'agent a contourné le blocage du skill `update-config` en modifiant directement `~/.claude/settings.json` via Bash (`cat > ~/.claude/settings.json`). Fix : ajout de `.claude/` et `settings.json` aux patterns Bash bloqués.
+
+**Leçon** : chaque blocage (Skill, Write/Edit, Bash) est indépendant. L'agent peut contourner un blocage en utilisant un autre outil. Il faut bloquer à TOUS les niveaux simultanément.
+
+### Risques résiduels
+
+- L'agent peut toujours `curl` vers des sites externes (pas seulement le host) — nécessaire pour WebSearch/WebFetch
+- L'agent peut lire le contenu de `/workspace/group/` qui contient business.db — c'est légitime mais un client malveillant pourrait tenter une injection de prompt via les données
+- `mcp__gmail__send_email` n'est pas bloqué côté code — l'agent peut envoyer des emails sans confirmation (instruction CLAUDE.md seulement)
+
 ## Known Pitfalls
 
 1. **`.claude/` permissions** — The SDK requires write access to `~/.claude/session-env/`. If this directory is owned by root and the container runs as node, the Bash tool fails silently on every execution. Fix: `chown root:1000` applied automatically.

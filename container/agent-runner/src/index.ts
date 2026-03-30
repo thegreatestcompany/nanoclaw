@@ -273,13 +273,32 @@ function createPostCompactHook(): HookCallback {
  */
 function createPreToolUseHook(): HookCallback {
   const BLOCKED_PATTERNS = [
+    // Destructive operations
     /rm\s+(-[rf]+\s+)*\//,     // rm -rf /
     /DROP\s+TABLE/i,
     /DROP\s+DATABASE/i,
     /TRUNCATE/i,
-    /(?<!\d)>\s*\/(?!workspace\/group|dev\/null|tmp\/)/,  // redirect outside workspace (allow /dev/null, /tmp/, stderr 2>)
-    /settings\.json/,          // never modify SDK settings
-    /\.claude\//,              // never touch .claude/ directory via Bash
+    /(?<!\d)>\s*\/(?!workspace\/group|dev\/null|tmp\/)/,  // redirect outside workspace
+
+    // Credentials and config files
+    /settings\.json/,          // SDK settings
+    /\.claude\//,              // SDK directory
+    /\.gmail-mcp\//,           // Gmail OAuth tokens
+    /creds\.json/,             // WhatsApp credentials
+    /\.env\b/,                 // environment files (\b to not match .envrc etc in paths)
+
+    // Source code and infrastructure
+    /\/app\/src\//,            // agent-runner source code
+    /\/workspace\/project\//,  // host application code
+
+    // System introspection
+    /^\s*env\s*$/,             // bare env command (prints all env vars)
+    /^\s*printenv/,            // printenv command
+    /\/proc\//,                // process info (environ, cmdline, etc.)
+
+    // Network access to host
+    /curl.*172\.17\./,         // curl to Docker host gateway
+    /wget.*172\.17\./,         // wget to Docker host gateway
   ];
 
   return async (input) => {
