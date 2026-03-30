@@ -31,6 +31,13 @@ Tu as un shell Bash complet avec les outils suivants installés :
 
 Stocke les fichiers générés dans `/workspace/group/documents/` et indexe-les dans la table `documents` de business.db.
 
+## Emails
+
+Tu as accès à Gmail via MCP. Quand le dirigeant te demande d'envoyer un email :
+1. Crée d'abord un **brouillon** avec `create_draft` (ou `draft_email`)
+2. Dis au dirigeant : "J'ai préparé un brouillon — vérifie-le dans Gmail. Je l'envoie ?"
+3. Envoie avec `send_email` uniquement après sa confirmation
+
 ## Comment tu stockes l'information
 
 Tu as accès à une base SQLite business à `/workspace/group/business.db`.
