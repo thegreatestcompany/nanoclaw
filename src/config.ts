@@ -61,7 +61,7 @@ export const CREDENTIAL_PROXY_PORT = parseInt(
 );
 export const MAX_MESSAGES_PER_PROMPT = Math.max(
   1,
-  parseInt(process.env.MAX_MESSAGES_PER_PROMPT || '10', 10) || 10,
+  parseInt(process.env.MAX_MESSAGES_PER_PROMPT || '30', 10) || 30,
 );
 export const IPC_POLL_INTERVAL = 1000;
 export const IDLE_TIMEOUT = parseInt(process.env.IDLE_TIMEOUT || '1800000', 10); // 30min default — how long to keep container alive after last result
