@@ -278,6 +278,8 @@ function createPreToolUseHook(): HookCallback {
     /DROP\s+DATABASE/i,
     /TRUNCATE/i,
     /(?<!\d)>\s*\/(?!workspace\/group|dev\/null|tmp\/)/,  // redirect outside workspace (allow /dev/null, /tmp/, stderr 2>)
+    /settings\.json/,          // never modify SDK settings
+    /\.claude\//,              // never touch .claude/ directory via Bash
   ];
 
   return async (input) => {
