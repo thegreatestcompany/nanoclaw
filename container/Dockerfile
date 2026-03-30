@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y \
     pandoc \
     ffmpeg \
     python3-pip \
-    && pip3 install --break-system-packages python-docx openpyxl python-pptx reportlab pandas Pillow "markitdown[pptx]" \
+    && pip3 install --break-system-packages python-docx openpyxl python-pptx reportlab pandas Pillow "markitdown[pptx]" pypdf pdfplumber \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Chromium path for agent-browser
