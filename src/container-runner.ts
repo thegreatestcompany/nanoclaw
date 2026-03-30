@@ -279,6 +279,10 @@ function buildContainerArgs(
     args.push('-e', 'CLAUDE_CODE_OAUTH_TOKEN=placeholder');
   }
 
+  // Pass through optional API keys for MCP servers inside the container
+  if (process.env.EXA_API_KEY) args.push('-e', `EXA_API_KEY=${process.env.EXA_API_KEY}`);
+  if (process.env.OPENAI_API_KEY) args.push('-e', `OPENAI_API_KEY=${process.env.OPENAI_API_KEY}`);
+
   // Runtime-specific args for host gateway resolution
   args.push(...hostGatewayArgs());
 

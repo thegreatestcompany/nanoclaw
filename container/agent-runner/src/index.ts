@@ -20,6 +20,7 @@ import { execFile } from 'child_process';
 import { query, HookCallback, PreCompactHookInput, PostCompactHookInput, PreToolUseHookInput, PostToolUseHookInput } from '@anthropic-ai/claude-agent-sdk';
 import { fileURLToPath } from 'url';
 import { businessDbServer, closeDb } from './business-db-mcp.js';
+import { exaServer } from './exa-mcp.js';
 
 interface ContainerInput {
   prompt: string;
@@ -703,7 +704,8 @@ async function runQuery(
         'mcp__nanoclaw__*',
         'mcp__business-db__*',
         'mcp__gmail__*',
-        'mcp__google-calendar__*'
+        'mcp__google-calendar__*',
+        ...(process.env.EXA_API_KEY ? ['mcp__exa__*'] : []),
       ],
       allowedTools: [
         'Bash',
@@ -713,7 +715,8 @@ async function runQuery(
         'mcp__nanoclaw__*',
         'mcp__business-db__*',
         'mcp__gmail__*',
-        'mcp__google-calendar__*'
+        'mcp__google-calendar__*',
+        ...(process.env.EXA_API_KEY ? ['mcp__exa__*'] : []),
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -731,6 +734,7 @@ async function runQuery(
           },
         },
         'business-db': businessDbServer,
+        ...(process.env.EXA_API_KEY ? { exa: exaServer } : {}),
         gmail: {
           command: 'npx',
           args: ['-y', '@gongrzhe/server-gmail-autoauth-mcp'],

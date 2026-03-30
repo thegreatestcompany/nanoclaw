@@ -206,14 +206,18 @@ export async function provisionClient(
   const proxyPort = getNextProxyPort();
 
   // 7. Write .env (NEVER include the admin key — only the client's own API key)
-  const envContent = [
+  const envLines = [
     `ANTHROPIC_API_KEY=${clientApiKey || 'TO_BE_SET'}`,
     'ASSISTANT_NAME=Otto',
     'TZ=Europe/Paris',
     `CLIENT_ID=${clientId}`,
     `CREDENTIAL_PROXY_PORT=${proxyPort}`,
     `WHISPER_MODEL=${APP_DIR}/data/models/ggml-small.bin`,
-  ].join('\n');
+  ];
+  // Pass through shared API keys from the API's env
+  if (process.env.EXA_API_KEY) envLines.push(`EXA_API_KEY=${process.env.EXA_API_KEY}`);
+  if (process.env.OPENAI_API_KEY) envLines.push(`OPENAI_API_KEY=${process.env.OPENAI_API_KEY}`);
+  const envContent = envLines.join('\n');
   fs.writeFileSync(path.join(clientDir, '.env'), envContent, { mode: 0o600 });
   fs.mkdirSync(path.join(clientDir, 'data', 'env'), { recursive: true });
   fs.copyFileSync(path.join(clientDir, '.env'), path.join(clientDir, 'data', 'env', 'env'));
