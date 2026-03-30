@@ -301,7 +301,9 @@ export function setupAdminRoutes(app: Express): void {
     }
   });
 
-  // API costs (requires ANTHROPIC_ADMIN_KEY) — paginates through all days
+  // API costs (requires ANTHROPIC_ADMIN_KEY)
+  // Uses usage_report/messages with workspace filter + token pricing to compute real costs.
+  // The cost_report endpoint returns inflated "list price" amounts, not actual billing.
   app.get('/api/admin/costs', async (_req, res) => {
     const adminKey = process.env.ANTHROPIC_ADMIN_KEY;
     if (!adminKey) {
@@ -311,26 +313,89 @@ export function setupAdminRoutes(app: Express): void {
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const allData: unknown[] = [];
+
+    // Per-million-token pricing
+    const PRICING: Record<string, { input: number; cache_write: number; cache_read: number; output: number }> = {
+      'claude-sonnet-4-6':       { input: 3,    cache_write: 3.75, cache_read: 0.30, output: 15 },
+      'claude-opus-4-6':         { input: 15,   cache_write: 18.75, cache_read: 1.50, output: 75 },
+      'claude-haiku-4-5-20251001': { input: 0.80, cache_write: 1.00, cache_read: 0.08, output: 4 },
+    };
+    const DEFAULT_PRICING = { input: 3, cache_write: 3.75, cache_read: 0.30, output: 15 };
+    const WEB_SEARCH_COST = 0.01; // per search
+
+    // Fetch all workspaces to know which ones to query
+    let workspaceIds: string[] = [];
+    try {
+      const wsResp = await fetch('https://api.anthropic.com/v1/organizations/workspaces', {
+        headers: { 'x-api-key': adminKey, 'anthropic-version': '2023-06-01' },
+      });
+      const wsBody = await wsResp.json() as { data?: { id: string; name: string }[] };
+      workspaceIds = (wsBody.data || []).map(w => w.id);
+    } catch { /* fallback: no workspace filter */ }
+
+    const wsFilter = workspaceIds.length > 0
+      ? workspaceIds.map(id => `workspace_ids[]=${id}`).join('&') + '&'
+      : '';
 
     try {
+      // Paginate through usage data
+      interface UsageResult {
+        uncached_input_tokens: number;
+        cache_creation?: { ephemeral_1h_input_tokens: number; ephemeral_5m_input_tokens: number };
+        cache_read_input_tokens: number;
+        output_tokens: number;
+        server_tool_use?: { web_search_requests: number };
+        model: string;
+      }
+      interface UsageBucket {
+        starting_at: string;
+        ending_at: string;
+        results: UsageResult[];
+      }
+
+      const allBuckets: UsageBucket[] = [];
       let nextPage: string | null = null;
       for (let page = 0; page < 10; page++) {
-        let url = `https://api.anthropic.com/v1/organizations/cost_report?starting_at=${startOfMonth}&ending_at=${now.toISOString()}&group_by[]=workspace_id`;
+        let url = `https://api.anthropic.com/v1/organizations/usage_report/messages?starting_at=${startOfMonth}&ending_at=${now.toISOString()}&${wsFilter}group_by[]=model&bucket_width=1d`;
         if (nextPage) url += `&page=${nextPage}`;
 
         const response = await fetch(url, {
-          headers: {
-            'x-api-key': adminKey,
-            'anthropic-version': '2023-06-01',
-          },
+          headers: { 'x-api-key': adminKey, 'anthropic-version': '2023-06-01' },
         });
-        const body = await response.json() as { data?: unknown[]; has_more?: boolean; next_page?: string };
-        if (body.data) allData.push(...body.data);
+        const body = await response.json() as { data?: UsageBucket[]; has_more?: boolean; next_page?: string };
+        if (body.data) allBuckets.push(...body.data);
         if (!body.has_more) break;
         nextPage = body.next_page || null;
       }
-      res.json({ data: allData });
+
+      // Compute costs from token usage
+      const dailyCosts: { date: string; cost: number; tokens: number; searches: number }[] = [];
+      let totalCost = 0;
+
+      for (const bucket of allBuckets) {
+        let dayCost = 0;
+        let dayTokens = 0;
+        let daySearches = 0;
+        for (const r of bucket.results) {
+          const p = PRICING[r.model] || DEFAULT_PRICING;
+          const cacheWrite = (r.cache_creation?.ephemeral_5m_input_tokens || 0) + (r.cache_creation?.ephemeral_1h_input_tokens || 0);
+          const cost =
+            (r.uncached_input_tokens / 1e6) * p.input +
+            (cacheWrite / 1e6) * p.cache_write +
+            (r.cache_read_input_tokens / 1e6) * p.cache_read +
+            (r.output_tokens / 1e6) * p.output +
+            (r.server_tool_use?.web_search_requests || 0) * WEB_SEARCH_COST;
+          dayCost += cost;
+          dayTokens += r.uncached_input_tokens + cacheWrite + r.cache_read_input_tokens + r.output_tokens;
+          daySearches += r.server_tool_use?.web_search_requests || 0;
+        }
+        if (dayCost > 0) {
+          dailyCosts.push({ date: bucket.starting_at, cost: dayCost, tokens: dayTokens, searches: daySearches });
+        }
+        totalCost += dayCost;
+      }
+
+      res.json({ total_cost_usd: Math.round(totalCost * 100) / 100, daily: dailyCosts });
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
     }
