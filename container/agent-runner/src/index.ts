@@ -962,7 +962,23 @@ async function main(): Promise<void> {
         apiKey: process.env.COMPOSIO_API_KEY,
         provider: new ClaudeAgentSDKProvider(),
       });
-      const session = await composio.create(containerInput.chatJid);
+
+      // Parse custom auth config IDs from env (format: "gmail:ac_xxx,googlecalendar:ac_yyy")
+      const authConfigs: Record<string, string> = {};
+      if (process.env.COMPOSIO_AUTH_CONFIGS) {
+        for (const entry of process.env.COMPOSIO_AUTH_CONFIGS.split(',')) {
+          const [toolkit, configId] = entry.trim().split(':');
+          if (toolkit && configId) authConfigs[toolkit] = configId;
+        }
+        log(`Composio custom auth configs: ${JSON.stringify(authConfigs)}`);
+      }
+
+      const sessionOpts: any = {};
+      if (Object.keys(authConfigs).length > 0) {
+        sessionOpts.auth_configs = authConfigs;
+      }
+
+      const session = await composio.create(containerInput.chatJid, sessionOpts);
       const tools = await session.tools();
       composioServer = createSdkMcpServer({
         name: 'composio',

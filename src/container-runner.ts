@@ -287,6 +287,8 @@ function buildContainerArgs(
     args.push('-e', `OPENAI_API_KEY=${process.env.OPENAI_API_KEY}`);
   if (process.env.COMPOSIO_API_KEY)
     args.push('-e', `COMPOSIO_API_KEY=${process.env.COMPOSIO_API_KEY}`);
+  if (process.env.COMPOSIO_AUTH_CONFIGS)
+    args.push('-e', `COMPOSIO_AUTH_CONFIGS=${process.env.COMPOSIO_AUTH_CONFIGS}`);
 
   // Runtime-specific args for host gateway resolution
   args.push(...hostGatewayArgs());
