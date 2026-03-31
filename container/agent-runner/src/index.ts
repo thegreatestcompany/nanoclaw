@@ -414,14 +414,14 @@ function createPreToolUseHook(): HookCallback {
     if (hookInput.tool_name === 'Bash') {
       const command = (hookInput.tool_input as { command?: string })?.command || '';
 
-      // Specific redirect for package install attempts
+      // Block package installation (security — prevents supply chain attacks)
       if (/pip\s+install|npm\s+install|apt(-get)?\s+install/i.test(command)) {
         log(`[SECURITY] Blocked package install: ${command.slice(0, 100)}`);
         return {
           hookSpecificOutput: {
             hookEventName: 'PreToolUse' as const,
             permissionDecision: 'deny' as const,
-            permissionDecisionReason: `L'installation de packages n'est pas autorisée. Pour créer des documents Office, utilise Skill("pptx"), Skill("docx") ou Skill("xlsx") — ces skills utilisent des outils déjà installés (pptxgenjs, docx via npm).`,
+            permissionDecisionReason: `L'installation de packages n'est pas autorisée. Utilise uniquement les outils déjà installés dans l'environnement.`,
           },
         };
       }
@@ -438,11 +438,6 @@ function createPreToolUseHook(): HookCallback {
           };
         }
       }
-
-      // python-pptx/docx/openpyxl are NOT installed in the container.
-      // The agent will get a natural ImportError and look for alternatives
-      // (Anthropic skills via Skill("pptx"), or officecli if installed).
-      // No hook block needed — let the error speak for itself.
     }
 
     if (hookInput.tool_name === 'Write' || hookInput.tool_name === 'Edit') {

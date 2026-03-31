@@ -35,8 +35,8 @@ RUN apt-get update && apt-get install -y \
     qpdf \
     tesseract-ocr \
     && pip3 install --break-system-packages \
-        reportlab pandas Pillow \
-        markitdown \
+        python-docx openpyxl python-pptx reportlab pandas Pillow \
+        "markitdown[pptx]" \
         pypdf pdfplumber pdf2image pytesseract \
         defusedxml lxml \
     && rm -rf /var/lib/apt/lists/*
