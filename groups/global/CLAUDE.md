@@ -71,11 +71,9 @@ Tu as un shell Bash complet avec :
 - `agent-browser` (commande Bash : `agent-browser open <url>`, puis `agent-browser snapshot -i`, `agent-browser click @e1`, etc.)
 
 Quand tu crées un fichier (document, présentation, tableur, PDF) :
-1. Crée-le dans `/tmp/` (espace temporaire)
-2. Envoie le résultat au dirigeant
-3. Demande : "Tu veux que je le sauvegarde dans tes documents ?"
-4. Si oui → copie dans `/workspace/group/documents/` et indexe dans la table `documents` de business.db
-5. Si non → le fichier sera supprimé automatiquement
+1. Crée-le directement dans `/workspace/group/documents/`
+2. Indexe-le dans la table `documents` de business.db
+3. Envoie le résumé au dirigeant
 
 ## Emails
 
