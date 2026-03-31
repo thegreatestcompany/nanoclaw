@@ -46,7 +46,8 @@ ENV AGENT_BROWSER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Install OfficeCLI (AI-native document creation — docx/xlsx/pptx)
-RUN curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
+RUN curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash \
+    && mv /root/.local/bin/officecli /usr/local/bin/officecli
 
 # Install agent-browser, claude-code, and document creation tools globally
 RUN npm install -g agent-browser @anthropic-ai/claude-code docx pptxgenjs
