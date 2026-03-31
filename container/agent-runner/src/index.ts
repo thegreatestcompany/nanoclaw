@@ -426,21 +426,21 @@ function createPreToolUseHook(): HookCallback {
         }
       }
 
-      // Nudge agent towards officecli if it tries to use Python document libs directly.
-      // Not a hard block — officecli instructions are in the system prompt.
-      const DOC_LIB_PATTERNS = [
-        /from pptx |import pptx|python-pptx|pptxgenjs/i,
-        /from docx |import docx|python-docx/i,
-        /from openpyxl |import openpyxl/i,
+      // Force usage of Anthropic document skills instead of raw Python libs.
+      // The skills have better templates, validation, and error handling.
+      const SKILL_REQUIRED_PATTERNS: Array<{ pattern: RegExp; skill: string; label: string }> = [
+        { pattern: /from pptx |import pptx|python-pptx|pptxgenjs/i, skill: 'pptx', label: 'PowerPoint' },
+        { pattern: /from docx |import docx|python-docx/i, skill: 'docx', label: 'Word' },
+        { pattern: /from openpyxl |import openpyxl/i, skill: 'xlsx', label: 'Excel' },
       ];
-      for (const pattern of DOC_LIB_PATTERNS) {
+      for (const { pattern, skill, label } of SKILL_REQUIRED_PATTERNS) {
         if (pattern.test(command)) {
-          log(`[SKILL] Nudging agent to use officecli instead of Python libs`);
+          log(`[SKILL] Blocked direct ${label} lib — must use Skill("${skill}") first`);
           return {
             hookSpecificOutput: {
               hookEventName: 'PreToolUse' as const,
               permissionDecision: 'deny' as const,
-              permissionDecisionReason: `Utilise officecli à la place (disponible dans /usr/local/bin/officecli). Exemples : officecli create /tmp/deck.pptx, officecli add /tmp/deck.pptx / --type slide, officecli batch pour créer un slide complet en une commande. Lance officecli pptx add pour voir les options.`,
+              permissionDecisionReason: `Tu dois utiliser Skill("${skill}") avant de créer un fichier ${label}. Appelle d'abord Skill("${skill}") pour charger les instructions, puis suis-les.`,
             },
           };
         }
