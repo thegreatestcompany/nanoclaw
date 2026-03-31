@@ -325,20 +325,7 @@ function createPreToolUseHook(): HookCallback {
         'add-telegram-swarm', 'use-local-whisper', 'use-native-credential-proxy',
         'x-integration', 'add-voice-transcription', 'add-image-vision',
         'add-reactions', 'add-pdf-reader', 'add-gmail',
-        // Block Anthropic document skills — use otto-documents (OfficeCLI) instead
-        'pptx', 'docx', 'xlsx',
       ]);
-      // Redirect old document skills to otto-documents
-      if (['pptx', 'docx', 'xlsx'].includes(skillName)) {
-        log(`[SKILL] Redirecting ${skillName} → otto-documents`);
-        return {
-          hookSpecificOutput: {
-            hookEventName: 'PreToolUse' as const,
-            permissionDecision: 'deny' as const,
-            permissionDecisionReason: `STOP. Appelle immédiatement l'outil Skill avec le paramètre skill="otto-documents". Ne cherche pas d'alternative.`,
-          },
-        };
-      }
       if (BLOCKED_SKILLS.has(skillName)) {
         log(`[SECURITY] Blocked admin skill: ${skillName}`);
         return {
@@ -439,8 +426,8 @@ function createPreToolUseHook(): HookCallback {
         }
       }
 
-      // Force usage of OfficeCLI via the otto-documents skill.
-      // Block direct Python/npm document libs — agent must use Skill("otto-documents") first.
+      // Nudge agent towards officecli if it tries to use Python document libs directly.
+      // Not a hard block — officecli instructions are in the system prompt.
       const DOC_LIB_PATTERNS = [
         /from pptx |import pptx|python-pptx|pptxgenjs/i,
         /from docx |import docx|python-docx/i,
@@ -448,12 +435,12 @@ function createPreToolUseHook(): HookCallback {
       ];
       for (const pattern of DOC_LIB_PATTERNS) {
         if (pattern.test(command)) {
-          log(`[SKILL] Blocked direct document lib — must use officecli`);
+          log(`[SKILL] Nudging agent to use officecli instead of Python libs`);
           return {
             hookSpecificOutput: {
               hookEventName: 'PreToolUse' as const,
               permissionDecision: 'deny' as const,
-              permissionDecisionReason: `STOP. Appelle immédiatement l'outil Skill avec le paramètre skill="otto-documents". Ne cherche pas d'alternative, ne fais rien d'autre avant.`,
+              permissionDecisionReason: `Utilise officecli à la place (disponible dans /usr/local/bin/officecli). Exemples : officecli create /tmp/deck.pptx, officecli add /tmp/deck.pptx / --type slide, officecli batch pour créer un slide complet en une commande. Lance officecli pptx add pour voir les options.`,
             },
           };
         }
