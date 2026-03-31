@@ -17,7 +17,7 @@
 import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
-import { query, HookCallback, PreCompactHookInput, PostCompactHookInput, PreToolUseHookInput, PostToolUseHookInput } from '@anthropic-ai/claude-agent-sdk';
+import { query, HookCallback, PreCompactHookInput, PostCompactHookInput, PreToolUseHookInput, PostToolUseHookInput, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk';
 import { fileURLToPath } from 'url';
 import { businessDbServer, closeDb } from './business-db-mcp.js';
 import { exaServer } from './exa-mcp.js';
@@ -65,6 +65,9 @@ interface SDKUserMessage {
   parent_tool_use_id: null;
   session_id: string;
 }
+
+// Composio MCP server (initialized in main(), used in runQuery())
+let composioServer: any = null;
 
 const IPC_INPUT_DIR = '/workspace/ipc/input';
 const IPC_INPUT_CLOSE_SENTINEL = path.join(IPC_INPUT_DIR, '_close');
@@ -752,6 +755,7 @@ async function runQuery(
         'mcp__gmail__*',
         'mcp__google-calendar__*',
         ...(process.env.EXA_API_KEY ? ['mcp__exa__*'] : []),
+        ...(composioServer ? ['mcp__composio__*'] : []),
       ],
       allowedTools: [
         'Bash',
@@ -763,6 +767,7 @@ async function runQuery(
         'mcp__gmail__*',
         'mcp__google-calendar__*',
         ...(process.env.EXA_API_KEY ? ['mcp__exa__*'] : []),
+        ...(composioServer ? ['mcp__composio__*'] : []),
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -781,18 +786,20 @@ async function runQuery(
         },
         'business-db': businessDbServer,
         ...(process.env.EXA_API_KEY ? { exa: exaServer } : {}),
-        gmail: {
+        ...(composioServer ? { composio: composioServer } : {}),
+        // Legacy Gmail/Calendar MCP servers (fallback when Composio is not configured)
+        ...(!composioServer ? { gmail: {
           command: 'npx',
           args: ['-y', '@gongrzhe/server-gmail-autoauth-mcp'],
-        },
-        'google-calendar': {
+        }} : {}),
+        ...(!composioServer ? { 'google-calendar': {
           command: 'npx',
           args: ['-y', '@cocal/google-calendar-mcp'],
           env: {
             GOOGLE_OAUTH_CREDENTIALS: '/home/node/.gmail-mcp/gcp-oauth.keys.json',
             GOOGLE_CALENDAR_MCP_TOKEN_PATH: '/home/node/.gmail-mcp/calendar-tokens.json',
           },
-        },
+        }} : {}),
       },
       hooks: {
         PreCompact: [{ hooks: [createPreCompactHook(containerInput.assistantName)] }],
@@ -939,6 +946,29 @@ async function main(): Promise<void> {
   // Credentials are injected by the host's credential proxy via ANTHROPIC_BASE_URL.
   // No real secrets exist in the container environment.
   const sdkEnv: Record<string, string | undefined> = { ...process.env };
+
+  // Initialize Composio MCP server for integrations (Gmail, Google Calendar, etc.)
+  // Uses the client's chatJid as user_id for per-client auth isolation
+  if (process.env.COMPOSIO_API_KEY) {
+    try {
+      const { Composio } = await import('@composio/core');
+      const { ClaudeAgentSDKProvider } = await import('@composio/claude-agent-sdk');
+      const composio = new Composio({
+        apiKey: process.env.COMPOSIO_API_KEY,
+        provider: new ClaudeAgentSDKProvider(),
+      });
+      const session = await composio.create(containerInput.chatJid);
+      const tools = await session.tools();
+      composioServer = createSdkMcpServer({
+        name: 'composio',
+        version: '1.0.0',
+        tools,
+      });
+      log(`Composio MCP initialized (${tools.length} tools, user: ${containerInput.chatJid})`);
+    } catch (err) {
+      log(`Composio init failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const mcpServerPath = path.join(__dirname, 'ipc-mcp-stdio.js');
