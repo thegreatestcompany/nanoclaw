@@ -869,6 +869,11 @@ async function runQuery(
         result: textResult || null,
         newSessionId
       });
+
+      // End the input stream so the SDK closes its output iterator.
+      // Without this, the for-await never exits because the SDK waits
+      // for more input messages on our open AsyncIterable.
+      stream.end();
     }
   }
 
