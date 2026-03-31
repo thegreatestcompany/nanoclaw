@@ -281,6 +281,11 @@ function createPreToolUseHook(): HookCallback {
     /TRUNCATE/i,
     /(?<!\d)>\s*\/(?!workspace\/group|dev\/null|tmp\/)/,  // redirect outside workspace
 
+    // Package installation (security + forces use of pre-installed tools)
+    /pip\s+install/i,
+    /npm\s+install/i,
+    /apt(-get)?\s+install/i,
+
     // Credentials and config files
     /settings\.json/,          // SDK settings
     /\.claude\//,              // SDK directory
