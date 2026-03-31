@@ -686,39 +686,23 @@ async function runQuery(
   }
 
   // Poll IPC for follow-up messages and _close sentinel during the query.
-  // Keep the stream open for a few seconds to catch rapid-fire messages
-  // (common on WhatsApp), then close it so the SDK can finish.
-  const STREAM_OPEN_WINDOW_MS = 5_000; // 5 seconds to catch follow-up messages
+  // Stream stays open so IPC messages can be piped into the same SDK session,
+  // preserving conversation context across rapid-fire WhatsApp messages.
   let ipcPolling = true;
   let closedDuringQuery = false;
-  let streamClosed = false;
-
-  // Close the stream after the window (SDK will finish processing)
-  const streamCloseTimer = setTimeout(() => {
-    if (!streamClosed) {
-      streamClosed = true;
-      stream.end();
-      log('Stream closed after input window');
-    }
-  }, STREAM_OPEN_WINDOW_MS);
-
   const pollIpcDuringQuery = () => {
     if (!ipcPolling) return;
     if (shouldClose()) {
       log('Close sentinel detected during query, ending stream');
       closedDuringQuery = true;
-      if (!streamClosed) { streamClosed = true; stream.end(); }
-      clearTimeout(streamCloseTimer);
+      stream.end();
       ipcPolling = false;
       return;
     }
-    // Only pipe messages if stream is still open
-    if (!streamClosed) {
-      const messages = drainIpcInput();
-      for (const text of messages) {
-        log(`Piping IPC message into active query (${text.length} chars)`);
-        stream.push(text);
-      }
+    const messages = drainIpcInput();
+    for (const text of messages) {
+      log(`Piping IPC message into active query (${text.length} chars)`);
+      stream.push(text);
     }
     setTimeout(pollIpcDuringQuery, IPC_POLL_MS);
   };
@@ -888,8 +872,6 @@ async function runQuery(
         newSessionId
       });
 
-      // Ensure stream is closed (may already be closed by the timer)
-      if (!streamClosed) { streamClosed = true; stream.end(); clearTimeout(streamCloseTimer); }
     }
   }
 
