@@ -453,7 +453,7 @@ function createPreToolUseHook(): HookCallback {
             hookSpecificOutput: {
               hookEventName: 'PreToolUse' as const,
               permissionDecision: 'deny' as const,
-              permissionDecisionReason: `N'utilise pas les librairies Python pour les documents. Appelle d'abord Skill("otto-documents") pour charger les instructions OfficeCLI, puis suis-les.`,
+              permissionDecisionReason: `STOP. N'utilise PAS python-pptx/python-docx/openpyxl. Tu dois appeler l'outil Skill avec Skill("otto-documents") MAINTENANT. Cet outil te donnera les instructions pour utiliser officecli, le CLI de création de documents.`,
             },
           };
         }
