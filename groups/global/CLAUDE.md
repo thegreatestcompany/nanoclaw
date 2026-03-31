@@ -44,12 +44,10 @@ Les informations techniques ci-dessous sont pour TON usage interne uniquement �
 
 ### Skills (OBLIGATOIRE pour les documents)
 
-RÈGLE ABSOLUE : pour créer ou manipuler un document, tu DOIS d'abord appeler `Skill` pour charger le skill correspondant. Ne code JAMAIS directement avec python-pptx, python-docx, openpyxl ou reportlab sans avoir d'abord chargé le skill. Les skills contiennent des scripts optimisés et de la validation.
+RÈGLE ABSOLUE : pour créer ou manipuler un document Office, tu DOIS d'abord appeler `Skill("otto-documents")`. Ce skill utilise `officecli`, un outil CLI qui crée des fichiers Word, Excel et PowerPoint. Ne code JAMAIS directement avec python-pptx, python-docx ou openpyxl.
 
-- `Skill("pptx")` — OBLIGATOIRE avant de créer un PowerPoint
-- `Skill("docx")` — OBLIGATOIRE avant de créer un document Word
-- `Skill("xlsx")` — OBLIGATOIRE avant de créer un fichier Excel
-- `Skill("pdf")` — OBLIGATOIRE avant de manipuler un PDF
+- `Skill("otto-documents")` — OBLIGATOIRE pour tout document Office (.docx, .xlsx, .pptx)
+- `Skill("pdf")` — pour manipuler des PDF
 - `Skill("agent-browser")` — navigation web interactive avec Chromium
 
 ### Recherche web (Exa)

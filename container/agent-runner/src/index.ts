@@ -325,7 +325,20 @@ function createPreToolUseHook(): HookCallback {
         'add-telegram-swarm', 'use-local-whisper', 'use-native-credential-proxy',
         'x-integration', 'add-voice-transcription', 'add-image-vision',
         'add-reactions', 'add-pdf-reader', 'add-gmail',
+        // Block Anthropic document skills — use otto-documents (OfficeCLI) instead
+        'pptx', 'docx', 'xlsx',
       ]);
+      // Redirect old document skills to otto-documents
+      if (['pptx', 'docx', 'xlsx'].includes(skillName)) {
+        log(`[SKILL] Redirecting ${skillName} → otto-documents`);
+        return {
+          hookSpecificOutput: {
+            hookEventName: 'PreToolUse' as const,
+            permissionDecision: 'deny' as const,
+            permissionDecisionReason: `Utilise Skill("otto-documents") à la place. Ce skill utilise OfficeCLI pour créer des documents Word, Excel et PowerPoint.`,
+          },
+        };
+      }
       if (BLOCKED_SKILLS.has(skillName)) {
         log(`[SECURITY] Blocked admin skill: ${skillName}`);
         return {
@@ -426,21 +439,21 @@ function createPreToolUseHook(): HookCallback {
         }
       }
 
-      // Force usage of Anthropic document skills instead of raw Python libs.
-      // The skills have better templates, validation, and error handling.
-      const SKILL_REQUIRED_PATTERNS: Array<{ pattern: RegExp; skill: string; label: string }> = [
-        { pattern: /from pptx |import pptx|python-pptx|pptxgenjs/i, skill: 'pptx', label: 'PowerPoint' },
-        { pattern: /from docx |import docx|python-docx/i, skill: 'docx', label: 'Word' },
-        { pattern: /from openpyxl |import openpyxl/i, skill: 'xlsx', label: 'Excel' },
+      // Force usage of OfficeCLI via the otto-documents skill.
+      // Block direct Python/npm document libs — agent must use Skill("otto-documents") first.
+      const DOC_LIB_PATTERNS = [
+        /from pptx |import pptx|python-pptx|pptxgenjs/i,
+        /from docx |import docx|python-docx/i,
+        /from openpyxl |import openpyxl/i,
       ];
-      for (const { pattern, skill, label } of SKILL_REQUIRED_PATTERNS) {
+      for (const pattern of DOC_LIB_PATTERNS) {
         if (pattern.test(command)) {
-          log(`[SKILL] Blocked direct ${label} lib — must use Skill("${skill}") first`);
+          log(`[SKILL] Blocked direct document lib — must use officecli`);
           return {
             hookSpecificOutput: {
               hookEventName: 'PreToolUse' as const,
               permissionDecision: 'deny' as const,
-              permissionDecisionReason: `Tu dois utiliser Skill("${skill}") avant de créer un fichier ${label}. Appelle d'abord Skill("${skill}") pour charger les instructions, puis suis-les.`,
+              permissionDecisionReason: `N'utilise pas les librairies Python pour les documents. Appelle d'abord Skill("otto-documents") pour charger les instructions OfficeCLI, puis suis-les.`,
             },
           };
         }
