@@ -872,6 +872,9 @@ async function runQuery(
         newSessionId
       });
 
+      // Close input stream after result — the SDK query is done.
+      // IPC messages after this will be new queries in main() loop.
+      stream.end();
     }
   }
 
