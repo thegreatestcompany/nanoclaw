@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     && pip3 install --break-system-packages \
         reportlab pandas Pillow \
-        "markitdown[pptx]" \
+        markitdown \
         pypdf pdfplumber pdf2image pytesseract \
         defusedxml lxml \
     && rm -rf /var/lib/apt/lists/*
