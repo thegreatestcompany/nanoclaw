@@ -281,11 +281,6 @@ function createPreToolUseHook(): HookCallback {
     /TRUNCATE/i,
     /(?<!\d)>\s*\/(?!workspace\/group|dev\/null|tmp\/)/,  // redirect outside workspace
 
-    // Package installation (security + forces use of pre-installed tools)
-    /pip\s+install/i,
-    /npm\s+install/i,
-    /apt(-get)?\s+install/i,
-
     // Credentials and config files
     /settings\.json/,          // SDK settings
     /\.claude\//,              // SDK directory
@@ -418,6 +413,19 @@ function createPreToolUseHook(): HookCallback {
 
     if (hookInput.tool_name === 'Bash') {
       const command = (hookInput.tool_input as { command?: string })?.command || '';
+
+      // Specific redirect for package install attempts
+      if (/pip\s+install|npm\s+install|apt(-get)?\s+install/i.test(command)) {
+        log(`[SECURITY] Blocked package install: ${command.slice(0, 100)}`);
+        return {
+          hookSpecificOutput: {
+            hookEventName: 'PreToolUse' as const,
+            permissionDecision: 'deny' as const,
+            permissionDecisionReason: `L'installation de packages n'est pas autorisée. Pour créer des documents Office, utilise Skill("pptx"), Skill("docx") ou Skill("xlsx") — ces skills utilisent des outils déjà installés (pptxgenjs, docx via npm).`,
+          },
+        };
+      }
+
       for (const pattern of BLOCKED_PATTERNS) {
         if (pattern.test(command)) {
           log(`[SECURITY] Blocked command: ${command.slice(0, 100)}`);
