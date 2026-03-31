@@ -375,6 +375,10 @@ async function runAgent(
       }
     : undefined;
 
+  // Extract image references from the prompt text for multimodal processing
+  const { parseImageReferences } = await import('./image.js');
+  const imageAttachments = parseImageReferences([{ content: prompt }]);
+
   try {
     const output = await runContainerAgent(
       group,
@@ -395,6 +399,7 @@ async function runAgent(
         model: 'sonnet',
         maxTurns: 30,
         maxBudgetUsd: 1.0,
+        ...(imageAttachments.length > 0 ? { imageAttachments } : {}),
       },
       (proc, containerName) =>
         queue.registerProcess(chatJid, proc, containerName, group.folder),

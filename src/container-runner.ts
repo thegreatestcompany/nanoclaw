@@ -47,6 +47,7 @@ export interface ContainerInput {
   model?: 'sonnet' | 'haiku';
   maxTurns?: number;
   maxBudgetUsd?: number;
+  imageAttachments?: Array<{ relativePath: string; mediaType: string }>;
 }
 
 export interface ContainerOutput {

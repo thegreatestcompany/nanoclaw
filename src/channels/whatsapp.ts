@@ -415,6 +415,37 @@ export class WhatsAppChannel implements Channel {
               }
             }
 
+            // Image capture: download, resize, and save for multimodal processing
+            // Only for registered groups (clients) — passive scanner ignores images
+            const imgMsg = normalized.imageMessage;
+            if (imgMsg && groups[chatJid]) {
+              try {
+                const { processImage } = await import('../image.js');
+                const buffer = (await downloadMediaMessage(
+                  msg,
+                  'buffer',
+                  {},
+                  {
+                    logger: console as any,
+                    reuploadRequest: this.sock!.updateMediaMessage,
+                  },
+                )) as Buffer;
+
+                const groupFolder = groups[chatJid]?.folder || 'main';
+                const groupDir = path.join(GROUPS_DIR, groupFolder);
+                const result = await processImage(buffer, groupDir, imgMsg.caption || '');
+
+                if (result) {
+                  mediaType = 'image';
+                  mediaPath = result.relativePath;
+                  content = `${result.content}\n${content || ''}`.trim();
+                  logger.info({ path: mediaPath }, 'Image captured');
+                }
+              } catch (err) {
+                logger.error({ err }, 'Failed to process image');
+              }
+            }
+
             // Skip protocol messages with no text content (encryption keys, read receipts, etc.)
             if (!content) continue;
 
