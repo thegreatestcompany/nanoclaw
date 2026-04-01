@@ -247,6 +247,71 @@
       opacity: 0.4; border-radius: 4px;
     }
 
+    /* ═══ DASHBOARD PREVIEW ═══ */
+    .dash-preview {
+      padding: 120px 24px; text-align: center;
+      background: var(--black); color: var(--white);
+    }
+    @media (max-width: 480px) { .dash-preview { padding: 80px 16px; } }
+    .dash-preview h2 {
+      font-size: clamp(1.8rem, 4.5vw, 3.2rem); font-weight: 500;
+      letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 20px;
+    }
+    .dash-preview .sub {
+      font-size: 1.1rem; color: rgba(255,255,255,0.55);
+      font-weight: 300; line-height: 1.7; max-width: 560px; margin: 0 auto 48px;
+    }
+    .dash-mock {
+      max-width: 820px; margin: 0 auto; border-radius: 16px; overflow: hidden;
+      background: #fafafa; color: #1a1a1a; text-align: left;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08);
+    }
+    .dm-header {
+      background: #fff; border-bottom: 1px solid #e5e7eb; padding: 12px 20px;
+    }
+    .dm-logo {
+      font-size: 0.85rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .dm-logo span { font-size: 0.55rem; font-weight: 400; color: #888; letter-spacing: 0.1em; margin-left: 4px; }
+    .dm-tabs { display: flex; gap: 0; border-bottom: 1px solid #e5e7eb; margin: 0 -20px; padding: 0 20px; }
+    .dm-tab {
+      padding: 8px 14px; font-size: 0.7rem; font-weight: 500; color: #9ca3af;
+      border-bottom: 2px solid transparent; white-space: nowrap;
+    }
+    .dm-tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+    .dm-body { padding: 20px; }
+    .dm-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+    @media (max-width: 580px) { .dm-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .dm-kpi {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px;
+    }
+    .dm-kpi-label { font-size: 0.6rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+    .dm-kpi-val { font-size: 1.2rem; font-weight: 700; }
+    .dm-kpi-val.blue { color: #2563eb; }
+    .dm-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 580px) { .dm-cols { grid-template-columns: 1fr; } }
+    .dm-col {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;
+    }
+    .dm-section-title {
+      font-size: 0.68rem; font-weight: 600; color: #374151; padding: 10px 14px;
+      background: #f9fafb; border-bottom: 1px solid #e5e7eb; text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .dm-row {
+      display: flex; align-items: center; gap: 8px; padding: 9px 14px;
+      border-bottom: 1px solid #f3f4f6; font-size: 0.78rem; color: #374151;
+    }
+    .dm-row:last-child { border-bottom: none; }
+    .dm-row span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dm-badge {
+      display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 0.6rem; font-weight: 500; white-space: nowrap;
+    }
+    .dm-badge.blue { background: #eff6ff; color: #2563eb; }
+    .dm-badge.indigo { background: #eef2ff; color: #4f46e5; }
+    .dm-badge.green { background: #ecfdf5; color: #059669; }
+    .dm-amount { font-size: 0.75rem; font-weight: 600; color: #1a1a1a; white-space: nowrap; }
+    .dm-meta { font-size: 0.65rem; color: #9ca3af; white-space: nowrap; }
+
     /* ═══ REPLACES ═══ */
     .replaces {
       padding: 100px 24px; text-align: center;
@@ -555,6 +620,50 @@
         <div class="af-row reveal d2"><span class="af-icon">&#128176;</span><span class="af-label">Deal</span><span class="af-value">Projet Acme &mdash; 50K&euro;, n&eacute;gociation</span><span class="af-auto">auto</span></div>
         <div class="af-row reveal d3"><span class="af-icon">&#128196;</span><span class="af-label">Document</span><span class="af-value">Devis_Acme_Conseil.docx</span><span class="af-auto">auto</span></div>
         <div class="af-row reveal d4"><span class="af-icon">&#128232;</span><span class="af-label">Email</span><span class="af-value">Envoy&eacute; &agrave; alex.martin@acme.com</span><span class="af-auto">auto</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ DASHBOARD PREVIEW ═══ -->
+  <section class="dash-preview">
+    <div class="container">
+      <h2 class="reveal">Votre entreprise.<br>En un coup d'oeil.</h2>
+      <p class="sub reveal d1">
+        Dites &laquo; Mon espace &raquo; &agrave; Otto. Il vous envoie un lien s&eacute;curis&eacute; vers votre portail web &mdash; un vrai ERP, accessible depuis n'importe quel appareil.
+      </p>
+      <div class="dash-mock reveal-scale">
+        <div class="dm-header">
+          <div class="dm-logo">OTTO <span>by HNTIC</span></div>
+          <div class="dm-tabs">
+            <span class="dm-tab active">Vue d'ensemble</span>
+            <span class="dm-tab">Commercial</span>
+            <span class="dm-tab">Finance</span>
+            <span class="dm-tab">&Eacute;quipe</span>
+            <span class="dm-tab">Documents</span>
+          </div>
+        </div>
+        <div class="dm-body">
+          <div class="dm-kpis">
+            <div class="dm-kpi"><div class="dm-kpi-label">Pipeline commercial</div><div class="dm-kpi-val blue">107 092 &euro;</div></div>
+            <div class="dm-kpi"><div class="dm-kpi-label">Opportunit&eacute;s</div><div class="dm-kpi-val">4</div></div>
+            <div class="dm-kpi"><div class="dm-kpi-label">Contacts</div><div class="dm-kpi-val">12</div></div>
+            <div class="dm-kpi"><div class="dm-kpi-label">&Eacute;quipe</div><div class="dm-kpi-val">3</div></div>
+          </div>
+          <div class="dm-cols">
+            <div class="dm-col">
+              <div class="dm-section-title">Deals r&eacute;cents</div>
+              <div class="dm-row"><span>Projet Acme</span><span class="dm-badge blue">N&eacute;gociation</span><span class="dm-amount">75 000 &euro;</span></div>
+              <div class="dm-row"><span>Otto &mdash; Lancement CI</span><span class="dm-badge indigo">Proposition</span><span class="dm-amount">16 092 &euro;</span></div>
+              <div class="dm-row"><span>Saleswatch</span><span class="dm-badge indigo">Proposition</span><span class="dm-amount">16 000 &euro;</span></div>
+            </div>
+            <div class="dm-col">
+              <div class="dm-section-title">Derni&egrave;res interactions</div>
+              <div class="dm-row"><span>&#128172; Appel avec M-C Renaux</span><span class="dm-meta">Aujourd'hui</span></div>
+              <div class="dm-row"><span>&#128232; Email &agrave; Jean Dupont</span><span class="dm-meta">Hier</span></div>
+              <div class="dm-row"><span>&#129309; R&eacute;union Acme</span><span class="dm-meta">28 mars</span></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
