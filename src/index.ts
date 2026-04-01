@@ -406,7 +406,7 @@ async function runAgent(
         chatJid,
         isMain,
         assistantName: ASSISTANT_NAME,
-        model: 'sonnet',
+        model: 'haiku',
         maxTurns: 30,
         maxBudgetUsd: 1.0,
         ...(imageAttachments.length > 0 ? { imageAttachments } : {}),
