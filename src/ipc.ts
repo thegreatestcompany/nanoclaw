@@ -12,6 +12,8 @@ import { RegisteredGroup } from './types.js';
 
 export interface IpcDeps {
   sendMessage: (jid: string, text: string) => Promise<void>;
+  sendDocument?: (jid: string, filePath: string, filename: string, caption?: string) => Promise<void>;
+  groupsDir: string;
   registeredGroups: () => Record<string, RegisteredGroup>;
   registerGroup: (jid: string, group: RegisteredGroup) => void;
   syncGroups: (force: boolean) => Promise<void>;
@@ -74,7 +76,31 @@ export function startIpcWatcher(deps: IpcDeps): void {
             const filePath = path.join(messagesDir, file);
             try {
               const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-              if (data.type === 'message' && data.chatJid && data.text) {
+              if (data.type === 'document' && data.chatJid && data.filePath && data.filename) {
+                // Send a document file via WhatsApp
+                const targetGroup = registeredGroups[data.chatJid];
+                if (
+                  isMain ||
+                  (targetGroup && targetGroup.folder === sourceGroup)
+                ) {
+                  // Resolve path relative to the group folder
+                  const resolvedPath = data.filePath.startsWith('/')
+                    ? data.filePath
+                    : path.join(deps.groupsDir, sourceGroup, data.filePath);
+                  if (deps.sendDocument) {
+                    await deps.sendDocument(data.chatJid, resolvedPath, data.filename, data.caption);
+                    logger.info(
+                      { chatJid: data.chatJid, filename: data.filename, sourceGroup },
+                      'IPC document sent',
+                    );
+                  }
+                } else {
+                  logger.warn(
+                    { chatJid: data.chatJid, sourceGroup },
+                    'Unauthorized IPC document attempt blocked',
+                  );
+                }
+              } else if (data.type === 'message' && data.chatJid && data.text) {
                 // Authorization: verify this group can send to this chatJid
                 const targetGroup = registeredGroups[data.chatJid];
                 if (

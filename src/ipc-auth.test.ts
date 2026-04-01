@@ -53,6 +53,7 @@ beforeEach(() => {
 
   deps = {
     sendMessage: async () => {},
+    groupsDir: '/tmp/test-groups',
     registeredGroups: () => groups,
     registerGroup: (jid, group) => {
       groups[jid] = group;

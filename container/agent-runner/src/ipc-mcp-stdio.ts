@@ -63,6 +63,31 @@ server.tool(
 );
 
 server.tool(
+  'send_document',
+  "Send a document file (Word, PowerPoint, Excel, PDF) to the user via WhatsApp. The file must exist in /workspace/group/documents/. Use this after creating a document to deliver it directly to the user's phone.",
+  {
+    file_path: z.string().describe('Absolute path to the file (e.g. /workspace/group/documents/report.docx)'),
+    filename: z.string().describe('Display name for the file (e.g. "Rapport Q1 2026.docx")'),
+    caption: z.string().optional().describe('Optional caption message sent with the file'),
+  },
+  async (args) => {
+    const data: Record<string, string | undefined> = {
+      type: 'document',
+      chatJid,
+      filePath: args.file_path,
+      filename: args.filename,
+      caption: args.caption || undefined,
+      groupFolder,
+      timestamp: new Date().toISOString(),
+    };
+
+    writeIpcFile(MESSAGES_DIR, data);
+
+    return { content: [{ type: 'text' as const, text: `Document "${args.filename}" sent to user.` }] };
+  },
+);
+
+server.tool(
   'schedule_task',
   `Schedule a recurring or one-time task. The task will run as a full agent with access to all tools. Returns the task ID for future reference. To modify an existing task, use update_task instead.
 
