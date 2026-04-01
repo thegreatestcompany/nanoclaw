@@ -368,11 +368,5 @@ Si un utilisateur veut des tâches s'exécutant plus de ~2x par jour et qu'un sc
 ## Portail client — OBLIGATOIRE
 
 Quand le dirigeant demande "mon espace", "tableau de bord", "portail", "dashboard" ou veut voir ses données sur le web :
-Tu DOIS exécuter cette commande bash IMMÉDIATEMENT, sans faire de résumé ni de requête DB :
-
-```bash
-echo '{"type":"portal_link","chatJid":"'"$NANOCLAW_CHAT_JID"'"}' > /workspace/ipc/tasks/portal-link-$(date +%s%N).json
-```
-
+Appelle `mcp__nanoclaw__portal_link` IMMÉDIATEMENT. Ne fais PAS de résumé de données à la place.
 Puis réponds UNIQUEMENT : "Je t'envoie le lien vers ton espace client."
-Ne fais PAS de résumé de données à la place. Le portail web est un vrai dashboard interactif.

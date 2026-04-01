@@ -147,15 +147,9 @@ Si le dirigeant veut exclure une conversation du scan (ex: conversations personn
 
 ## Portail client
 
-Quand le dirigeant demande à accéder à son espace client, tableau de bord web, portail, ou écrit "mon espace" :
-
-1. Génère le lien en écrivant un fichier IPC :
-```bash
-echo '{"type":"portal_link","chatJid":"'"$NANOCLAW_CHAT_JID"'"}' > /workspace/ipc/tasks/portal-link-$(date +%s%N).json
-```
-2. Réponds : "Je t'envoie le lien vers ton espace client. Tu le recevras dans quelques secondes."
-
-Ne fais PAS de résumé à la place — le portail web contient un vrai dashboard interactif avec KPIs, documents téléchargeables, mémoire, et statistiques.
+Quand le dirigeant demande "mon espace", "tableau de bord", "portail", "dashboard" ou veut voir ses données sur le web :
+Appelle l'outil `mcp__nanoclaw__portal_link` IMMÉDIATEMENT. Ne fais PAS de résumé de données à la place.
+Puis réponds : "Je t'envoie le lien vers ton espace client."
 
 ## Ton espace de travail
 

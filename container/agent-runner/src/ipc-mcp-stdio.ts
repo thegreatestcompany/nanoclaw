@@ -88,6 +88,24 @@ server.tool(
 );
 
 server.tool(
+  'portal_link',
+  "Generate a magic link to the client's web portal and send it via WhatsApp. The portal shows an interactive dashboard with KPIs, documents, memory, audit trail, and usage stats. Use this when the user asks for 'mon espace', 'tableau de bord', 'portail', or 'dashboard'.",
+  {},
+  async () => {
+    const data = {
+      type: 'portal_link',
+      chatJid,
+      groupFolder,
+      timestamp: new Date().toISOString(),
+    };
+
+    writeIpcFile(TASKS_DIR, data);
+
+    return { content: [{ type: 'text' as const, text: 'Portal link request sent. The user will receive the link shortly.' }] };
+  },
+);
+
+server.tool(
   'schedule_task',
   `Schedule a recurring or one-time task. The task will run as a full agent with access to all tools. Returns the task ID for future reference. To modify an existing task, use update_task instead.
 
