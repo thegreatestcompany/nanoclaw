@@ -281,7 +281,11 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
   const feedbackTimer = setTimeout(async () => {
     if (!feedbackSent) {
       feedbackSent = true;
-      try { await channel.sendMessage(chatJid, '⏳'); } catch { /* best effort */ }
+      try {
+        await channel.sendMessage(chatJid, '⏳');
+      } catch {
+        /* best effort */
+      }
     }
   }, 8000);
 

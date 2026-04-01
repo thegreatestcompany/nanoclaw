@@ -433,7 +433,11 @@ export class WhatsAppChannel implements Channel {
 
                 const groupFolder = groups[chatJid]?.folder || 'main';
                 const groupDir = path.join(GROUPS_DIR, groupFolder);
-                const result = await processImage(buffer, groupDir, imgMsg.caption || '');
+                const result = await processImage(
+                  buffer,
+                  groupDir,
+                  imgMsg.caption || '',
+                );
 
                 if (result) {
                   mediaType = 'image';

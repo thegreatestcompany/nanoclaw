@@ -47,15 +47,21 @@ export function migrateBusinessDb(dbPath: string): void {
 
   const db = new Database(dbPath);
   try {
-    const currentVersion = (db.pragma('user_version', { simple: true }) as number) || 0;
+    const currentVersion =
+      (db.pragma('user_version', { simple: true }) as number) || 0;
 
     if (currentVersion >= CURRENT_VERSION) return;
 
-    const pending = MIGRATIONS.filter(m => m.version > currentVersion);
+    const pending = MIGRATIONS.filter((m) => m.version > currentVersion);
     if (pending.length === 0) return;
 
     logger.info(
-      { dbPath: path.basename(dbPath), from: currentVersion, to: CURRENT_VERSION, count: pending.length },
+      {
+        dbPath: path.basename(dbPath),
+        from: currentVersion,
+        to: CURRENT_VERSION,
+        count: pending.length,
+      },
       'Running business.db migrations',
     );
 
@@ -65,10 +71,17 @@ export function migrateBusinessDb(dbPath: string): void {
       try {
         db.exec(migration.sql);
         db.pragma(`user_version = ${migration.version}`);
-        logger.info({ version: migration.version, description: migration.description }, 'Migration applied');
+        logger.info(
+          { version: migration.version, description: migration.description },
+          'Migration applied',
+        );
       } catch (err) {
         logger.error(
-          { version: migration.version, description: migration.description, err },
+          {
+            version: migration.version,
+            description: migration.description,
+            err,
+          },
           'Migration failed — stopping',
         );
         break;

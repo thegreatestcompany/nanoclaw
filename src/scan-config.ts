@@ -59,4 +59,3 @@ export function isJidIgnored(chatJid: string): boolean {
   }
   return ignoredJids.has(chatJid);
 }
-
