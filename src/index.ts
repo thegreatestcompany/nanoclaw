@@ -276,6 +276,15 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
   let hadError = false;
   let outputSentToUser = false;
 
+  // Send ⏳ if agent takes more than 8 seconds to respond
+  let feedbackSent = false;
+  const feedbackTimer = setTimeout(async () => {
+    if (!feedbackSent) {
+      feedbackSent = true;
+      try { await channel.sendMessage(chatJid, '⏳'); } catch { /* best effort */ }
+    }
+  }, 8000);
+
   const output = await runAgent(group, prompt, chatJid, async (result) => {
     // Streaming output callback — called for each agent result
     if (result.result) {
@@ -286,6 +295,8 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
       const text = formatOutbound(raw);
       logger.info({ group: group.name }, `Agent output: ${raw.length} chars`);
       if (text) {
+        feedbackSent = true;
+        clearTimeout(feedbackTimer);
         await channel.sendMessage(chatJid, text);
         outputSentToUser = true;
       }
@@ -304,6 +315,8 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
   });
 
   await channel.setTyping?.(chatJid, false);
+  feedbackSent = true;
+  clearTimeout(feedbackTimer);
   if (idleTimer) clearTimeout(idleTimer);
 
   if (output === 'error' || hadError) {
