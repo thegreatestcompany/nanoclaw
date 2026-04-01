@@ -52,8 +52,12 @@ app.get('/portal', (_req, res) => {
 // Contact form
 app.post('/api/contact', express.json(), (req, res) => {
   const { name, email, company, message } = req.body;
-  if (!name || !email) {
-    res.status(400).json({ error: 'name and email required' });
+  if (!name || typeof name !== 'string' || name.trim().length < 2) {
+    res.status(400).json({ error: 'Nom invalide' });
+    return;
+  }
+  if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
+    res.status(400).json({ error: 'Email invalide' });
     return;
   }
   console.log(`[CONTACT] ${name} <${email}> — ${company || 'N/A'} — ${message || ''}`);
