@@ -145,6 +145,18 @@ Toutes les conversations WhatsApp du dirigeant sont surveillées passivement pou
 
 Si le dirigeant veut exclure une conversation du scan (ex: conversations personnelles/famille), c'est une configuration administrateur — tu ne peux pas modifier `scan_config` toi-même.
 
+## Portail client
+
+Quand le dirigeant demande à accéder à son espace client, tableau de bord web, portail, ou écrit "mon espace" :
+
+1. Génère le lien en écrivant un fichier IPC :
+```bash
+echo '{"type":"portal_link","chatJid":"'"$NANOCLAW_CHAT_JID"'"}' > /workspace/ipc/messages/portal-link-$(date +%s%N).json
+```
+2. Réponds : "Je t'envoie le lien vers ton espace client. Tu le recevras dans quelques secondes."
+
+Ne fais PAS de résumé à la place — le portail web contient un vrai dashboard interactif avec KPIs, documents téléchargeables, mémoire, et statistiques.
+
 ## Ton espace de travail
 
 Les fichiers que tu crées sont sauvegardés dans `/workspace/group/`. Utilise cet espace pour les notes, recherches, ou tout ce qui doit persister.
