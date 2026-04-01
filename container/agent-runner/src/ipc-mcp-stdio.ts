@@ -41,7 +41,7 @@ const server = new McpServer({
 
 server.tool(
   'send_message',
-  "Send a message to the user or group immediately while you're still running. Use this for progress updates or to send multiple messages. You can call this multiple times.",
+  "IMPORTANT: Call this BEFORE any operation that takes more than a few seconds (email fetch, calendar lookup, web search, document creation). Send a short status like 'Je consulte tes emails...' or 'Je prépare le document...'. The user sees nothing until you produce a final result — this tool is the ONLY way to give immediate feedback. Call it FIRST, then do the work.",
   {
     text: z.string().describe('The message text to send'),
     sender: z.string().optional().describe('Your role/identity name (e.g. "Researcher"). When set, messages appear from a dedicated bot in Telegram.'),

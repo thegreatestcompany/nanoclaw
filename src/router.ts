@@ -16,7 +16,9 @@ export function formatMessages(
 ): string {
   const lines = messages.map((m) => {
     const displayTime = formatLocalTime(m.timestamp, timezone);
-    return `<message sender="${escapeXml(m.sender_name)}" time="${escapeXml(displayTime)}">${escapeXml(m.content)}</message>`;
+    // Mark bot messages clearly so the agent knows what it previously said
+    const sender = m.is_bot_message ? 'Otto (toi)' : escapeXml(m.sender_name);
+    return `<message sender="${sender}" time="${escapeXml(displayTime)}">${escapeXml(m.content)}</message>`;
   });
 
   const header = `<context timezone="${escapeXml(timezone)}" />\n`;

@@ -283,7 +283,9 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
     if (!feedbackCancelled) {
       try {
         await channel.sendMessage(chatJid, '⏳');
-      } catch { /* best effort */ }
+      } catch {
+        /* best effort */
+      }
     }
   }, 8000);
 
