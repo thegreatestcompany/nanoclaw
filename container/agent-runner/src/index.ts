@@ -297,7 +297,7 @@ function createPreToolUseHook(): HookCallback {
     /DROP\s+TABLE/i,
     /DROP\s+DATABASE/i,
     /TRUNCATE/i,
-    /(?<!\d)>\s*\/(?!workspace\/group|dev\/null|tmp\/)/,  // redirect outside workspace
+    /(?<!\d)>\s*\/(?!workspace\/group|workspace\/ipc|dev\/null|tmp\/)/,  // redirect outside workspace
 
     // Credentials and config files
     /settings\.json/,          // SDK settings
