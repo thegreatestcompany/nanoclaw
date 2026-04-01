@@ -496,24 +496,6 @@ function createPostToolUseHook(): HookCallback {
         log(`[AUDIT] SQL mutation via Bash detected: ${command.slice(0, 200)}`);
       }
 
-      // Auto-copy document files from /tmp/ to /workspace/group/documents/
-      const responseStr = typeof toolResponse === 'string' ? toolResponse : JSON.stringify(toolResponse || '');
-      const docPattern = /\/tmp\/([^\s"']+\.(pptx|docx|xlsx|pdf))/gi;
-      let match;
-      while ((match = docPattern.exec(responseStr)) !== null) {
-        const tmpPath = `/tmp/${match[1]}`;
-        if (fs.existsSync(tmpPath)) {
-          const docsDir = '/workspace/group/documents';
-          fs.mkdirSync(docsDir, { recursive: true });
-          const destPath = path.join(docsDir, match[1]);
-          try {
-            fs.copyFileSync(tmpPath, destPath);
-            log(`[DOCS] Auto-copied ${tmpPath} → ${destPath}`);
-          } catch (err) {
-            log(`[DOCS] Failed to copy ${tmpPath}: ${err instanceof Error ? err.message : String(err)}`);
-          }
-        }
-      }
     }
 
     return {};
