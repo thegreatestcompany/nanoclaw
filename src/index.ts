@@ -384,14 +384,7 @@ async function runAgent(
       group,
       {
         prompt,
-        // Session resume disabled — costs $0.40+ per message due to 80K+ tokens of
-        // session history. Context continuity is handled by:
-        // - CLAUDE.md (persistent memory)
-        // - business.db (structured data)
-        // - conversations/ archives (searchable history)
-        // - MAX_MESSAGES_PER_PROMPT (recent WhatsApp messages in prompt)
-        // - IPC (within 30min container lifetime)
-        // sessionId,
+        sessionId,
         groupFolder: group.folder,
         chatJid,
         isMain,

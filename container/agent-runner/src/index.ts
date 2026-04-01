@@ -765,7 +765,9 @@ async function runQuery(
       model: containerInput.model || 'sonnet',
       maxTurns: containerInput.maxTurns || 30,
       maxBudgetUsd: containerInput.maxBudgetUsd || 1.00,
-      systemPrompt: globalClaudeMd || undefined,
+      systemPrompt: globalClaudeMd
+        ? { type: 'preset' as const, preset: 'claude_code' as const, append: globalClaudeMd }
+        : undefined,
       tools: [
         'Bash',
         'Read', 'Write', 'Edit', 'Glob', 'Grep',
