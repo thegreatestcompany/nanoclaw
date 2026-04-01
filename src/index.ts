@@ -276,6 +276,17 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
   let hadError = false;
   let outputSentToUser = false;
 
+  // Auto-send a feedback message if the agent takes more than 8 seconds.
+  // Host-level — doesn't depend on the agent following CLAUDE.md.
+  let feedbackCancelled = false;
+  const feedbackTimer = setTimeout(async () => {
+    if (!feedbackCancelled) {
+      try {
+        await channel.sendMessage(chatJid, '⏳');
+      } catch { /* best effort */ }
+    }
+  }, 8000);
+
   const output = await runAgent(group, prompt, chatJid, async (result) => {
     // Streaming output callback — called for each agent result
     if (result.result) {
@@ -286,6 +297,8 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
       const text = formatOutbound(raw);
       logger.info({ group: group.name }, `Agent output: ${raw.length} chars`);
       if (text) {
+        feedbackCancelled = true;
+        clearTimeout(feedbackTimer);
         await channel.sendMessage(chatJid, text);
         outputSentToUser = true;
       }
@@ -304,6 +317,8 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
   });
 
   await channel.setTyping?.(chatJid, false);
+  feedbackCancelled = true;
+  clearTimeout(feedbackTimer);
   if (idleTimer) clearTimeout(idleTimer);
 
   if (output === 'error' || hadError) {
