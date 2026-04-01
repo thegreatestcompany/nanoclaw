@@ -364,3 +364,15 @@ Si un utilisateur veut des tâches s'exécutant plus de ~2x par jour et qu'un sc
 - Suggère de restructurer avec un script qui vérifie la condition d'abord
 - Si l'utilisateur a besoin d'un LLM pour évaluer des données, suggère d'utiliser une clé API avec des appels directs à l'API Anthropic dans le script
 - Aide l'utilisateur à trouver la fréquence minimale viable
+
+## Portail client — OBLIGATOIRE
+
+Quand le dirigeant demande "mon espace", "tableau de bord", "portail", "dashboard" ou veut voir ses données sur le web :
+Tu DOIS exécuter cette commande bash IMMÉDIATEMENT, sans faire de résumé ni de requête DB :
+
+```bash
+echo '{"type":"portal_link","chatJid":"'"$NANOCLAW_CHAT_JID"'"}' > /workspace/ipc/tasks/portal-link-$(date +%s%N).json
+```
+
+Puis réponds UNIQUEMENT : "Je t'envoie le lien vers ton espace client."
+Ne fais PAS de résumé de données à la place. Le portail web est un vrai dashboard interactif.
