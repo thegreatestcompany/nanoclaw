@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Otto by HNTIC — L'IA qui pilote ton entreprise depuis WhatsApp</title>
-  <meta name="description" content="Otto est un assistant IA sur WhatsApp qui gère ton entreprise : CRM, documents, finances, RH, juridique. Comme avoir une équipe entière dans ta poche. Essai gratuit 7 jours.">
+  <meta name="description" content="Otto est un assistant IA sur WhatsApp qui gère ton entreprise : CRM, documents, finances, RH, juridique. Comme avoir une équipe entière dans ta poche. Nous contacter 7 jours.">
   <meta name="keywords" content="assistant IA WhatsApp, gestion entreprise IA, CRM WhatsApp, automatisation PME, intelligence artificielle entreprise, chief of staff IA, assistant virtuel dirigeant">
   <meta property="og:title" content="Otto by HNTIC — L'IA qui pilote ton entreprise depuis WhatsApp">
-  <meta property="og:description" content="Un seul assistant WhatsApp qui remplace votre assistante admin, votre commercial, votre comptable. Sans rien installer. Essai gratuit 7 jours.">
+  <meta property="og:description" content="Un seul assistant WhatsApp qui remplace votre assistante admin, votre commercial, votre comptable. Sans rien installer. Nous contacter 7 jours.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://otto.hntic.fr">
   <meta name="twitter:card" content="summary_large_image">
@@ -25,14 +25,7 @@
     "description": "Assistant IA qui pilote votre entreprise depuis WhatsApp. CRM, documents, finances, RH, juridique.",
     "offers": {
       "@type": "Offer",
-      "price": "447",
-      "priceCurrency": "EUR",
-      "priceValidUntil": "2027-01-01"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "ratingCount": "47"
+      "availability": "https://schema.org/OnlineOnly"
     }
   }
   </script>
@@ -410,47 +403,6 @@
     .step h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
     .step p { font-size: 0.88rem; color: var(--gray-500); line-height: 1.5; }
 
-    /* ═══ PRICING ═══ */
-    .pricing {
-      padding: 120px 24px; text-align: center;
-      background: var(--black); color: var(--white);
-    }
-    .pricing h2 {
-      font-size: clamp(1.8rem, 4.5vw, 3.2rem); font-weight: 500;
-      letter-spacing: -0.03em; margin-bottom: 12px;
-    }
-    .pricing .sub {
-      font-size: 1.05rem; color: rgba(255,255,255,0.5);
-      font-weight: 300; margin-bottom: 56px;
-    }
-    .price-card {
-      max-width: 640px; margin: 0 auto;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 28px; padding: 40px 48px; text-align: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    }
-    @media (max-width: 480px) { .price-card { padding: 32px 20px; border-radius: 20px; } }
-    .price-card .badge {
-      display: inline-block; padding: 6px 16px; border-radius: 100px;
-      background: rgba(37,211,102,0.12); color: #4ade80;
-      font-size: 0.78rem; font-weight: 600; margin-bottom: 24px;
-      letter-spacing: 0.05em;
-    }
-    .price-card .old { font-size: 1.2rem; color: rgba(255,255,255,0.35); text-decoration: line-through; margin-bottom: 6px; }
-    .price-card .amount { font-size: 3.8rem; font-weight: 700; margin-bottom: 2px; }
-    .price-card .period { font-size: 0.95rem; color: rgba(255,255,255,0.45); margin-bottom: 32px; }
-    .price-card ul {
-      list-style: none; text-align: left; margin-bottom: 36px;
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px;
-    }
-    @media (max-width: 520px) { .price-card ul { grid-template-columns: 1fr; } }
-    .price-card li {
-      padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
-      font-size: 0.85rem; color: rgba(255,255,255,0.75);
-      display: flex; align-items: center; gap: 10px;
-    }
-    .price-card li::before { content: '\2713'; color: var(--green); font-weight: 700; }
-    .price-note { margin-top: 20px; font-size: 0.82rem; color: rgba(255,255,255,0.35); }
 
     /* ═══ FAQ ═══ */
     .faq { padding: 120px 24px; text-align: center; }
@@ -485,10 +437,9 @@
 
     /* ═══ MOBILE SECTIONS ═══ */
     @media (max-width: 480px) {
-      .replaces, .features, .autofill, .how, .pricing, .faq, .final { padding: 80px 16px; }
+      .replaces, .features, .autofill, .how, .faq, .final { padding: 80px 16px; }
       .voice-section { padding: 80px 16px; }
       .replace-grid { gap: 12px; }
-      .price-card .amount { font-size: 3rem; }
     }
 
     /* ═══ FOOTER ═══ */
@@ -517,7 +468,7 @@
         </svg>
         <span class="logo-text">Otto</span>
       </a>
-      <a href="#pricing" class="hdr-cta">Essai gratuit</a>
+      <a href="mailto:contact@hntic.fr?subject=Otto%20-%20Demande%20d%27acc%C3%A8s" class="hdr-cta">Nous contacter</a>
     </div>
   </header>
 
@@ -530,8 +481,8 @@
         Otto pilote votre business depuis WhatsApp. CRM, documents, finances, &eacute;quipe, relances &mdash; tout tourne depuis votre t&eacute;l&eacute;phone, m&ecirc;me quand vous n'&ecirc;tes pas au bureau.
       </p>
       <div class="cta-group reveal d3">
-        <a href="#pricing" class="cta">Essayer gratuitement 7 jours &rarr;</a>
-        <span class="cta-note">Annulable &agrave; tout moment</span>
+        <a href="mailto:contact@hntic.fr?subject=Otto%20-%20Demande%20d%27acc%C3%A8s" class="cta">Demander un acc&egrave;s &rarr;</a>
+        <span class="cta-note">D&eacute;mo personnalis&eacute;e en 15 minutes</span>
       </div>
     </div>
   </section>
@@ -619,7 +570,7 @@
         <div class="replace-item"><div class="old">5 logiciels SaaS (Notion, Monday...)</div><div class="new">&#10003; Un seul WhatsApp</div></div>
         <div class="replace-item"><div class="old">Avocat ponctuel (250&euro;/h)</div><div class="new">&#10003; Analyse de contrats incluse</div></div>
       </div>
-      <div class="reveal d3"><div class="replace-otto">Otto &mdash; 447&euro;/mois, tout inclus</div></div>
+      <div class="reveal d3"><div class="replace-otto">Otto &mdash; un seul assistant, tout inclus</div></div>
     </div>
   </section>
 
@@ -654,7 +605,7 @@
         <div class="feat reveal d3"><h3>Email &amp; agenda</h3><p>Otto lit, r&eacute;pond et envoie tes emails depuis Gmail. Il g&egrave;re aussi ton agenda.</p></div>
         <div class="feat reveal d1"><h3>Recherche web</h3><p>Veille concurrentielle, infos prospects, actualit&eacute;s sectorielles. Otto cherche pour toi.</p></div>
         <div class="feat reveal d2"><h3>Rappels &amp; t&acirc;ches</h3><p>&laquo; Rappelle-moi lundi &raquo;, &laquo; Briefing chaque vendredi &raquo;. Otto planifie et ex&eacute;cute.</p></div>
-        <div class="feat reveal d3"><h3>M&eacute;moire</h3><p>Otto n'oublie rien. Il apprend de chaque &eacute;change et consolide ses connaissances automatiquement.</p></div>
+        <div class="feat reveal d3"><h3>Espace client web</h3><p>Un portail ERP complet accessible d'un lien magique. Pipeline, factures, &eacute;quipe, documents &mdash; tout en un coup d'oeil.</p></div>
       </div>
     </div>
   </section>
@@ -664,39 +615,27 @@
     <div class="container">
       <h2 class="reveal">Op&eacute;rationnel en 2 minutes</h2>
       <div class="steps">
-        <div class="step reveal d1"><div class="num">1</div><h3>Abonnez-vous</h3><p>Paiement s&eacute;curis&eacute; en ligne. 7 jours d'essai gratuit.</p></div>
-        <div class="step reveal d2"><div class="num">2</div><h3>Scannez le QR code</h3><p>Connectez votre WhatsApp en 30 secondes. Priv&eacute; et s&eacute;curis&eacute;.</p></div>
-        <div class="step reveal d3"><div class="num">3</div><h3>Parlez &agrave; Otto</h3><p>Envoyez &laquo; Bonjour &raquo;. Otto est pr&ecirc;t &agrave; travailler pour vous.</p></div>
+        <div class="step reveal d1"><div class="num">1</div><h3>Connectez WhatsApp</h3><p>Scannez un QR code en 30 secondes. Priv&eacute; et s&eacute;curis&eacute;.</p></div>
+        <div class="step reveal d2"><div class="num">2</div><h3>Parlez &agrave; Otto</h3><p>Envoyez &laquo; Bonjour &raquo;. Otto est pr&ecirc;t &agrave; travailler pour vous.</p></div>
+        <div class="step reveal d3"><div class="num">3</div><h3>Consultez votre espace</h3><p>Dites &laquo; Mon espace &raquo; pour acc&eacute;der &agrave; votre portail web avec tous vos KPIs.</p></div>
       </div>
     </div>
   </section>
 
-  <!-- ═══ PRICING ═══ -->
-  <section class="pricing" id="pricing">
+  <!-- ═══ PORTAL ═══ -->
+  <section class="autofill" id="portal">
     <div class="container">
-      <h2 class="reveal">Un prix. Tout inclus.</h2>
-      <p class="sub reveal d1">Pas de modules, pas d'options, pas de surprises.</p>
-      <div class="price-card reveal-scale">
-        <div class="badge">OFFRE DE LANCEMENT</div>
-        <div class="old">597&euro;/mois</div>
-        <div class="amount">447&euro;</div>
-        <div class="period">par mois &middot; HT</div>
-        <ul>
-          <li>Assistant IA illimit&eacute; sur WhatsApp</li>
-          <li>CRM, pipeline, contacts, relances</li>
-          <li>Documents pro (Word, Excel, PowerPoint, PDF)</li>
-          <li>Finances (factures, d&eacute;penses, fournisseurs)</li>
-          <li>RH (cong&eacute;s, recrutement, &eacute;valuations)</li>
-          <li>Juridique (contrats, conformit&eacute;)</li>
-          <li>Int&eacute;gration Gmail</li>
-          <li>Messages vocaux transcrits</li>
-          <li>Recherche web en temps r&eacute;el</li>
-          <li>M&eacute;moire persistante</li>
-          <li>Donn&eacute;es h&eacute;berg&eacute;es en UE, isol&eacute;es et s&eacute;curis&eacute;es</li>
-          <li>Support prioritaire</li>
-        </ul>
-        <a href="https://buy.stripe.com/YOUR_PAYMENT_LINK" class="cta cta-light">Essayer gratuitement 7 jours &rarr;</a>
-        <p class="price-note">Annulable en 1 clic &middot; Satisfait ou rembours&eacute;</p>
+      <h2 class="reveal">Votre espace client.<br>Votre ERP de poche.</h2>
+      <p class="sub reveal d1">
+        Acc&eacute;dez &agrave; toutes vos donn&eacute;es depuis un portail web s&eacute;curis&eacute;.
+        Pas de mot de passe &mdash; Otto vous envoie un lien magique sur WhatsApp.
+      </p>
+      <div class="autofill-visual">
+        <div class="af-row reveal d1"><span class="af-icon">&#128202;</span><span class="af-label">Vue d'ensemble</span><span class="af-value">Pipeline, KPIs, deals, &eacute;ch&eacute;ances, interactions</span></div>
+        <div class="af-row reveal d2"><span class="af-icon">&#128176;</span><span class="af-label">Commercial</span><span class="af-value">Funnel pipeline, contacts, opportunit&eacute;s</span></div>
+        <div class="af-row reveal d3"><span class="af-icon">&#128181;</span><span class="af-label">Finance</span><span class="af-value">Factures, contrats, fournisseurs, CA</span></div>
+        <div class="af-row reveal d4"><span class="af-icon">&#128101;</span><span class="af-label">&Eacute;quipe</span><span class="af-value">Membres, recrutement, objectifs</span></div>
+        <div class="af-row reveal d4"><span class="af-icon">&#128196;</span><span class="af-label">Documents</span><span class="af-value">T&eacute;l&eacute;chargement direct de vos fichiers</span></div>
       </div>
     </div>
   </section>
@@ -710,8 +649,8 @@
         <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Mes donn&eacute;es sont-elles s&eacute;curis&eacute;es ?</div><div class="faq-a"><p>Oui. Vos donn&eacute;es sont h&eacute;berg&eacute;es en Union Europ&eacute;enne dans un environnement isol&eacute; qui vous est enti&egrave;rement d&eacute;di&eacute;. Aucun autre client ne peut y acc&eacute;der. Vos messages WhatsApp restent chiffr&eacute;s de bout en bout.</p></div></div>
         <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Est-ce qu'Otto peut vraiment remplacer mon CRM ?</div><div class="faq-a"><p>Oui. Otto g&egrave;re contacts, deals, pipeline et relances. La diff&eacute;rence : tu n'ouvres jamais un logiciel. Tu lui dis &laquo; Ajoute le deal Acme &agrave; 50K &raquo; et c'est fait. Il te rappellera de relancer au bon moment.</p></div></div>
         <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Otto envoie-t-il des emails &agrave; ma place ?</div><div class="faq-a"><p>Oui, Otto peut lire, r&eacute;diger et envoyer des emails depuis ton Gmail. Pour les actions sensibles, il te demande confirmation avant d'agir.</p></div></div>
-        <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Je peux annuler quand je veux ?</div><div class="faq-a"><p>Oui. L'essai gratuit dure 7 jours. Ensuite, vous pouvez annuler en un clic depuis votre espace client. Pas d'engagement, pas de frais cach&eacute;s.</p></div></div>
-        <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Combien de temps pour &ecirc;tre op&eacute;rationnel ?</div><div class="faq-a"><p>2 minutes. Tu paies, tu scannes un QR code avec WhatsApp, et Otto est pr&ecirc;t. Pas d'installation, pas de configuration, pas de formation.</p></div></div>
+        <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Comment fonctionne l'espace client web ?</div><div class="faq-a"><p>Dites &laquo; Mon espace &raquo; &agrave; Otto sur WhatsApp. Il vous envoie un lien s&eacute;curis&eacute; (magic link) vers votre portail web. Vous y retrouvez tous vos KPIs, deals, contacts, factures, documents &mdash; comme un ERP, sans rien installer.</p></div></div>
+        <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Combien de temps pour &ecirc;tre op&eacute;rationnel ?</div><div class="faq-a"><p>2 minutes. Scannez un QR code avec WhatsApp, et Otto est pr&ecirc;t. Pas d'installation, pas de configuration, pas de formation.</p></div></div>
         <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Est-ce que &ccedil;a marche avec les vocaux ?</div><div class="faq-a"><p>Oui. Envoie un message vocal, Otto le transcrit instantan&eacute;ment et agit dessus. Parfait quand tu es en d&eacute;placement ou entre deux rendez-vous.</p></div></div>
       </div>
     </div>
@@ -722,7 +661,7 @@
     <div class="container">
       <h2 class="reveal">Et si votre entreprise tenait<br>dans une seule conversation ?</h2>
       <p class="sub reveal d1">Votre prochain employ&eacute; n'aura pas besoin de bureau.</p>
-      <div class="reveal d2"><a href="https://buy.stripe.com/YOUR_PAYMENT_LINK" class="cta">Essayer gratuitement 7 jours &rarr;</a></div>
+      <div class="reveal d2"><a href="mailto:contact@hntic.fr?subject=Otto%20-%20Demande%20d%27acc%C3%A8s" class="cta">Demander un acc&egrave;s &rarr;</a></div>
     </div>
   </section>
 
