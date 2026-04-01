@@ -389,10 +389,11 @@ function createPreToolUseHook(): HookCallback {
       }
     }
 
-    // Human-in-the-loop for sensitive DB mutations
+    // Human-in-the-loop for DB mutations
     if (hookInput.tool_name === 'mcp__business-db__mutate_business_db') {
       const sql = ((toolInput as { query?: string }).query || '').trim();
       const tableName = (toolInput as { table_name?: string }).table_name || '';
+      const isInsert = /^\s*INSERT/i.test(sql);
       const isDelete = /^\s*DELETE/i.test(sql);
       const isFinancial = /^\s*UPDATE/i.test(sql) &&
         ['deals', 'invoices', 'expenses', 'contracts', 'team_members'].includes(tableName) &&
@@ -400,7 +401,12 @@ function createPreToolUseHook(): HookCallback {
       const isDealStage = /^\s*UPDATE/i.test(sql) && tableName === 'deals' && /stage/i.test(sql);
       const isBulkUpdate = /^\s*UPDATE/i.test(sql) && !/WHERE/i.test(sql);
 
-      if (isDelete || isFinancial || isDealStage || isBulkUpdate) {
+      // Tables where INSERT is always allowed (low risk, auto-generated)
+      const autoInsertTables = new Set(['audit_log', 'interactions', 'memories', 'activity_digests', 'relationship_summaries']);
+      const needsConfirmation = isDelete || isFinancial || isDealStage || isBulkUpdate
+        || (isInsert && !autoInsertTables.has(tableName));
+
+      if (needsConfirmation) {
         const pendingDir = '/workspace/group/.pending_mutations';
         const pendingFiles = fs.existsSync(pendingDir) ? fs.readdirSync(pendingDir).filter(f => f.endsWith('.json')) : [];
 
@@ -416,7 +422,7 @@ function createPreToolUseHook(): HookCallback {
             path.join(pendingDir, pendingId),
             JSON.stringify({ sql: sql.slice(0, 300), table: tableName, created: new Date().toISOString() }),
           );
-          const opType = isDelete ? 'Suppression' : isDealStage ? 'Changement de stage' : isFinancial ? 'Modification financière' : 'Modification en masse';
+          const opType = isInsert ? 'Création' : isDelete ? 'Suppression' : isDealStage ? 'Changement de stage' : isFinancial ? 'Modification financière' : 'Modification en masse';
           log(`[DB] Blocked sensitive mutation — pending approval: ${pendingId}`);
           return {
             hookSpecificOutput: {
