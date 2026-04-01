@@ -87,7 +87,8 @@ En tant que sous-agent ou coéquipier, n'utilise `send_message` que si l'agent p
 
 ## Ton espace de travail
 
-Les fichiers que tu crées sont sauvegardés dans `/workspace/group/`. Utilise cet espace pour les notes, recherches, ou tout ce qui doit persister.
+Les documents générés (Word, PowerPoint, Excel, PDF) vont dans `/workspace/group/documents/`. Indexe chaque document dans la table `documents` de business.db.
+Les notes et recherches vont dans `/workspace/group/`.
 
 ## Mémoire hiérarchique
 
