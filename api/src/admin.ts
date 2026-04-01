@@ -69,9 +69,15 @@ export function setupAdminRoutes(app: Express): void {
           stats = {
             contacts: (db.prepare('SELECT count(*) as n FROM contacts WHERE deleted_at IS NULL').get() as { n: number }).n,
             deals: (db.prepare('SELECT count(*) as n FROM deals WHERE deleted_at IS NULL').get() as { n: number }).n,
-            interactions_7d: (db.prepare("SELECT count(*) as n FROM interactions WHERE date > datetime('now', '-7 days')").get() as { n: number }).n,
           };
           db.close();
+        }
+        // Count recent WhatsApp messages (from the messages.db, not business.db)
+        const msgDbPath = path.join(CLIENTS_DIR, client.id, 'store', 'messages.db');
+        if (fs.existsSync(msgDbPath)) {
+          const msgDb = new Database(msgDbPath, { readonly: true });
+          stats.messages_7d = (msgDb.prepare("SELECT count(*) as n FROM messages WHERE timestamp > datetime('now', '-7 days')").get() as { n: number }).n;
+          msgDb.close();
         }
       } catch { /* db may not exist yet */ }
 
@@ -255,23 +261,41 @@ export function setupAdminRoutes(app: Express): void {
     }
   });
 
-  // List documents for a client
+  // List documents for a client (scans documents/ dir + root for office files)
   app.get('/api/admin/clients/:id/documents', (req, res) => {
-    const docsDir = path.join(CLIENTS_DIR, req.params.id, 'groups', 'main', 'documents');
-    if (!fs.existsSync(docsDir)) {
+    const groupDir = path.join(CLIENTS_DIR, req.params.id, 'groups', 'main');
+    if (!fs.existsSync(groupDir)) {
       res.json({ documents: [] });
       return;
     }
+    const DOC_EXTENSIONS = new Set(['.pptx', '.docx', '.xlsx', '.pdf', '.csv', '.txt']);
     try {
-      const files = fs.readdirSync(docsDir).map(name => {
-        const fullPath = path.join(docsDir, name);
-        const stat = fs.statSync(fullPath);
-        return {
-          name,
-          size_kb: Math.round(stat.size / 1024),
-          modified: stat.mtime.toISOString(),
-        };
-      });
+      const files: Array<{ name: string; path: string; size_kb: number; modified: string }> = [];
+
+      // Scan documents/ subdirectory
+      const docsDir = path.join(groupDir, 'documents');
+      if (fs.existsSync(docsDir)) {
+        for (const name of fs.readdirSync(docsDir)) {
+          const fullPath = path.join(docsDir, name);
+          const stat = fs.statSync(fullPath);
+          if (stat.isFile()) {
+            files.push({ name, path: `documents/${name}`, size_kb: Math.round(stat.size / 1024), modified: stat.mtime.toISOString() });
+          }
+        }
+      }
+
+      // Scan root for office files (agent sometimes creates here)
+      for (const name of fs.readdirSync(groupDir)) {
+        const ext = path.extname(name).toLowerCase();
+        if (DOC_EXTENSIONS.has(ext)) {
+          const fullPath = path.join(groupDir, name);
+          const stat = fs.statSync(fullPath);
+          if (stat.isFile()) {
+            files.push({ name, path: name, size_kb: Math.round(stat.size / 1024), modified: stat.mtime.toISOString() });
+          }
+        }
+      }
+
       files.sort((a, b) => b.modified.localeCompare(a.modified));
       res.json({ documents: files });
     } catch (err) {

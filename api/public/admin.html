@@ -239,7 +239,7 @@ async function loadDashboard() {
   const totalClients = clients.length;
   const totalContacts = clients.reduce((s, c) => s + (c.stats?.contacts || 0), 0);
   const totalDeals = clients.reduce((s, c) => s + (c.stats?.deals || 0), 0);
-  const totalInteractions = clients.reduce((s, c) => s + (c.stats?.interactions_7d || 0), 0);
+  const totalInteractions = clients.reduce((s, c) => s + (c.stats?.messages_7d || 0), 0);
   const totalRam = clients.reduce((s, c) => s + (c.memory_mb || 0), 0);
 
   document.getElementById('overview').innerHTML = `
@@ -247,7 +247,7 @@ async function loadDashboard() {
     <div class="card"><div class="label">RAM totale</div><div class="value blue">${totalRam}<span style="font-size:0.9rem;color:#888"> MB</span></div></div>
     <div class="card"><div class="label">Contacts</div><div class="value">${totalContacts}</div></div>
     <div class="card"><div class="label">Deals</div><div class="value">${totalDeals}</div></div>
-    <div class="card"><div class="label">Interactions 7j</div><div class="value">${totalInteractions}</div></div>
+    <div class="card"><div class="label">Messages 7j</div><div class="value">${totalInteractions}</div></div>
     <div class="card" style="cursor:pointer" onclick="toggleCostDetail()"><div class="label">Coût API Otto</div><div class="value yellow">${costHtml}</div><div class="sub">ce mois — cliquer pour le détail</div></div>
   `;
 
