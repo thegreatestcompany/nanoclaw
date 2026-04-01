@@ -12,7 +12,12 @@ import { RegisteredGroup } from './types.js';
 
 export interface IpcDeps {
   sendMessage: (jid: string, text: string) => Promise<void>;
-  sendDocument?: (jid: string, filePath: string, filename: string, caption?: string) => Promise<void>;
+  sendDocument?: (
+    jid: string,
+    filePath: string,
+    filename: string,
+    caption?: string,
+  ) => Promise<void>;
   groupsDir: string;
   registeredGroups: () => Record<string, RegisteredGroup>;
   registerGroup: (jid: string, group: RegisteredGroup) => void;
@@ -76,21 +81,39 @@ export function startIpcWatcher(deps: IpcDeps): void {
             const filePath = path.join(messagesDir, file);
             try {
               const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-              if (data.type === 'document' && data.chatJid && data.filePath && data.filename) {
+              if (
+                data.type === 'document' &&
+                data.chatJid &&
+                data.filePath &&
+                data.filename
+              ) {
                 // Send a document file via WhatsApp
                 const targetGroup = registeredGroups[data.chatJid];
                 if (
                   isMain ||
                   (targetGroup && targetGroup.folder === sourceGroup)
                 ) {
-                  // Resolve path relative to the group folder
-                  const resolvedPath = data.filePath.startsWith('/')
-                    ? data.filePath
-                    : path.join(deps.groupsDir, sourceGroup, data.filePath);
+                  // Resolve container path → host path
+                  // Container uses /workspace/group/ which maps to {groupsDir}/{sourceGroup}/
+                  let resolvedPath = data.filePath;
+                  if (resolvedPath.startsWith('/workspace/group/')) {
+                    resolvedPath = path.join(deps.groupsDir, sourceGroup, resolvedPath.replace('/workspace/group/', ''));
+                  } else if (!resolvedPath.startsWith('/')) {
+                    resolvedPath = path.join(deps.groupsDir, sourceGroup, resolvedPath);
+                  }
                   if (deps.sendDocument) {
-                    await deps.sendDocument(data.chatJid, resolvedPath, data.filename, data.caption);
+                    await deps.sendDocument(
+                      data.chatJid,
+                      resolvedPath,
+                      data.filename,
+                      data.caption,
+                    );
                     logger.info(
-                      { chatJid: data.chatJid, filename: data.filename, sourceGroup },
+                      {
+                        chatJid: data.chatJid,
+                        filename: data.filename,
+                        sourceGroup,
+                      },
                       'IPC document sent',
                     );
                   }
