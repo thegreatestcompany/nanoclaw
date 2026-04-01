@@ -53,12 +53,23 @@ Workspace + clé API isolés par client via Admin API. Isolation des coûts et r
 
 ## Optimisation des coûts API (documenté le 30/03/2026)
 
-Coût par message : **$0.41 → $0.09** (~78% de réduction). Cause racine : session resume accumulait 80K+ tokens.
+### Historique
 
-| Message | Cold (1er msg) | Warm (2e+ msg) |
-|---------|---------------|----------------|
-| Simple ("Bonjour") | $0.09 | $0.02-0.05 |
-| Moyen (query DB) | $0.10-0.15 | $0.05-0.10 |
-| Complexe (création doc) | $0.15-0.25 | $0.10-0.20 |
+Le coût initial de $0.41/msg venait du session resume SANS `resumeAt` (relecture complète de l'historique à chaque query). La "fix" de désactiver `settingSources`, le preset `claude_code`, et le `sessionId` avait réduit les coûts à $0.09/msg mais cassé tout le comportement de l'agent (skills, contexte, instructions ignorées).
 
-Projection : ~20 msg/jour × ~$0.10 = **~$60/mois** par client. À 447€/mois → **~370€ de marge**.
+### État actuel (01/04/2026)
+
+Session resume restauré avec `resumeAt` + `settingSources: ['project', 'user']` + preset `claude_code`.
+
+| Message | Coût estimé |
+|---------|-------------|
+| Simple ("Bonjour") — cold start | ~$0.25 |
+| Simple — warm (cache hit) | ~$0.02-0.05 |
+| Moyen (email/calendar) | ~$0.25-0.33 |
+| Complexe (PPT + recherche) | ~$0.33-0.43 |
+
+Le cache_write domine (89% du coût). Le cache expire après 5 min — si le client met plus de 5 min entre les messages, le cache est réécrit.
+
+Projection : ~$0.20/msg moyen × 20 msg/jour = **~$120/mois** par client. À 447€/mois → **~300€ de marge**.
+
+À surveiller : comparer les coûts réels du 31/03 (sans resume) vs 01/04 (avec resume) dans le dashboard Anthropic.
