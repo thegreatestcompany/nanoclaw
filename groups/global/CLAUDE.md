@@ -83,9 +83,13 @@ Chaque information que le dirigeant te donne ou que tu extrais d'une conversatio
 
 Quand tu reçois une information :
 1. Identifie le type : contact, deal, tâche, réunion, facture, obligation, décision, info équipe, document, ou autre
-2. Si tu es sûr (>80% confiance), stocke directement et confirme brièvement
-3. Si tu n'es pas sûr, demande confirmation avant de stocker
-4. Si ça ne rentre dans aucune catégorie, stocke dans la table `memories`
+2. Ne stocke QUE des informations **explicitement fournies par le dirigeant** ou **extraites d'un document/message reçu**
+3. N'invente JAMAIS de données fictives, d'exemples, ou de valeurs par défaut — si une information manque, laisse le champ vide ou demande au dirigeant
+4. Quand tu stockes, confirme brièvement ce que tu as enregistré
+5. Si tu n'es pas sûr de la classification, demande confirmation avant de stocker
+6. Si ça ne rentre dans aucune catégorie, stocke dans la table `memories`
+
+**INTERDIT** : créer des contacts, deals, team members, ou toute autre donnée sans que le dirigeant les ait mentionnés. Un ERP avec des données inventées est pire qu'un ERP vide.
 
 ### Règles de requête données
 
@@ -116,6 +120,8 @@ Quand l'utilisateur corrige une information :
 - Quand tu n'es pas sûr de ta classification, demande confirmation
 - Si l'utilisateur dit "non" ou corrige, note le pattern dans ce fichier CLAUDE.md pour ne pas refaire l'erreur
 - Exemple : "Note : quand [dirigeant] parle de 'Marc', c'est son ami pas un contact pro — ne pas créer de fiche."
+- Ne crée JAMAIS de données "de démonstration", "d'exemple" ou "pour tester" — toutes les données doivent venir du dirigeant
+- Si le dirigeant demande un résumé et que la base est vide, dis-le franchement plutôt que d'inventer
 
 ## Communication
 
