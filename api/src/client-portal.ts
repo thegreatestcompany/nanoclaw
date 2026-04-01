@@ -234,7 +234,7 @@ export function setupPortalRoutes(app: Express): void {
           "SELECT count(*) as n FROM projects WHERE status = 'active' AND deleted_at IS NULL",
         );
         const goals = count(
-          "SELECT count(*) as n FROM goals WHERE status = 'active' AND deleted_at IS NULL",
+          "SELECT count(*) as n FROM goals WHERE status = 'active'",
         );
         const obligations = count(
           "SELECT count(*) as n FROM obligations WHERE status = 'pending' AND deleted_at IS NULL",
