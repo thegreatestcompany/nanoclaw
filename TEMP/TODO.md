@@ -39,6 +39,14 @@ Infra en place, désactivé en dev. Activation = une ligne de code (commit `f332
 ### Gmail OAuth automatisé
 Intégration actuellement manuelle (scp). Pour le self-service : flow OAuth dans l'API d'onboarding (GCP déjà configuré).
 
+### Lifecycle des documents
+Après des mois/années d'utilisation, le dossier `documents/` d'un client va grossir (PPT, Word, Excel accumulés). À anticiper :
+- Archivage automatique des documents > X mois (déplacer vers un dossier `archives/` ou S3)
+- Nettoyage des doublons et versions intermédiaires
+- Quota disque par client avec alerte dans le dashboard admin
+- Purge des fichiers temporaires (.js build scripts) si l'agent en laisse traîner
+- Impact sur les backups VPS (240 GB SSD limité)
+
 ## Roadmap (moyen terme)
 
 ### Migration WhatsApp Business API
