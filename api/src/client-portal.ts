@@ -223,57 +223,142 @@ export function setupPortalRoutes(app: Express): void {
       try {
         const count = (sql: string) =>
           (db.prepare(sql).get() as { n: number }).n;
+        const val = (sql: string) =>
+          (db.prepare(sql).get() as { v: number }).v;
 
-        const contacts = count(
-          'SELECT count(*) as n FROM contacts WHERE deleted_at IS NULL',
-        );
-        const deals = count(
-          'SELECT count(*) as n FROM deals WHERE deleted_at IS NULL',
-        );
-        const projects = count(
-          "SELECT count(*) as n FROM projects WHERE status = 'active' AND deleted_at IS NULL",
-        );
-        const goals = count(
-          "SELECT count(*) as n FROM goals WHERE status = 'active'",
-        );
-        const obligations = count(
-          "SELECT count(*) as n FROM obligations WHERE status = 'pending' AND deleted_at IS NULL",
-        );
+        // KPIs
+        const contacts = count('SELECT count(*) as n FROM contacts WHERE deleted_at IS NULL');
+        const deals = count('SELECT count(*) as n FROM deals WHERE deleted_at IS NULL');
+        const projects = count("SELECT count(*) as n FROM projects WHERE status = 'active' AND deleted_at IS NULL");
+        const goals = count("SELECT count(*) as n FROM goals WHERE status = 'active'");
+        const obligations = count("SELECT count(*) as n FROM obligations WHERE status = 'pending' AND deleted_at IS NULL");
+        const team_members = count('SELECT count(*) as n FROM team_members WHERE deleted_at IS NULL');
+        const candidates = count('SELECT count(*) as n FROM candidates WHERE deleted_at IS NULL AND stage NOT IN (\'hired\', \'rejected\', \'withdrawn\')');
+        const pipeline_value = val("SELECT COALESCE(SUM(amount), 0) as v FROM deals WHERE deleted_at IS NULL AND stage NOT IN ('won', 'lost')");
 
-        const pipelineRow = db
-          .prepare(
-            "SELECT COALESCE(SUM(amount), 0) as total FROM deals WHERE deleted_at IS NULL AND stage NOT IN ('won', 'lost')",
-          )
-          .get() as { total: number };
+        // Finance
+        const revenue_won = val("SELECT COALESCE(SUM(amount), 0) as v FROM deals WHERE deleted_at IS NULL AND stage = 'won'");
+        const invoices_pending = count("SELECT count(*) as n FROM invoices WHERE deleted_at IS NULL AND status IN ('sent', 'overdue')");
+        const invoices_pending_amount = val("SELECT COALESCE(SUM(amount), 0) as v FROM invoices WHERE deleted_at IS NULL AND status IN ('sent', 'overdue') AND direction = 'outbound'");
+        const overdue_invoices = count("SELECT count(*) as n FROM invoices WHERE deleted_at IS NULL AND status = 'overdue'");
+        const active_contracts = count("SELECT count(*) as n FROM contracts WHERE deleted_at IS NULL AND status = 'active'");
 
-        const recent_deals = db
-          .prepare(
-            'SELECT title, amount, stage, expected_close_date FROM deals WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT 5',
-          )
-          .all();
+        // Recent data
+        const recent_deals = db.prepare(
+          "SELECT d.title, d.amount, d.stage, d.expected_close_date, d.next_action, c.name as contact_name FROM deals d LEFT JOIN contacts c ON d.contact_id = c.id WHERE d.deleted_at IS NULL ORDER BY d.updated_at DESC LIMIT 5"
+        ).all();
 
-        const upcoming_obligations = db
-          .prepare(
-            "SELECT title, category, due_date FROM obligations WHERE deleted_at IS NULL AND status = 'pending' AND due_date >= date('now') ORDER BY due_date ASC LIMIT 5",
-          )
-          .all();
+        const upcoming_obligations = db.prepare(
+          "SELECT title, category, due_date, responsible FROM obligations WHERE deleted_at IS NULL AND status = 'pending' AND due_date >= date('now') ORDER BY due_date ASC LIMIT 5"
+        ).all();
+
+        const overdue_obligations = db.prepare(
+          "SELECT title, category, due_date FROM obligations WHERE deleted_at IS NULL AND status = 'pending' AND due_date < date('now') ORDER BY due_date ASC LIMIT 5"
+        ).all();
+
+        const recent_interactions = db.prepare(
+          "SELECT i.type, i.summary, i.date, i.sentiment, c.name as contact_name FROM interactions i LEFT JOIN contacts c ON i.contact_id = c.id ORDER BY i.date DESC LIMIT 5"
+        ).all();
+
+        const upcoming_meetings = db.prepare(
+          "SELECT m.date, m.summary, m.attendees, m.action_items FROM meetings m WHERE m.date >= datetime('now') ORDER BY m.date ASC LIMIT 5"
+        ).all();
 
         db.close();
         res.json({
-          contacts,
-          deals,
-          pipeline_value: pipelineRow.total,
-          projects,
-          goals,
-          obligations,
-          recent_deals,
-          upcoming_obligations,
+          contacts, deals, pipeline_value, projects, goals, obligations,
+          team_members, candidates, revenue_won,
+          invoices_pending, invoices_pending_amount, overdue_invoices, active_contracts,
+          recent_deals, upcoming_obligations, overdue_obligations,
+          recent_interactions, upcoming_meetings,
         });
       } catch (err) {
         db.close();
         res
           .status(500)
           .json({ error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  );
+
+  // Business data — detailed views by section
+  app.get(
+    '/api/portal/business/:section',
+    verifyPortalToken,
+    (req: PortalRequest, res) => {
+      const clientId = req.clientId!;
+      const section = req.params.section;
+      const dbPath = getClientDbPath(clientId);
+
+      if (!fs.existsSync(dbPath)) {
+        res.json({ data: [] });
+        return;
+      }
+
+      const db = new Database(dbPath, { readonly: true });
+      try {
+        let data;
+        switch (section) {
+          case 'contacts':
+            data = db.prepare(
+              "SELECT c.id, c.name, c.role, c.phone, c.email, c.relationship_type, c.linkedin_url, co.name as company_name FROM contacts c LEFT JOIN companies co ON c.company_id = co.id WHERE c.deleted_at IS NULL ORDER BY c.updated_at DESC LIMIT 100"
+            ).all();
+            break;
+          case 'deals':
+            data = db.prepare(
+              "SELECT d.id, d.title, d.amount, d.stage, d.probability, d.expected_close_date, d.next_action, d.next_action_date, d.source, c.name as contact_name, co.name as company_name FROM deals d LEFT JOIN contacts c ON d.contact_id = c.id LEFT JOIN companies co ON d.company_id = co.id WHERE d.deleted_at IS NULL ORDER BY d.updated_at DESC LIMIT 100"
+            ).all();
+            break;
+          case 'team':
+            data = db.prepare(
+              "SELECT id, name, role, email, phone, contract_type, start_date, trial_end_date FROM team_members WHERE deleted_at IS NULL ORDER BY name"
+            ).all();
+            break;
+          case 'projects':
+            data = db.prepare(
+              "SELECT p.id, p.name, p.status, p.start_date, p.end_date, p.budget, p.consumed, co.name as company_name FROM projects p LEFT JOIN companies co ON p.company_id = co.id WHERE p.deleted_at IS NULL ORDER BY p.updated_at DESC LIMIT 50"
+            ).all();
+            break;
+          case 'invoices':
+            data = db.prepare(
+              "SELECT i.id, i.invoice_number, i.direction, i.amount, i.tax_amount, i.status, i.issue_date, i.due_date, i.paid_date, i.payment_method, co.name as company_name FROM invoices i LEFT JOIN companies co ON i.company_id = co.id WHERE i.deleted_at IS NULL ORDER BY i.issue_date DESC LIMIT 100"
+            ).all();
+            break;
+          case 'contracts':
+            data = db.prepare(
+              "SELECT ct.id, ct.title, ct.type, ct.start_date, ct.end_date, ct.value, ct.renewal_type, ct.notice_period_days, ct.status, co.name as company_name FROM contracts ct LEFT JOIN companies co ON ct.company_id = co.id WHERE ct.deleted_at IS NULL ORDER BY ct.end_date ASC LIMIT 50"
+            ).all();
+            break;
+          case 'candidates':
+            data = db.prepare(
+              "SELECT id, name, position, stage, source, email, current_company, salary_expectation FROM candidates WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT 50"
+            ).all();
+            break;
+          case 'goals':
+            data = db.prepare(
+              "SELECT id, title, metric, target, current, deadline, status FROM goals ORDER BY status ASC, deadline ASC LIMIT 50"
+            ).all();
+            break;
+          case 'suppliers':
+            data = db.prepare(
+              "SELECT id, name, category, contact_name, phone, email, contract_end_date, annual_cost, rating FROM suppliers WHERE deleted_at IS NULL ORDER BY name LIMIT 50"
+            ).all();
+            break;
+          case 'expenses':
+            data = db.prepare(
+              "SELECT e.id, e.category, e.description, e.amount, e.date, s.name as supplier_name FROM expenses e LEFT JOIN suppliers s ON e.supplier_id = s.id ORDER BY e.date DESC LIMIT 100"
+            ).all();
+            break;
+          default:
+            res.status(400).json({ error: 'Section inconnue' });
+            db.close();
+            return;
+        }
+        db.close();
+        res.json({ data });
+      } catch (err) {
+        db.close();
+        res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
       }
     },
   );

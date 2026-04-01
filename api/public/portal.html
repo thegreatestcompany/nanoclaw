@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Otto - Mon Espace Client</title>
+  <title>Otto - Mon Espace</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -50,7 +50,11 @@
     .header-left .logo-title { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; }
     .header-left .logo-sub { font-size: 0.65rem; font-weight: 400; letter-spacing: 0.15em; color: #888; text-transform: uppercase; }
     .header-right { display: flex; align-items: center; gap: 10px; }
-    .header-right .label { font-size: 0.85rem; color: #6b7280; }
+    .header-right .label { font-size: 0.85rem; color: #374151; font-weight: 500; }
+    .msg-badge {
+      font-size: 0.7rem; color: #6b7280; background: #f3f4f6; border-radius: 12px;
+      padding: 3px 10px; font-weight: 500; white-space: nowrap;
+    }
     .refresh-btn {
       padding: 6px 14px; background: #fff; border: 1px solid #e5e7eb; border-radius: 6px;
       color: #6b7280; cursor: pointer; font-size: 0.8rem; transition: all 0.15s;
@@ -58,7 +62,7 @@
     .refresh-btn:hover { background: #f3f4f6; color: #1a1a1a; }
     .header-time { font-size: 0.75rem; color: #9ca3af; }
 
-    .content { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+    .content { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
 
     /* Tabs */
     .tabs {
@@ -78,38 +82,97 @@
     .tab-pane { display: none; }
     .tab-pane.active { display: block; }
 
+    /* Welcome */
+    .welcome-bar { margin-bottom: 20px; font-size: 1.15rem; font-weight: 600; color: #1a1a1a; }
+    .welcome-bar .welcome-sub { font-size: 0.85rem; font-weight: 400; color: #6b7280; margin-top: 2px; }
+
+    /* Alert banner */
+    .alert-banner {
+      background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 14px 20px;
+      margin-bottom: 20px; font-size: 0.88rem; color: #9a3412; display: flex; align-items: center; gap: 8px;
+    }
+
     /* KPI cards */
-    .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 28px; }
-    @media (min-width: 640px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+    .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
+    @media (min-width: 640px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); } }
     .kpi-card {
       background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px;
       box-shadow: 0 1px 2px rgba(0,0,0,0.03);
     }
     .kpi-card .kpi-label { font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
     .kpi-card .kpi-value { font-size: 1.6rem; font-weight: 700; color: #1a1a1a; }
+    .kpi-card .kpi-value.blue { color: #2563eb; }
+    .kpi-card .kpi-value.green { color: #059669; }
+    .kpi-card .kpi-value.orange { color: #f59e0b; }
+    .kpi-card .kpi-value.red { color: #dc2626; }
+
+    /* Two-column layout */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
 
     /* Section */
     .section-title { font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 12px; margin-top: 4px; }
+
+    /* Pipeline bar */
+    .pipeline-bar { display: flex; gap: 0; margin-bottom: 24px; border-radius: 10px; overflow: hidden; height: 36px; }
+    .pipeline-segment {
+      display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600;
+      color: #fff; min-width: 40px; position: relative; transition: flex 0.3s;
+    }
+    .pipeline-segment .seg-label {
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 6px;
+    }
+    .pipeline-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    .pipeline-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #374151; }
+    .pipeline-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 
     /* Tables */
     .table-wrap {
       background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
       box-shadow: 0 1px 2px rgba(0,0,0,0.03); margin-bottom: 24px;
     }
+    .table-scroll { overflow-x: auto; }
     .table-wrap table { width: 100%; border-collapse: collapse; }
     .table-wrap th {
       background: #f9fafb; padding: 10px 16px; text-align: left; font-size: 0.7rem; font-weight: 600;
-      color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em;
+      color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
     }
     .table-wrap td { padding: 12px 16px; border-top: 1px solid #f3f4f6; font-size: 0.85rem; color: #374151; }
     .table-wrap tr:hover td { background: #f9fafb; }
-    .table-wrap .empty { padding: 32px 16px; text-align: center; color: #9ca3af; font-size: 0.85rem; }
+    .table-wrap .empty { padding: 32px 16px; text-align: center; color: #9ca3af; font-size: 0.85rem; line-height: 1.6; }
 
-    /* Stage badge */
-    .stage-badge {
+    /* Badge */
+    .badge {
       display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 0.7rem; font-weight: 500;
-      background: #eff6ff; color: #2563eb;
     }
+    .badge.green { background: #ecfdf5; color: #059669; }
+    .badge.red { background: #fef2f2; color: #dc2626; }
+    .badge.blue { background: #eff6ff; color: #2563eb; }
+    .badge.indigo { background: #eef2ff; color: #4f46e5; }
+    .badge.orange { background: #fff7ed; color: #ea580c; }
+    .badge.grey { background: #f3f4f6; color: #6b7280; }
+
+    /* Interaction list */
+    .interaction-list { display: flex; flex-direction: column; gap: 0; }
+    .interaction-item {
+      display: flex; gap: 10px; padding: 12px 16px; border-bottom: 1px solid #f3f4f6;
+      align-items: flex-start;
+    }
+    .interaction-item:last-child { border-bottom: none; }
+    .interaction-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+    .interaction-body { flex: 1; min-width: 0; }
+    .interaction-summary { font-size: 0.85rem; color: #374151; line-height: 1.4;
+      overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .interaction-meta { font-size: 0.75rem; color: #9ca3af; margin-top: 3px; }
+
+    /* Meeting list */
+    .meeting-item {
+      padding: 12px 16px; border-bottom: 1px solid #f3f4f6;
+    }
+    .meeting-item:last-child { border-bottom: none; }
+    .meeting-date { font-size: 0.78rem; font-weight: 600; color: #2563eb; margin-bottom: 3px; }
+    .meeting-summary { font-size: 0.85rem; color: #374151; line-height: 1.4; }
+    .meeting-attendees { font-size: 0.75rem; color: #9ca3af; margin-top: 3px; }
 
     /* Documents */
     .doc-list { display: flex; flex-direction: column; gap: 0; }
@@ -128,17 +191,8 @@
       transition: all 0.15s; flex-shrink: 0;
     }
     .doc-dl:hover { background: #eff6ff; }
-
-    /* Memory cards */
-    .memory-card {
-      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.03); margin-bottom: 12px;
-    }
-    .memory-card .memory-title { font-size: 0.8rem; font-weight: 600; color: #2563eb; margin-bottom: 10px; word-break: break-all; }
-    .memory-card pre {
-      background: #f9fafb; border-radius: 8px; padding: 14px; font-size: 0.8rem; line-height: 1.6;
-      white-space: pre-wrap; word-break: break-word; color: #374151; overflow-x: auto; border: 1px solid #f3f4f6;
-    }
+    .doc-group-title { font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase;
+      letter-spacing: 0.04em; padding: 10px 16px; background: #f9fafb; border-bottom: 1px solid #f3f4f6; }
 
     /* Pagination */
     .pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
@@ -150,49 +204,39 @@
     .pagination button:disabled { color: #d1d5db; cursor: not-allowed; }
     .pagination .page-info { font-size: 0.8rem; color: #6b7280; }
 
-    /* Usage bar chart */
-    .chart-container { margin-bottom: 24px; }
-    .bar-chart {
-      display: flex; align-items: flex-end; gap: 6px; height: 160px;
-      padding: 0 4px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
-      padding: 20px 16px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-    }
-    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
-    .bar {
-      width: 100%; max-width: 40px; background: #2563eb; border-radius: 4px 4px 0 0;
-      transition: height 0.3s ease; position: relative; min-height: 2px;
-    }
-    .bar:hover { background: #1d4ed8; }
-    .bar-label { font-size: 0.6rem; color: #9ca3af; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-    .bar-value { font-size: 0.6rem; color: #6b7280; font-weight: 500; }
-
-    .usage-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
-    .usage-stat {
-      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.03); text-align: center;
-    }
-    .usage-stat .stat-value { font-size: 1.4rem; font-weight: 700; color: #1a1a1a; }
-    .usage-stat .stat-label { font-size: 0.75rem; color: #6b7280; margin-top: 4px; }
-
-    /* Loading spinner */
+    /* Loading */
     .spinner {
-      display: flex; align-items: center; justify-content: center; padding: 48px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px; gap: 12px;
     }
     .spinner::after {
       content: ''; width: 28px; height: 28px; border: 3px solid #e5e7eb; border-top-color: #1a1a1a;
       border-radius: 50%; animation: spin 0.6s linear infinite;
     }
+    .spinner-text { font-size: 0.8rem; color: #9ca3af; order: 1; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Message stat */
+    .msg-stat {
+      margin-top: 8px; padding: 12px 16px; background: #f9fafb; border-radius: 8px;
+      font-size: 0.8rem; color: #6b7280; text-align: center;
+    }
+
+    /* Footer */
+    .portal-footer {
+      text-align: center; padding: 24px 16px 32px; font-size: 0.7rem; color: #9ca3af;
+      letter-spacing: 0.03em;
+    }
 
     /* Responsive */
     @media (max-width: 640px) {
       .landing-card { padding: 32px 24px; }
       .content { padding: 16px 12px; }
       .header-right .label { display: none; }
-      .table-wrap { overflow-x: auto; }
-      .table-wrap table { min-width: 480px; }
+      .table-wrap table { min-width: 580px; }
       .doc-item { flex-wrap: wrap; }
       .doc-meta { width: 100%; padding-left: 30px; }
+      .pipeline-bar { height: 28px; }
+      .pipeline-segment .seg-label { font-size: 0.6rem; }
     }
   </style>
 </head>
@@ -203,8 +247,8 @@
   <div class="landing-card">
     <div class="logo-title">OTTO</div>
     <div class="logo-sub">by HNTIC</div>
-    <h2>Mon Espace Client</h2>
-    <p class="subtitle">Demande un lien d'acces via WhatsApp en ecrivant "Mon espace" a Otto, ou entre ton email ci-dessous.</p>
+    <h2>Mon Espace</h2>
+    <p class="subtitle">Demande un lien d'acc&egrave;s via WhatsApp en &eacute;crivant "Mon espace" &agrave; Otto, ou entre ton email ci-dessous.</p>
     <input type="email" id="email-input" placeholder="ton@email.com" autocomplete="email">
     <button id="request-btn" onclick="requestLink()">Recevoir le lien</button>
     <div class="landing-msg" id="landing-msg"></div>
@@ -219,7 +263,8 @@
       <span class="logo-sub">by HNTIC</span>
     </div>
     <div class="header-right">
-      <span class="label">Mon espace</span>
+      <span class="label" id="header-label">Mon espace</span>
+      <span class="msg-badge" id="header-msg-badge" style="display:none"></span>
       <span class="header-time" id="header-time"></span>
       <button class="refresh-btn" onclick="refreshCurrentTab()">Actualiser</button>
     </div>
@@ -227,59 +272,116 @@
 
   <div class="content">
     <div class="tabs" id="tabs">
-      <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">Tableau de bord</button>
-      <button class="tab" data-tab="documents" onclick="switchTab('documents')">Documents</button>
-      <button class="tab" data-tab="memory" onclick="switchTab('memory')">Memoire</button>
-      <button class="tab" data-tab="audit" onclick="switchTab('audit')">Activite</button>
-      <button class="tab" data-tab="usage" onclick="switchTab('usage')">Utilisation</button>
+      <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">Vue d'ensemble</button>
+      <button class="tab" data-tab="commercial" onclick="switchTab('commercial')">Commercial</button>
+      <button class="tab" data-tab="finance" onclick="switchTab('finance')">Finance</button>
+      <button class="tab" data-tab="equipe" onclick="switchTab('equipe')">&Eacute;quipe</button>
+      <button class="tab" data-tab="documents" onclick="switchTab('documents')">Mes documents</button>
     </div>
 
     <!-- Dashboard -->
     <div class="tab-pane active" id="tab-dashboard">
-      <div class="spinner" id="dashboard-loader"></div>
-      <div id="dashboard-content" style="display:none">
-        <div class="kpi-grid" id="kpi-grid"></div>
-        <div class="section-title">Deals recents</div>
-        <div class="table-wrap" id="deals-table"></div>
-        <div class="section-title">Prochaines obligations</div>
-        <div class="table-wrap" id="obligations-table"></div>
-      </div>
+      <div class="spinner" id="dashboard-loader"><span class="spinner-text">Chargement...</span></div>
+      <div id="dashboard-content" style="display:none"></div>
+    </div>
+
+    <!-- Commercial -->
+    <div class="tab-pane" id="tab-commercial">
+      <div class="spinner" id="commercial-loader"><span class="spinner-text">Chargement...</span></div>
+      <div id="commercial-content" style="display:none"></div>
+    </div>
+
+    <!-- Finance -->
+    <div class="tab-pane" id="tab-finance">
+      <div class="spinner" id="finance-loader"><span class="spinner-text">Chargement...</span></div>
+      <div id="finance-content" style="display:none"></div>
+    </div>
+
+    <!-- Equipe -->
+    <div class="tab-pane" id="tab-equipe">
+      <div class="spinner" id="equipe-loader"><span class="spinner-text">Chargement...</span></div>
+      <div id="equipe-content" style="display:none"></div>
     </div>
 
     <!-- Documents -->
     <div class="tab-pane" id="tab-documents">
-      <div class="spinner" id="documents-loader"></div>
+      <div class="spinner" id="documents-loader"><span class="spinner-text">Chargement...</span></div>
       <div id="documents-content" style="display:none"></div>
     </div>
-
-    <!-- Memory -->
-    <div class="tab-pane" id="tab-memory">
-      <div class="spinner" id="memory-loader"></div>
-      <div id="memory-content" style="display:none"></div>
-    </div>
-
-    <!-- Audit -->
-    <div class="tab-pane" id="tab-audit">
-      <div class="spinner" id="audit-loader"></div>
-      <div id="audit-content" style="display:none"></div>
-    </div>
-
-    <!-- Usage -->
-    <div class="tab-pane" id="tab-usage">
-      <div class="spinner" id="usage-loader"></div>
-      <div id="usage-content" style="display:none"></div>
-    </div>
   </div>
+
+  <div class="portal-footer">Propuls&eacute; par Otto &middot; HNTIC</div>
 </div>
 
 <script>
 const PARIS_TZ = 'Europe/Paris';
+const VALID_TABS = ['dashboard', 'commercial', 'finance', 'equipe', 'documents'];
 let currentTab = 'dashboard';
-let auditPage = 1;
-const AUDIT_LIMIT = 20;
-
-// Cache fetched data
+let companyName = '';
 const cache = {};
+
+/* ─── Translation maps ─── */
+
+const STAGES_FR = {
+  lead: 'Prospect', qualified: 'Qualifi\u00E9', proposal: 'Proposition',
+  negotiation: 'N\u00E9gociation', won: 'Gagn\u00E9', lost: 'Perdu',
+  discovery: 'D\u00E9couverte', closed: 'Clos',
+};
+const STAGE_COLORS = {
+  lead: 'grey', qualified: 'blue', proposal: 'indigo',
+  negotiation: 'orange', won: 'green', lost: 'red',
+  discovery: 'blue', closed: 'grey',
+};
+const STAGE_ORDER = ['lead', 'qualified', 'proposal', 'negotiation', 'won', 'lost'];
+const STAGE_BAR_COLORS = {
+  lead: '#9ca3af', qualified: '#3b82f6', proposal: '#6366f1',
+  negotiation: '#f59e0b', won: '#059669', lost: '#dc2626',
+};
+
+const RELATIONSHIP_FR = {
+  prospect: 'Prospect', client: 'Client', partner: 'Partenaire',
+  supplier: 'Fournisseur', advisor: 'Conseiller', investor: 'Investisseur',
+  team: '\u00C9quipe', personal: 'Personnel',
+};
+const CONTRACT_TYPE_FR = { cdi: 'CDI', cdd: 'CDD', freelance: 'Freelance', intern: 'Stage' };
+const INVOICE_STATUS_FR = {
+  draft: 'Brouillon', sent: 'Envoy\u00E9e', paid: 'Pay\u00E9e',
+  overdue: 'En retard', cancelled: 'Annul\u00E9e',
+};
+const INVOICE_STATUS_COLOR = {
+  draft: 'grey', sent: 'blue', paid: 'green', overdue: 'red', cancelled: 'grey',
+};
+const INVOICE_DIR_FR = { inbound: 'Entrante', outbound: 'Sortante' };
+const CONTRACT_KIND_FR = {
+  client: 'Client', supplier: 'Fournisseur', employment: 'Emploi',
+  lease: 'Bail', insurance: 'Assurance',
+};
+const RENEWAL_FR = { auto: 'Automatique', manual: 'Manuel', none: 'Non' };
+const CANDIDATE_STAGE_FR = {
+  sourced: 'Identifi\u00E9', screening: '\u00C9valuation', interview: 'Entretien',
+  offer: 'Offre', hired: 'Embauch\u00E9', rejected: 'Refus\u00E9',
+};
+const CANDIDATE_STAGE_COLOR = {
+  sourced: 'grey', screening: 'blue', interview: 'indigo',
+  offer: 'orange', hired: 'green', rejected: 'red',
+};
+const OBLIGATION_CAT_FR = {
+  legal: 'Juridique', fiscal: 'Fiscal', social: 'Social',
+  regulatory: 'R\u00E9glementaire', insurance: 'Assurance', contractual: 'Contractuel',
+};
+const PROJECT_STATUS_FR = {
+  planned: 'Planifi\u00E9', active: 'En cours', on_hold: 'En pause',
+  completed: 'Termin\u00E9', cancelled: 'Annul\u00E9',
+};
+const GOAL_STATUS_FR = {
+  active: 'En cours', achieved: 'Atteint', missed: 'Manqu\u00E9', cancelled: 'Annul\u00E9',
+};
+const GOAL_STATUS_COLOR = {
+  active: 'blue', achieved: 'green', missed: 'red', cancelled: 'grey',
+};
+const INTERACTION_ICONS = {
+  call: '\uD83D\uDCDE', email: '\uD83D\uDCE7', whatsapp: '\uD83D\uDCAC', meeting: '\uD83E\uDD1D',
+};
 
 /* ─── Formatting helpers ─── */
 
@@ -287,12 +389,10 @@ function fmtNumber(n) {
   if (n == null) return '0';
   return Number(n).toLocaleString('fr-FR');
 }
-
 function fmtCurrency(n) {
   if (n == null) return '0 \u20AC';
   return Number(n).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' \u20AC';
 }
-
 function fmtDateShort(dateStr) {
   if (!dateStr) return '\u2014';
   try {
@@ -301,27 +401,28 @@ function fmtDateShort(dateStr) {
     return d.toLocaleDateString('fr-FR', { timeZone: PARIS_TZ, day: 'numeric', month: 'short', year: 'numeric' });
   } catch { return dateStr; }
 }
-
-function fmtDateTime(dateStr) {
-  if (!dateStr) return '\u2014';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d)) return dateStr;
-    return d.toLocaleString('fr-FR', { timeZone: PARIS_TZ, day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch { return dateStr; }
+function fmtPercent(n) {
+  if (n == null) return '\u2014';
+  return Number(n) + ' %';
 }
-
 function nowParis() {
   return new Date().toLocaleString('fr-FR', { timeZone: PARIS_TZ, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
-
 function escapeHtml(str) {
   if (typeof str !== 'string') return String(str ?? '');
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
 }
-
+function tr(map, key) {
+  if (!key) return '\u2014';
+  return map[key.toLowerCase()] || key;
+}
+function badge(map, colorMap, key) {
+  const label = tr(map, key);
+  const color = (colorMap && key) ? (colorMap[key.toLowerCase()] || 'grey') : 'grey';
+  return '<span class="badge ' + color + '">' + escapeHtml(label) + '</span>';
+}
 function fileIcon(name) {
   const ext = (name || '').split('.').pop().toLowerCase();
   const icons = {
@@ -329,17 +430,30 @@ function fileIcon(name) {
     xls: '\uD83D\uDCCA', xlsx: '\uD83D\uDCCA', csv: '\uD83D\uDCCA',
     ppt: '\uD83D\uDCCA', pptx: '\uD83D\uDCCA',
     png: '\uD83D\uDDBC\uFE0F', jpg: '\uD83D\uDDBC\uFE0F', jpeg: '\uD83D\uDDBC\uFE0F', gif: '\uD83D\uDDBC\uFE0F',
-    zip: '\uD83D\uDCE6', rar: '\uD83D\uDCE6',
-    txt: '\uD83D\uDCC4', md: '\uD83D\uDCC4',
+    zip: '\uD83D\uDCE6', rar: '\uD83D\uDCE6', txt: '\uD83D\uDCC4', md: '\uD83D\uDCC4',
   };
   return icons[ext] || '\uD83D\uDCC1';
+}
+function parseCompanyName(memoryFiles) {
+  if (!memoryFiles) return '';
+  const companyMd = memoryFiles['context/company.md'] || '';
+  if (!companyMd) return '';
+  const patterns = [/(?:Entreprise|Company|Nom de l'entreprise|Nom)\s*[:=]\s*(.+)/i, /^#\s+(.+)/m];
+  for (const pat of patterns) { const m = companyMd.match(pat); if (m && m[1]) return m[1].trim(); }
+  return '';
+}
+function emptyMsg(text) {
+  return '<div class="empty">' + escapeHtml(text) + '</div>';
+}
+function tableWrap(html) {
+  return '<div class="table-wrap"><div class="table-scroll">' + html + '</div></div>';
 }
 
 /* ─── API helpers ─── */
 
 async function portalFetch(path) {
-  const res = await fetch(`/api/portal${path}`, { credentials: 'same-origin' });
-  if (!res.ok) throw new Error(`${res.status}`);
+  const res = await fetch('/api/portal' + path, { credentials: 'same-origin' });
+  if (!res.ok) throw new Error('' + res.status);
   return res.json();
 }
 
@@ -348,44 +462,38 @@ async function portalFetch(path) {
 async function init() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
-
   try {
-    const url = token
-      ? `/api/portal/dashboard?token=${encodeURIComponent(token)}`
-      : '/api/portal/dashboard';
+    const url = token ? '/api/portal/dashboard?token=' + encodeURIComponent(token) : '/api/portal/dashboard';
     const res = await fetch(url, { credentials: 'same-origin' });
-
     if (res.ok) {
       if (token) window.history.replaceState({}, '', '/portal');
       const data = await res.json();
       cache.dashboard = data;
+      const [usageData, memoryData] = await Promise.allSettled([portalFetch('/usage'), portalFetch('/memory')]);
+      if (usageData.status === 'fulfilled') cache.usage = usageData.value;
+      if (memoryData.status === 'fulfilled') { cache.memory = memoryData.value; companyName = parseCompanyName(memoryData.value.memoryFiles); }
       showPortal(data);
-    } else {
-      showLanding();
-    }
-  } catch {
-    showLanding();
-  }
+    } else { showLanding(); }
+  } catch { showLanding(); }
 }
 
 function showLanding() {
   document.getElementById('landing').style.display = 'flex';
   document.getElementById('portal').style.display = 'none';
 }
-
 function showPortal(dashboardData) {
   document.getElementById('landing').style.display = 'none';
   document.getElementById('portal').style.display = 'block';
   document.getElementById('header-time').textContent = nowParis();
-
-  renderDashboard(dashboardData);
-
-  // Restore tab from hash
-  const hash = window.location.hash.replace('#', '');
-  const validTabs = ['dashboard', 'documents', 'memory', 'audit', 'usage'];
-  if (hash && validTabs.includes(hash)) {
-    switchTab(hash);
+  if (companyName) document.getElementById('header-label').textContent = companyName;
+  if (cache.usage && cache.usage.total_messages) {
+    const b = document.getElementById('header-msg-badge');
+    b.textContent = fmtNumber(cache.usage.total_messages) + ' messages';
+    b.style.display = 'inline-block';
   }
+  renderDashboard(dashboardData);
+  const hash = window.location.hash.replace('#', '');
+  if (hash && VALID_TABS.includes(hash)) switchTab(hash);
 }
 
 /* ─── Request link ─── */
@@ -394,38 +502,15 @@ async function requestLink() {
   const email = document.getElementById('email-input').value.trim();
   const msgEl = document.getElementById('landing-msg');
   const btn = document.getElementById('request-btn');
-
-  if (!email) {
-    msgEl.className = 'landing-msg error';
-    msgEl.textContent = 'Entre ton adresse email.';
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = 'Envoi en cours\u2026';
-  msgEl.textContent = '';
-
+  if (!email) { msgEl.className = 'landing-msg error'; msgEl.textContent = 'Entre ton adresse email.'; return; }
+  btn.disabled = true; btn.textContent = 'Envoi en cours\u2026'; msgEl.textContent = '';
   try {
-    const res = await fetch('/api/portal/request-link', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
+    const res = await fetch('/api/portal/request-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
     const data = await res.json();
-    if (res.ok && data.ok) {
-      msgEl.className = 'landing-msg success';
-      msgEl.textContent = 'Lien envoy\u00E9 ! V\u00E9rifie ta bo\u00EEte mail.';
-    } else {
-      msgEl.className = 'landing-msg error';
-      msgEl.textContent = data.error || 'Une erreur est survenue.';
-    }
-  } catch {
-    msgEl.className = 'landing-msg error';
-    msgEl.textContent = 'Impossible de contacter le serveur.';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Recevoir le lien';
-  }
+    if (res.ok && data.ok) { msgEl.className = 'landing-msg success'; msgEl.textContent = 'Lien envoy\u00E9 ! V\u00E9rifie ta bo\u00EEte mail.'; }
+    else { msgEl.className = 'landing-msg error'; msgEl.textContent = data.error || 'Une erreur est survenue.'; }
+  } catch { msgEl.className = 'landing-msg error'; msgEl.textContent = 'Impossible de contacter le serveur.'; }
+  finally { btn.disabled = false; btn.textContent = 'Recevoir le lien'; }
 }
 
 /* ─── Tab switching ─── */
@@ -433,47 +518,23 @@ async function requestLink() {
 function switchTab(tabId) {
   currentTab = tabId;
   window.location.hash = tabId === 'dashboard' ? '' : tabId;
-
-  // Update tab buttons
-  document.querySelectorAll('.tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.tab === tabId);
-  });
-
-  // Update panes
-  document.querySelectorAll('.tab-pane').forEach(p => {
-    p.classList.toggle('active', p.id === `tab-${tabId}`);
-  });
-
-  // Load data if not cached
-  if (tabId === 'dashboard' && !cache.dashboard) loadDashboard();
-  else if (tabId === 'documents' && !cache.documents) loadDocuments();
-  else if (tabId === 'memory' && !cache.memory) loadMemory();
-  else if (tabId === 'audit' && !cache.audit) loadAudit();
-  else if (tabId === 'usage' && !cache.usage) loadUsage();
-
-  // If cached, render
-  if (tabId === 'dashboard' && cache.dashboard) renderDashboard(cache.dashboard);
-  else if (tabId === 'documents' && cache.documents) renderDocuments(cache.documents);
-  else if (tabId === 'memory' && cache.memory) renderMemory(cache.memory);
-  else if (tabId === 'audit' && cache.audit) renderAudit(cache.audit);
-  else if (tabId === 'usage' && cache.usage) renderUsage(cache.usage);
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tabId));
+  const loaders = { dashboard: loadDashboard, commercial: loadCommercial, finance: loadFinance, equipe: loadEquipe, documents: loadDocuments };
+  if (!cache[tabId]) loaders[tabId]();
+  else {
+    const renderers = { dashboard: renderDashboard, commercial: renderCommercial, finance: renderFinance, equipe: renderEquipe, documents: renderDocuments };
+    renderers[tabId](cache[tabId]);
+  }
 }
-
 function refreshCurrentTab() {
   document.getElementById('header-time').textContent = nowParis();
   delete cache[currentTab];
-
-  // Show loader, hide content
-  const loader = document.getElementById(`${currentTab}-loader`);
-  const content = document.getElementById(`${currentTab}-content`);
+  const loader = document.getElementById(currentTab + '-loader');
+  const content = document.getElementById(currentTab + '-content');
   if (loader) loader.style.display = 'flex';
   if (content) content.style.display = 'none';
-
-  if (currentTab === 'dashboard') loadDashboard();
-  else if (currentTab === 'documents') loadDocuments();
-  else if (currentTab === 'memory') loadMemory();
-  else if (currentTab === 'audit') { auditPage = 1; loadAudit(); }
-  else if (currentTab === 'usage') loadUsage();
+  switchTab(currentTab);
 }
 
 /* ─── Dashboard ─── */
@@ -483,69 +544,350 @@ async function loadDashboard() {
     const data = await portalFetch('/dashboard');
     cache.dashboard = data;
     renderDashboard(data);
-  } catch (err) {
+  } catch {
     document.getElementById('dashboard-loader').style.display = 'none';
-    document.getElementById('dashboard-content').style.display = 'block';
-    document.getElementById('dashboard-content').innerHTML = `<p style="color:#dc2626">Erreur de chargement.</p>`;
+    const el = document.getElementById('dashboard-content');
+    el.style.display = 'block'; el.innerHTML = '<p style="color:#dc2626">Erreur de chargement.</p>';
   }
 }
 
 function renderDashboard(data) {
   document.getElementById('dashboard-loader').style.display = 'none';
-  document.getElementById('dashboard-content').style.display = 'block';
+  const el = document.getElementById('dashboard-content');
+  el.style.display = 'block';
 
-  const kpis = [
-    { label: 'Contacts', value: fmtNumber(data.contacts) },
-    { label: 'Deals', value: fmtNumber(data.deals) },
-    { label: 'Pipeline', value: fmtCurrency(data.pipeline_value) },
-    { label: 'Projets actifs', value: fmtNumber(data.projects) },
-    { label: 'Objectifs', value: fmtNumber(data.goals) },
-    { label: 'Obligations', value: fmtNumber(data.obligations) },
-  ];
+  let html = '';
 
-  document.getElementById('kpi-grid').innerHTML = kpis.map(k => `
-    <div class="kpi-card">
-      <div class="kpi-label">${k.label}</div>
-      <div class="kpi-value">${k.value}</div>
-    </div>
-  `).join('');
+  // Welcome
+  const name = companyName ? escapeHtml(companyName) : '';
+  html += '<div class="welcome-bar">' + (name ? 'Bonjour, ' + name : 'Bonjour') +
+    '<div class="welcome-sub">Votre entreprise en un coup d\'oeil</div></div>';
+
+  // Alert banner
+  const overdueObl = Number(data.overdue_obligations?.length || 0);
+  const overdueInv = Number(data.overdue_invoices || 0);
+  if (overdueObl > 0 || overdueInv > 0) {
+    const parts = [];
+    if (overdueObl > 0) parts.push(overdueObl + ' \u00E9ch\u00E9ance' + (overdueObl > 1 ? 's' : '') + ' en retard');
+    if (overdueInv > 0) parts.push(overdueInv + ' facture' + (overdueInv > 1 ? 's' : '') + ' en retard');
+    html += '<div class="alert-banner">\u26A0 ' + escapeHtml(parts.join(' \u00B7 ')) + '</div>';
+  }
+
+  // KPI cards
+  html += '<div class="kpi-grid">';
+  html += kpiCard('Pipeline commercial', fmtCurrency(data.pipeline_value), 'blue');
+  html += kpiCard('Opportunit\u00E9s actives', fmtNumber(data.deals), 'blue');
+  html += kpiCard('Contacts', fmtNumber(data.contacts), '');
+  html += kpiCard('\u00C9quipe', fmtNumber(data.team_members), '');
+  html += '</div>';
+
+  // Two-column layout
+  html += '<div class="two-col">';
+
+  // Left column
+  html += '<div>';
 
   // Recent deals
+  html += '<div class="section-title">Deals r\u00E9cents</div>';
   const deals = data.recent_deals || [];
   if (deals.length === 0) {
-    document.getElementById('deals-table').innerHTML = '<div class="empty">Aucun deal pour le moment</div>';
+    html += tableWrap(emptyMsg('Aucune opportunit\u00E9. Parlez de vos prospects \u00E0 Otto.'));
   } else {
-    document.getElementById('deals-table').innerHTML = `
-      <table>
-        <thead><tr><th>Titre</th><th>Montant</th><th>Etape</th><th>Date pr\u00E9vue</th></tr></thead>
-        <tbody>${deals.map(d => `
-          <tr>
-            <td>${escapeHtml(d.title)}</td>
-            <td>${fmtCurrency(d.amount)}</td>
-            <td><span class="stage-badge">${escapeHtml(d.stage)}</span></td>
-            <td>${fmtDateShort(d.expected_close_date)}</td>
-          </tr>
-        `).join('')}</tbody>
-      </table>`;
+    html += tableWrap('<table><thead><tr><th>Titre</th><th>Contact</th><th>Montant</th><th>\u00C9tape</th><th>Prochaine action</th></tr></thead><tbody>' +
+      deals.map(d => '<tr><td>' + escapeHtml(d.title) + '</td><td>' + escapeHtml(d.contact_name || '\u2014') +
+        '</td><td>' + fmtCurrency(d.amount) + '</td><td>' + badge(STAGES_FR, STAGE_COLORS, d.stage) +
+        '</td><td>' + escapeHtml(d.next_action || '\u2014') + '</td></tr>').join('') +
+      '</tbody></table>');
   }
 
   // Upcoming obligations
+  html += '<div class="section-title">Prochaines \u00E9ch\u00E9ances</div>';
   const obls = data.upcoming_obligations || [];
   if (obls.length === 0) {
-    document.getElementById('obligations-table').innerHTML = '<div class="empty">Aucune obligation \u00E0 venir</div>';
+    html += tableWrap(emptyMsg('Aucune \u00E9ch\u00E9ance \u00E0 venir.'));
   } else {
-    document.getElementById('obligations-table').innerHTML = `
-      <table>
-        <thead><tr><th>Titre</th><th>Cat\u00E9gorie</th><th>Ech\u00E9ance</th></tr></thead>
-        <tbody>${obls.map(o => `
-          <tr>
-            <td>${escapeHtml(o.title)}</td>
-            <td>${escapeHtml(o.category || '\u2014')}</td>
-            <td>${fmtDateShort(o.due_date)}</td>
-          </tr>
-        `).join('')}</tbody>
-      </table>`;
+    html += tableWrap('<table><thead><tr><th>Titre</th><th>Cat\u00E9gorie</th><th>Date</th></tr></thead><tbody>' +
+      obls.map(o => '<tr><td>' + escapeHtml(o.title) + '</td><td>' + escapeHtml(tr(OBLIGATION_CAT_FR, o.category)) +
+        '</td><td>' + fmtDateShort(o.due_date) + '</td></tr>').join('') +
+      '</tbody></table>');
   }
+  html += '</div>';
+
+  // Right column
+  html += '<div>';
+
+  // Recent interactions
+  html += '<div class="section-title">Derni\u00E8res interactions</div>';
+  const interactions = data.recent_interactions || [];
+  if (interactions.length === 0) {
+    html += tableWrap(emptyMsg('Aucune interaction enregistr\u00E9e.'));
+  } else {
+    html += '<div class="table-wrap"><div class="interaction-list">' +
+      interactions.map(i => {
+        const icon = INTERACTION_ICONS[i.type] || '\uD83D\uDCCB';
+        return '<div class="interaction-item"><span class="interaction-icon">' + icon +
+          '</span><div class="interaction-body"><div class="interaction-summary">' +
+          escapeHtml(i.summary || '\u2014') + '</div><div class="interaction-meta">' +
+          escapeHtml(i.contact_name || '') + (i.contact_name && i.date ? ' \u00B7 ' : '') +
+          fmtDateShort(i.date) + '</div></div></div>';
+      }).join('') +
+      '</div></div>';
+  }
+
+  // Upcoming meetings
+  html += '<div class="section-title">Prochaines r\u00E9unions</div>';
+  const meetings = data.upcoming_meetings || [];
+  if (meetings.length === 0) {
+    html += tableWrap(emptyMsg('Aucune r\u00E9union pr\u00E9vue.'));
+  } else {
+    html += '<div class="table-wrap">' +
+      meetings.map(m => '<div class="meeting-item"><div class="meeting-date">' +
+        fmtDateShort(m.date) + '</div><div class="meeting-summary">' +
+        escapeHtml(m.summary || '\u2014') + '</div>' +
+        (m.attendees ? '<div class="meeting-attendees">' + escapeHtml(m.attendees) + '</div>' : '') +
+        '</div>').join('') +
+      '</div>';
+  }
+  html += '</div>';
+  html += '</div>'; // end two-col
+
+  // Footer stat
+  if (cache.usage && cache.usage.total_messages) {
+    const since = cache.usage.member_since ? fmtDateShort(cache.usage.member_since) : '';
+    html += '<div class="msg-stat">Otto a trait\u00E9 ' + fmtNumber(cache.usage.total_messages) +
+      ' messages pour vous' + (since ? ' depuis ' + since : '') + '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+function kpiCard(label, value, colorClass) {
+  return '<div class="kpi-card"><div class="kpi-label">' + escapeHtml(label) +
+    '</div><div class="kpi-value' + (colorClass ? ' ' + colorClass : '') + '">' + value + '</div></div>';
+}
+
+/* ─── Commercial ─── */
+
+async function loadCommercial() {
+  try {
+    const [deals, contacts] = await Promise.all([portalFetch('/business/deals'), portalFetch('/business/contacts')]);
+    cache.commercial = { deals: deals.data || [], contacts: contacts.data || [] };
+    renderCommercial(cache.commercial);
+  } catch {
+    document.getElementById('commercial-loader').style.display = 'none';
+    const el = document.getElementById('commercial-content');
+    el.style.display = 'block'; el.innerHTML = '<p style="color:#dc2626">Erreur de chargement.</p>';
+  }
+}
+
+function renderCommercial(data) {
+  document.getElementById('commercial-loader').style.display = 'none';
+  const el = document.getElementById('commercial-content');
+  el.style.display = 'block';
+  let html = '';
+
+  const deals = data.deals || [];
+  const contacts = data.contacts || [];
+
+  // Pipeline summary
+  html += '<div class="section-title">Pipeline commercial</div>';
+  if (deals.length > 0) {
+    const stageCounts = {};
+    STAGE_ORDER.forEach(s => stageCounts[s] = 0);
+    deals.forEach(d => { const s = (d.stage || 'lead').toLowerCase(); stageCounts[s] = (stageCounts[s] || 0) + 1; });
+    const total = deals.length || 1;
+
+    html += '<div class="pipeline-bar">';
+    STAGE_ORDER.forEach(s => {
+      const count = stageCounts[s] || 0;
+      if (count > 0) {
+        const pct = Math.max((count / total) * 100, 8);
+        html += '<div class="pipeline-segment" style="flex:' + pct + ';background:' + STAGE_BAR_COLORS[s] + '">' +
+          '<span class="seg-label">' + (STAGES_FR[s] || s) + ' (' + count + ')</span></div>';
+      }
+    });
+    html += '</div>';
+
+    html += '<div class="pipeline-legend">';
+    STAGE_ORDER.forEach(s => {
+      const count = stageCounts[s] || 0;
+      if (count > 0) {
+        html += '<div class="pipeline-legend-item"><span class="pipeline-legend-dot" style="background:' +
+          STAGE_BAR_COLORS[s] + '"></span>' + (STAGES_FR[s] || s) + ' : ' + count + '</div>';
+      }
+    });
+    html += '</div>';
+  } else {
+    html += '<div class="table-wrap">' + emptyMsg('Aucune opportunit\u00E9 dans le pipeline. Dites \u00E0 Otto quand vous avez un nouveau prospect.') + '</div>';
+  }
+
+  // Deals table
+  html += '<div class="section-title">Opportunit\u00E9s</div>';
+  if (deals.length === 0) {
+    html += tableWrap(emptyMsg('Aucune opportunit\u00E9 enregistr\u00E9e.'));
+  } else {
+    html += tableWrap('<table><thead><tr><th>Titre</th><th>Entreprise</th><th>Contact</th><th>Montant</th>' +
+      '<th>\u00C9tape</th><th>Probabilit\u00E9</th><th>Prochaine action</th><th>Date pr\u00E9vue</th></tr></thead><tbody>' +
+      deals.map(d => '<tr><td>' + escapeHtml(d.title) + '</td><td>' + escapeHtml(d.company_name || '\u2014') +
+        '</td><td>' + escapeHtml(d.contact_name || '\u2014') + '</td><td>' + fmtCurrency(d.amount) +
+        '</td><td>' + badge(STAGES_FR, STAGE_COLORS, d.stage) + '</td><td>' + fmtPercent(d.probability) +
+        '</td><td>' + escapeHtml(d.next_action || '\u2014') + '</td><td>' + fmtDateShort(d.expected_close_date) +
+        '</td></tr>').join('') + '</tbody></table>');
+  }
+
+  // Contacts table
+  html += '<div class="section-title">Contacts</div>';
+  if (contacts.length === 0) {
+    html += tableWrap(emptyMsg('Aucun contact enregistr\u00E9. Mentionnez vos contacts \u00E0 Otto.'));
+  } else {
+    html += tableWrap('<table><thead><tr><th>Nom</th><th>Entreprise</th><th>R\u00F4le</th><th>Email</th>' +
+      '<th>T\u00E9l\u00E9phone</th><th>Type</th></tr></thead><tbody>' +
+      contacts.map(c => '<tr><td>' + escapeHtml(c.name) + '</td><td>' + escapeHtml(c.company_name || '\u2014') +
+        '</td><td>' + escapeHtml(c.role || '\u2014') + '</td><td>' + escapeHtml(c.email || '\u2014') +
+        '</td><td>' + escapeHtml(c.phone || '\u2014') + '</td><td>' +
+        badge(RELATIONSHIP_FR, null, c.relationship_type) + '</td></tr>').join('') +
+      '</tbody></table>');
+  }
+
+  el.innerHTML = html;
+}
+
+/* ─── Finance ─── */
+
+async function loadFinance() {
+  try {
+    const [dash, invoices, contracts] = await Promise.all([
+      cache.dashboard ? Promise.resolve(cache.dashboard) : portalFetch('/dashboard'),
+      portalFetch('/business/invoices'),
+      portalFetch('/business/contracts'),
+    ]);
+    if (!cache.dashboard) cache.dashboard = dash;
+    cache.finance = { dashboard: dash, invoices: invoices.data || [], contracts: contracts.data || [] };
+    renderFinance(cache.finance);
+  } catch {
+    document.getElementById('finance-loader').style.display = 'none';
+    const el = document.getElementById('finance-content');
+    el.style.display = 'block'; el.innerHTML = '<p style="color:#dc2626">Erreur de chargement.</p>';
+  }
+}
+
+function renderFinance(data) {
+  document.getElementById('finance-loader').style.display = 'none';
+  const el = document.getElementById('finance-content');
+  el.style.display = 'block';
+  let html = '';
+
+  const d = data.dashboard || {};
+  const invoices = data.invoices || [];
+  const contracts = data.contracts || [];
+
+  // Summary KPI
+  html += '<div class="kpi-grid">';
+  html += kpiCard('Factures en attente', fmtCurrency(d.invoices_pending_amount) + ' (' + fmtNumber(d.invoices_pending) + ')', 'blue');
+  html += kpiCard('Factures en retard', fmtNumber(d.overdue_invoices), Number(d.overdue_invoices) > 0 ? 'red' : '');
+  html += kpiCard('Contrats actifs', fmtNumber(d.active_contracts), '');
+  html += kpiCard('CA gagn\u00E9', fmtCurrency(d.revenue_won), 'green');
+  html += '</div>';
+
+  // Invoices table
+  html += '<div class="section-title">Factures</div>';
+  if (invoices.length === 0) {
+    html += tableWrap(emptyMsg('Aucune facture enregistr\u00E9e. Demandez \u00E0 Otto de cr\u00E9er une facture.'));
+  } else {
+    html += tableWrap('<table><thead><tr><th>N\u00B0</th><th>Entreprise</th><th>Direction</th><th>Montant</th>' +
+      '<th>Statut</th><th>\u00C9mission</th><th>\u00C9ch\u00E9ance</th></tr></thead><tbody>' +
+      invoices.map(i => '<tr><td>' + escapeHtml(i.invoice_number || '\u2014') + '</td><td>' +
+        escapeHtml(i.company_name || '\u2014') + '</td><td>' + escapeHtml(tr(INVOICE_DIR_FR, i.direction)) +
+        '</td><td>' + fmtCurrency(i.amount) + '</td><td>' + badge(INVOICE_STATUS_FR, INVOICE_STATUS_COLOR, i.status) +
+        '</td><td>' + fmtDateShort(i.issue_date) + '</td><td>' + fmtDateShort(i.due_date) +
+        '</td></tr>').join('') + '</tbody></table>');
+  }
+
+  // Contracts table
+  html += '<div class="section-title">Contrats</div>';
+  if (contracts.length === 0) {
+    html += tableWrap(emptyMsg('Aucun contrat enregistr\u00E9. Parlez de vos contrats \u00E0 Otto.'));
+  } else {
+    html += tableWrap('<table><thead><tr><th>Titre</th><th>Entreprise</th><th>Type</th><th>Valeur</th>' +
+      '<th>D\u00E9but</th><th>Fin</th><th>Renouvellement</th><th>Statut</th></tr></thead><tbody>' +
+      contracts.map(c => '<tr><td>' + escapeHtml(c.title) + '</td><td>' + escapeHtml(c.company_name || '\u2014') +
+        '</td><td>' + escapeHtml(tr(CONTRACT_KIND_FR, c.type)) + '</td><td>' + fmtCurrency(c.value) +
+        '</td><td>' + fmtDateShort(c.start_date) + '</td><td>' + fmtDateShort(c.end_date) +
+        '</td><td>' + escapeHtml(tr(RENEWAL_FR, c.renewal_type)) +
+        '</td><td>' + badge({ active: 'Actif', expired: 'Expir\u00E9', terminated: 'R\u00E9sili\u00E9', draft: 'Brouillon' },
+          { active: 'green', expired: 'red', terminated: 'grey', draft: 'grey' }, c.status) +
+        '</td></tr>').join('') + '</tbody></table>');
+  }
+
+  el.innerHTML = html;
+}
+
+/* ─── Equipe ─── */
+
+async function loadEquipe() {
+  try {
+    const [team, candidates, goals] = await Promise.all([
+      portalFetch('/business/team'),
+      portalFetch('/business/candidates'),
+      portalFetch('/business/goals'),
+    ]);
+    cache.equipe = { team: team.data || [], candidates: candidates.data || [], goals: goals.data || [] };
+    renderEquipe(cache.equipe);
+  } catch {
+    document.getElementById('equipe-loader').style.display = 'none';
+    const el = document.getElementById('equipe-content');
+    el.style.display = 'block'; el.innerHTML = '<p style="color:#dc2626">Erreur de chargement.</p>';
+  }
+}
+
+function renderEquipe(data) {
+  document.getElementById('equipe-loader').style.display = 'none';
+  const el = document.getElementById('equipe-content');
+  el.style.display = 'block';
+  let html = '';
+
+  const team = data.team || [];
+  const candidates = data.candidates || [];
+  const goals = data.goals || [];
+
+  // Team table
+  html += '<div class="section-title">\u00C9quipe</div>';
+  if (team.length === 0) {
+    html += tableWrap(emptyMsg('Aucun membre d\'\u00E9quipe enregistr\u00E9. Pr\u00E9sentez votre \u00E9quipe \u00E0 Otto.'));
+  } else {
+    html += tableWrap('<table><thead><tr><th>Nom</th><th>R\u00F4le</th><th>Email</th>' +
+      '<th>Type de contrat</th><th>Depuis</th></tr></thead><tbody>' +
+      team.map(t => '<tr><td>' + escapeHtml(t.name) + '</td><td>' + escapeHtml(t.role || '\u2014') +
+        '</td><td>' + escapeHtml(t.email || '\u2014') + '</td><td>' +
+        escapeHtml(tr(CONTRACT_TYPE_FR, t.contract_type)) + '</td><td>' +
+        fmtDateShort(t.start_date) + '</td></tr>').join('') + '</tbody></table>');
+  }
+
+  // Candidates table (only if data)
+  if (candidates.length > 0) {
+    html += '<div class="section-title">Recrutement</div>';
+    html += tableWrap('<table><thead><tr><th>Nom</th><th>Poste</th><th>\u00C9tape</th><th>Source</th>' +
+      '<th>Entreprise actuelle</th></tr></thead><tbody>' +
+      candidates.map(c => '<tr><td>' + escapeHtml(c.name) + '</td><td>' + escapeHtml(c.position || '\u2014') +
+        '</td><td>' + badge(CANDIDATE_STAGE_FR, CANDIDATE_STAGE_COLOR, c.stage) +
+        '</td><td>' + escapeHtml(c.source || '\u2014') + '</td><td>' +
+        escapeHtml(c.current_company || '\u2014') + '</td></tr>').join('') + '</tbody></table>');
+  }
+
+  // Goals table (only if data)
+  if (goals.length > 0) {
+    html += '<div class="section-title">Objectifs</div>';
+    html += tableWrap('<table><thead><tr><th>Titre</th><th>M\u00E9trique</th><th>Cible</th><th>Actuel</th>' +
+      '<th>\u00C9ch\u00E9ance</th><th>Statut</th></tr></thead><tbody>' +
+      goals.map(g => '<tr><td>' + escapeHtml(g.title) + '</td><td>' + escapeHtml(g.metric || '\u2014') +
+        '</td><td>' + escapeHtml(g.target != null ? g.target : '\u2014') +
+        '</td><td>' + escapeHtml(g.current != null ? g.current : '\u2014') +
+        '</td><td>' + fmtDateShort(g.deadline) + '</td><td>' +
+        badge(GOAL_STATUS_FR, GOAL_STATUS_COLOR, g.status) + '</td></tr>').join('') +
+      '</tbody></table>');
+  }
+
+  el.innerHTML = html;
 }
 
 /* ─── Documents ─── */
@@ -557,8 +899,8 @@ async function loadDocuments() {
     renderDocuments(data);
   } catch {
     document.getElementById('documents-loader').style.display = 'none';
-    document.getElementById('documents-content').style.display = 'block';
-    document.getElementById('documents-content').innerHTML = `<p style="color:#dc2626">Erreur de chargement.</p>`;
+    const el = document.getElementById('documents-content');
+    el.style.display = 'block'; el.innerHTML = '<p style="color:#dc2626">Erreur de chargement.</p>';
   }
 }
 
@@ -569,217 +911,59 @@ function renderDocuments(data) {
 
   const docs = data.documents || [];
   if (docs.length === 0) {
-    el.innerHTML = '<div class="table-wrap"><div class="empty">Aucun document pour le moment</div></div>';
+    el.innerHTML = tableWrap(emptyMsg('Aucun document pour le moment. Demandez \u00E0 Otto de cr\u00E9er un document pour le retrouver ici.'));
     return;
   }
 
-  el.innerHTML = `
-    <div class="table-wrap">
-      <div class="doc-list">
-        ${docs.map(d => `
-          <div class="doc-item">
-            <div class="doc-info">
-              <span class="doc-icon">${fileIcon(d.name)}</span>
-              <span class="doc-name">${escapeHtml(d.name)}</span>
-            </div>
-            <span class="doc-meta">${d.size_kb} Ko \u00B7 ${fmtDateShort(d.modified)}</span>
-            <button class="doc-dl" onclick="downloadDoc('${escapeHtml(d.path)}')">T\u00E9l\u00E9charger</button>
-          </div>
-        `).join('')}
-      </div>
-    </div>`;
+  // Group: recent (7 days) vs older
+  const now = Date.now();
+  const sevenDays = 7 * 24 * 60 * 60 * 1000;
+  const recent = [];
+  const older = [];
+  docs.forEach(d => {
+    const mod = d.modified ? new Date(d.modified).getTime() : 0;
+    if (now - mod < sevenDays) recent.push(d);
+    else older.push(d);
+  });
+
+  function renderDocGroup(items) {
+    return items.map(d =>
+      '<div class="doc-item"><div class="doc-info"><span class="doc-icon">' + fileIcon(d.name) +
+      '</span><span class="doc-name">' + escapeHtml(d.name) + '</span></div>' +
+      '<span class="doc-meta">' + (d.size_kb || 0) + ' Ko \u00B7 ' + fmtDateShort(d.modified) + '</span>' +
+      '<button class="doc-dl" onclick="downloadDoc(\'' + escapeHtml(d.path).replace(/'/g, "\\'") +
+      '\')">T\u00E9l\u00E9charger</button></div>'
+    ).join('');
+  }
+
+  let html = '<div class="table-wrap"><div class="doc-list">';
+  if (recent.length > 0) {
+    html += '<div class="doc-group-title">R\u00E9cents (7 derniers jours)</div>';
+    html += renderDocGroup(recent);
+  }
+  if (older.length > 0) {
+    html += '<div class="doc-group-title">' + (recent.length > 0 ? 'Plus anciens' : 'Tous les documents') + '</div>';
+    html += renderDocGroup(older);
+  }
+  html += '</div></div>';
+  el.innerHTML = html;
 }
 
 function downloadDoc(path) {
-  window.open(`/api/portal/documents/download?file=${encodeURIComponent(path)}`, '_blank');
-}
-
-/* ─── Memory ─── */
-
-async function loadMemory() {
-  try {
-    const data = await portalFetch('/memory');
-    cache.memory = data;
-    renderMemory(data);
-  } catch {
-    document.getElementById('memory-loader').style.display = 'none';
-    document.getElementById('memory-content').style.display = 'block';
-    document.getElementById('memory-content').innerHTML = `<p style="color:#dc2626">Erreur de chargement.</p>`;
-  }
-}
-
-function renderMemory(data) {
-  document.getElementById('memory-loader').style.display = 'none';
-  const el = document.getElementById('memory-content');
-  el.style.display = 'block';
-
-  const files = data.memoryFiles || {};
-  const entries = Object.entries(files);
-
-  if (entries.length === 0) {
-    el.innerHTML = '<div class="table-wrap"><div class="empty">Aucune donn\u00E9e en m\u00E9moire</div></div>';
-    return;
-  }
-
-  // Group by folder prefix
-  el.innerHTML = entries.map(([name, content]) => {
-    const displayName = name.replace(/^context\//, '').replace(/^preferences\//, '').replace(/\.md$/, '');
-    return `
-      <div class="memory-card">
-        <div class="memory-title">${escapeHtml(name)}</div>
-        <pre>${escapeHtml(content)}</pre>
-      </div>`;
-  }).join('');
-}
-
-/* ─── Audit ─── */
-
-async function loadAudit() {
-  try {
-    const data = await portalFetch(`/audit?page=${auditPage}&limit=${AUDIT_LIMIT}`);
-    cache.audit = data;
-    renderAudit(data);
-  } catch {
-    document.getElementById('audit-loader').style.display = 'none';
-    document.getElementById('audit-content').style.display = 'block';
-    document.getElementById('audit-content').innerHTML = `<p style="color:#dc2626">Erreur de chargement.</p>`;
-  }
-}
-
-function renderAudit(data) {
-  document.getElementById('audit-loader').style.display = 'none';
-  const el = document.getElementById('audit-content');
-  el.style.display = 'block';
-
-  const logs = data.logs || [];
-  const total = data.total || 0;
-  const page = data.page || 1;
-  const pages = data.pages || 1;
-
-  if (logs.length === 0) {
-    el.innerHTML = '<div class="table-wrap"><div class="empty">Aucune activit\u00E9 enregistr\u00E9e</div></div>';
-    return;
-  }
-
-  el.innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Date</th><th>Action</th><th>Table</th><th>D\u00E9tails</th></tr></thead>
-        <tbody>${logs.map(l => `
-          <tr>
-            <td style="white-space:nowrap">${fmtDateTime(l.created_at)}</td>
-            <td>${escapeHtml(l.action)}</td>
-            <td>${escapeHtml(l.table_name)}</td>
-            <td>${escapeHtml(l.reason || l.record_id || '\u2014')}</td>
-          </tr>
-        `).join('')}</tbody>
-      </table>
-    </div>
-    <div class="pagination">
-      <button onclick="goAuditPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}>Pr\u00E9c\u00E9dent</button>
-      <span class="page-info">Page ${page} sur ${pages}</span>
-      <button onclick="goAuditPage(${page + 1})" ${page >= pages ? 'disabled' : ''}>Suivant</button>
-    </div>`;
-}
-
-function goAuditPage(page) {
-  if (page < 1) return;
-  auditPage = page;
-  delete cache.audit;
-  document.getElementById('audit-loader').style.display = 'flex';
-  document.getElementById('audit-content').style.display = 'none';
-  loadAudit();
-}
-
-/* ─── Usage ─── */
-
-async function loadUsage() {
-  try {
-    const data = await portalFetch('/usage');
-    cache.usage = data;
-    renderUsage(data);
-  } catch {
-    document.getElementById('usage-loader').style.display = 'none';
-    document.getElementById('usage-content').style.display = 'block';
-    document.getElementById('usage-content').innerHTML = `<p style="color:#dc2626">Erreur de chargement.</p>`;
-  }
-}
-
-function renderUsage(data) {
-  document.getElementById('usage-loader').style.display = 'none';
-  const el = document.getElementById('usage-content');
-  el.style.display = 'block';
-
-  const weekly = data.weekly || [];
-  const totalMessages = data.total_messages || 0;
-  const memberSince = data.member_since;
-
-  // Compute active days
-  const activeDays = weekly.reduce((sum, w) => sum + (w.active_days || 0), 0);
-
-  // Bar chart
-  const maxMsg = Math.max(...weekly.map(w => w.messages || 0), 1);
-  let chartHtml = '';
-  if (weekly.length > 0) {
-    chartHtml = `
-      <div class="section-title">Messages par semaine</div>
-      <div class="bar-chart">
-        ${weekly.map(w => {
-          const h = Math.max(((w.messages || 0) / maxMsg) * 120, 2);
-          const label = w.week || '';
-          // Format week label: try to show short date
-          let shortLabel = label;
-          try {
-            const d = new Date(label);
-            if (!isNaN(d)) shortLabel = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-          } catch {}
-          return `
-            <div class="bar-col">
-              <div class="bar-value">${w.messages || 0}</div>
-              <div class="bar" style="height:${h}px" title="${label}: ${w.messages || 0} messages"></div>
-              <div class="bar-label">${shortLabel}</div>
-            </div>`;
-        }).join('')}
-      </div>`;
-  }
-
-  el.innerHTML = `
-    <div class="chart-container">${chartHtml}</div>
-    <div class="usage-stats">
-      <div class="usage-stat">
-        <div class="stat-value">${fmtNumber(totalMessages)}</div>
-        <div class="stat-label">Total messages</div>
-      </div>
-      <div class="usage-stat">
-        <div class="stat-value">${fmtNumber(activeDays)}</div>
-        <div class="stat-label">Jours actifs</div>
-      </div>
-      <div class="usage-stat">
-        <div class="stat-value">${memberSince ? fmtDateShort(memberSince) : '\u2014'}</div>
-        <div class="stat-label">Membre depuis</div>
-      </div>
-    </div>`;
+  window.open('/api/portal/documents/download?file=' + encodeURIComponent(path), '_blank');
 }
 
 /* ─── Hash change listener ─── */
 
 window.addEventListener('hashchange', () => {
   const hash = window.location.hash.replace('#', '');
-  const validTabs = ['dashboard', 'documents', 'memory', 'audit', 'usage'];
-  if (hash && validTabs.includes(hash) && hash !== currentTab) {
-    switchTab(hash);
-  } else if (!hash && currentTab !== 'dashboard') {
-    switchTab('dashboard');
-  }
+  if (hash && VALID_TABS.includes(hash) && hash !== currentTab) switchTab(hash);
+  else if (!hash && currentTab !== 'dashboard') switchTab('dashboard');
 });
-
-/* ─── Enter key on email input ─── */
 
 document.getElementById('email-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') requestLink();
 });
-
-/* ─── Auto-refresh header time ─── */
 
 setInterval(() => {
   const el = document.getElementById('header-time');
