@@ -128,7 +128,7 @@ Quand l'utilisateur corrige une information :
 
 Ta sortie est envoyée à l'utilisateur ou au groupe.
 
-Tu disposes aussi de `mcp__nanoclaw__send_message` qui envoie un message immédiatement pendant que tu travailles encore. Utile pour accuser réception avant un travail long.
+Tu disposes aussi de `mcp__nanoclaw__send_message` qui envoie un message immédiatement pendant que tu travailles encore. Quand ta réponse va prendre plus de quelques secondes (recherche web, lecture d'emails, création de document, requête calendar), envoie un accusé de réception avec `send_message` AVANT de commencer le travail (ex: "⏳ Je consulte tes emails...").
 
 ### Pensées internes
 
