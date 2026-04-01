@@ -537,9 +537,17 @@ export class WhatsAppChannel implements Channel {
     }
   }
 
-  async sendDocument(jid: string, filePath: string, filename: string, caption?: string): Promise<void> {
+  async sendDocument(
+    jid: string,
+    filePath: string,
+    filename: string,
+    caption?: string,
+  ): Promise<void> {
     if (!this.connected || !fs.existsSync(filePath)) {
-      logger.warn({ jid, filePath }, 'Cannot send document — not connected or file missing');
+      logger.warn(
+        { jid, filePath },
+        'Cannot send document — not connected or file missing',
+      );
       return;
     }
     try {
@@ -547,9 +555,12 @@ export class WhatsAppChannel implements Channel {
       const ext = path.extname(filename).toLowerCase();
       const mimeTypes: Record<string, string> = {
         '.pdf': 'application/pdf',
-        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        '.docx':
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.xlsx':
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.pptx':
+          'application/vnd.openxmlformats-officedocument.presentationml.presentation',
         '.csv': 'text/csv',
         '.txt': 'text/plain',
       };

@@ -179,3 +179,48 @@ export async function sendWelcomeEmail(to: string, name?: string | null): Promis
 
   console.log(`[EMAIL] Welcome email sent to ${to}`);
 }
+
+/**
+ * Send a portal access link via email.
+ */
+export async function sendPortalLinkEmail(
+  to: string,
+  portalUrl: string,
+): Promise<void> {
+  if (!transporter) {
+    console.warn('SMTP not configured — portal link email not sent');
+    console.log(`[EMAIL] Would send portal link to ${to}: ${portalUrl}`);
+    return;
+  }
+
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: 'Ton espace client Otto',
+    html: `
+      <div style="font-family:'Inter',system-ui,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px">
+        <div style="text-align:center;margin-bottom:32px">
+          <h1 style="font-size:1.5rem;font-weight:300;letter-spacing:0.3em;text-transform:uppercase;margin-bottom:4px">Otto</h1>
+          <p style="color:#999;font-style:italic;font-size:0.9rem">by HNTIC</p>
+        </div>
+        <p style="color:#333;font-size:1rem;line-height:1.6;margin-bottom:24px">
+          Clique sur le bouton ci-dessous pour acc&eacute;der &agrave; ton espace client.
+        </p>
+        <div style="text-align:center;margin-bottom:32px">
+          <a href="${portalUrl}" style="display:inline-block;padding:14px 32px;background:#1a1a1a;color:#fff;text-decoration:none;border-radius:8px;font-size:1rem;font-weight:500">
+            Mon espace Otto
+          </a>
+        </div>
+        <p style="color:#999;font-size:0.85rem;line-height:1.5">
+          Ce lien est valable 24 heures.
+        </p>
+        <hr style="border:none;border-top:1px solid #eee;margin:32px 0">
+        <p style="color:#bbb;font-size:0.75rem;text-align:center">
+          <a href="https://hntic.fr" style="color:#999;text-decoration:none">HNTIC</a>
+        </p>
+      </div>
+    `,
+  });
+
+  console.log(`[EMAIL] Portal link email sent to ${to}`);
+}

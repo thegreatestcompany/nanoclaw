@@ -788,7 +788,8 @@ async function main(): Promise<void> {
     },
     sendDocument: (jid, filePath, filename, caption) => {
       const channel = findChannel(channels, jid);
-      if (!channel?.sendDocument) throw new Error(`No document support for JID: ${jid}`);
+      if (!channel?.sendDocument)
+        throw new Error(`No document support for JID: ${jid}`);
       return channel.sendDocument(jid, filePath, filename, caption);
     },
     groupsDir: GROUPS_DIR,

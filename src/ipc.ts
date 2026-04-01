@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
@@ -97,9 +98,17 @@ export function startIpcWatcher(deps: IpcDeps): void {
                   // Container uses /workspace/group/ which maps to {groupsDir}/{sourceGroup}/
                   let resolvedPath = data.filePath;
                   if (resolvedPath.startsWith('/workspace/group/')) {
-                    resolvedPath = path.join(deps.groupsDir, sourceGroup, resolvedPath.replace('/workspace/group/', ''));
+                    resolvedPath = path.join(
+                      deps.groupsDir,
+                      sourceGroup,
+                      resolvedPath.replace('/workspace/group/', ''),
+                    );
                   } else if (!resolvedPath.startsWith('/')) {
-                    resolvedPath = path.join(deps.groupsDir, sourceGroup, resolvedPath);
+                    resolvedPath = path.join(
+                      deps.groupsDir,
+                      sourceGroup,
+                      resolvedPath,
+                    );
                   }
                   if (deps.sendDocument) {
                     await deps.sendDocument(
@@ -472,6 +481,49 @@ export async function processTaskIpc(
         );
       }
       break;
+
+    case 'portal_link': {
+      // Generate a magic link for the client portal
+      const portalSecret = process.env.PORTAL_JWT_SECRET;
+      const clientId = process.env.CLIENT_ID;
+      if (!portalSecret || !clientId) {
+        logger.warn(
+          { sourceGroup },
+          'portal_link: PORTAL_JWT_SECRET or CLIENT_ID not set',
+        );
+        break;
+      }
+
+      // Sign JWT using Node's built-in crypto (no dependency needed)
+      const header = Buffer.from(
+        JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
+      ).toString('base64url');
+      const payload = Buffer.from(
+        JSON.stringify({
+          client_id: clientId,
+          exp: Math.floor(Date.now() / 1000) + 86400,
+          iat: Math.floor(Date.now() / 1000),
+        }),
+      ).toString('base64url');
+      const signature = crypto
+        .createHmac('sha256', portalSecret)
+        .update(`${header}.${payload}`)
+        .digest('base64url');
+      const portalToken = `${header}.${payload}.${signature}`;
+
+      const baseUrl = process.env.BASE_URL || 'https://otto.hntic.fr';
+      const portalUrl = `${baseUrl}/portal?token=${portalToken}`;
+
+      const chatJid = data.chatJid || data.targetJid;
+      if (chatJid) {
+        await deps.sendMessage(
+          chatJid,
+          `Voici ton espace client Otto :\n\n${portalUrl}\n\nCe lien est valable 24h.`,
+        );
+        logger.info({ sourceGroup, chatJid }, 'Portal link sent via IPC');
+      }
+      break;
+    }
 
     case 'register_group':
       // Disabled — group registration is admin-only (via onboarding API).

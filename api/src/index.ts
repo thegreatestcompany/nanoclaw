@@ -9,6 +9,7 @@
  *   POST /api/admin/*            — Admin actions (restart, stop)
  */
 
+import cookieParser from 'cookie-parser';
 import express from 'express';
 import { createServer } from 'http';
 import { createRequire } from 'module';
@@ -18,6 +19,7 @@ import { fileURLToPath } from 'url';
 import { initDb, getDb, getClientById, renewOnboardToken } from './db.js';
 import { setupStripeRoutes, runPeriodicChecks } from './stripe.js';
 import { setupAdminRoutes } from './admin.js';
+import { setupPortalRoutes } from './client-portal.js';
 import { setupOnboardRoutes } from './onboard.js';
 import { sendReconnectionEmail } from './mailer.js';
 
@@ -26,6 +28,8 @@ const PORT = parseInt(process.env.API_PORT || '3000', 10);
 
 const app = express();
 const server = createServer(app);
+
+app.use(cookieParser());
 
 // Serve static files (onboard page)
 app.use('/static', express.static(path.join(__dirname, '..', 'public')));
@@ -40,6 +44,11 @@ app.get('/admin', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
 });
 
+// Client portal
+app.get('/portal', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'portal.html'));
+});
+
 // Initialize database
 initDb();
 
@@ -47,6 +56,7 @@ initDb();
 setupStripeRoutes(app);
 setupOnboardRoutes(app, server);
 setupAdminRoutes(app);
+setupPortalRoutes(app);
 
 /**
  * Listen for IPC messages from client PM2 processes.

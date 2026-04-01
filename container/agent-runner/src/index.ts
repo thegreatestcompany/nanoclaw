@@ -496,6 +496,34 @@ function createPostToolUseHook(): HookCallback {
         log(`[AUDIT] SQL mutation via Bash detected: ${command.slice(0, 200)}`);
       }
 
+      // Auto-move documents from group root to documents/ and clean up build scripts
+      const responseStr = typeof toolResponse === 'string' ? toolResponse : JSON.stringify(toolResponse || '');
+      const filePattern = /\/workspace\/group\/([^\s"'\/]+\.(pptx|docx|xlsx|pdf))/gi;
+      let match;
+      while ((match = filePattern.exec(responseStr)) !== null) {
+        const filename = match[1];
+        const srcPath = `/workspace/group/${filename}`;
+        const docsDir = '/workspace/group/documents';
+        const destPath = `${docsDir}/${filename}`;
+        if (fs.existsSync(srcPath) && !srcPath.startsWith(docsDir)) {
+          fs.mkdirSync(docsDir, { recursive: true });
+          try {
+            fs.renameSync(srcPath, destPath);
+            log(`[DOCS] Moved ${filename} → documents/`);
+          } catch { /* ignore */ }
+        }
+      }
+      // Clean up build scripts left behind by document creation
+      const scriptPattern = /\/workspace\/group\/([^\s"'\/]+\.(js))/gi;
+      while ((match = scriptPattern.exec(responseStr)) !== null) {
+        const scriptPath = `/workspace/group/${match[1]}`;
+        if (fs.existsSync(scriptPath) && !scriptPath.includes('/documents/')) {
+          try {
+            fs.unlinkSync(scriptPath);
+            log(`[DOCS] Cleaned up build script: ${match[1]}`);
+          } catch { /* ignore */ }
+        }
+      }
     }
 
     return {};

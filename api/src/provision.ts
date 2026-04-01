@@ -200,6 +200,7 @@ export async function provisionClient(
   // Pass through shared API keys from the API's env
   if (process.env.EXA_API_KEY) envLines.push(`EXA_API_KEY=${process.env.EXA_API_KEY}`);
   if (process.env.OPENAI_API_KEY) envLines.push(`OPENAI_API_KEY=${process.env.OPENAI_API_KEY}`);
+  if (process.env.PORTAL_JWT_SECRET) envLines.push(`PORTAL_JWT_SECRET=${process.env.PORTAL_JWT_SECRET}`);
   const envContent = envLines.join('\n');
   fs.writeFileSync(path.join(clientDir, '.env'), envContent, { mode: 0o600 });
   fs.mkdirSync(path.join(clientDir, 'data', 'env'), { recursive: true });
