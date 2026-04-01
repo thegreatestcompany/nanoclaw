@@ -21,7 +21,7 @@ import { setupStripeRoutes, runPeriodicChecks } from './stripe.js';
 import { setupAdminRoutes } from './admin.js';
 import { setupPortalRoutes } from './client-portal.js';
 import { setupOnboardRoutes } from './onboard.js';
-import { sendReconnectionEmail } from './mailer.js';
+import { sendReconnectionEmail, sendContactNotification } from './mailer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.API_PORT || '3000', 10);
@@ -47,6 +47,20 @@ app.get('/admin', (_req, res) => {
 // Client portal
 app.get('/portal', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'portal.html'));
+});
+
+// Contact form
+app.post('/api/contact', express.json(), (req, res) => {
+  const { name, email, company, message } = req.body;
+  if (!name || !email) {
+    res.status(400).json({ error: 'name and email required' });
+    return;
+  }
+  console.log(`[CONTACT] ${name} <${email}> — ${company || 'N/A'} — ${message || ''}`);
+  sendContactNotification(name, email, company, message).catch(err =>
+    console.error('Failed to send contact notification:', err),
+  );
+  res.json({ ok: true });
 });
 
 // Initialize database

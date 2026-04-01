@@ -270,9 +270,14 @@
       background: #fff; border-bottom: 1px solid #e5e7eb; padding: 12px 20px;
     }
     .dm-logo {
-      font-size: 0.85rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
     }
-    .dm-logo span { font-size: 0.55rem; font-weight: 400; color: #888; letter-spacing: 0.1em; margin-left: 4px; }
+    .dm-logo svg { width: 18px; height: 18px; }
+    .dm-logo .dm-logo-text {
+      font-family: 'Sora', sans-serif; font-weight: 800; font-size: 0.9rem; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
     .dm-tabs { display: flex; gap: 0; border-bottom: 1px solid #e5e7eb; margin: 0 -20px; padding: 0 20px; }
     .dm-tab {
       padding: 8px 14px; font-size: 0.7rem; font-weight: 500; color: #9ca3af;
@@ -507,6 +512,30 @@
       .replace-grid { gap: 12px; }
     }
 
+    /* ═══ CONTACT FORM ═══ */
+    .contact-form {
+      max-width: 420px; margin: 0 auto; text-align: left;
+    }
+    .contact-form input, .contact-form textarea {
+      width: 100%; padding: 14px 18px; border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 12px; font-size: 0.92rem; font-family: inherit;
+      background: var(--white); color: var(--black); margin-bottom: 10px;
+      outline: none; transition: border-color 0.2s;
+    }
+    .contact-form input:focus, .contact-form textarea:focus { border-color: var(--green); }
+    .contact-form input::placeholder, .contact-form textarea::placeholder { color: #aaa; }
+    .contact-form textarea { resize: vertical; min-height: 80px; }
+    .contact-form button {
+      width: 100%; padding: 16px; background: var(--black); color: var(--white);
+      border: none; border-radius: 100px; font-size: 1rem; font-weight: 500;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .contact-form button:hover { background: #333; }
+    .contact-form button:disabled { background: #999; cursor: not-allowed; }
+    .contact-msg { font-size: 0.85rem; text-align: center; margin-top: 12px; min-height: 20px; }
+    .contact-msg.success { color: #059669; }
+    .contact-msg.error { color: #dc2626; }
+
     /* ═══ FOOTER ═══ */
     footer {
       padding: 36px 24px; text-align: center;
@@ -533,7 +562,7 @@
         </svg>
         <span class="logo-text">Otto</span>
       </a>
-      <a href="mailto:contact@hntic.fr?subject=Otto%20-%20Demande%20d%27acc%C3%A8s" class="hdr-cta">Nous contacter</a>
+      <a href="#contact" class="hdr-cta">Nous contacter</a>
     </div>
   </header>
 
@@ -546,7 +575,7 @@
         Otto pilote votre business depuis WhatsApp. CRM, documents, finances, &eacute;quipe, relances &mdash; tout tourne depuis votre t&eacute;l&eacute;phone, m&ecirc;me quand vous n'&ecirc;tes pas au bureau.
       </p>
       <div class="cta-group reveal d3">
-        <a href="mailto:contact@hntic.fr?subject=Otto%20-%20Demande%20d%27acc%C3%A8s" class="cta">Demander un acc&egrave;s &rarr;</a>
+        <a href="#contact" class="cta">Demander un acc&egrave;s &rarr;</a>
         <span class="cta-note">D&eacute;mo personnalis&eacute;e en 15 minutes</span>
       </div>
     </div>
@@ -633,7 +662,7 @@
       </p>
       <div class="dash-mock reveal-scale">
         <div class="dm-header">
-          <div class="dm-logo">OTTO <span>by HNTIC</span></div>
+          <div class="dm-logo"><svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M24 4L42 14V34L24 44L6 34V14L24 4Z" stroke="#1a1a1a" stroke-width="2.5" fill="none"/><circle cx="24" cy="14" r="3" fill="#1a1a1a"/><circle cx="14" cy="24" r="3" fill="#1a1a1a"/><circle cx="34" cy="24" r="3" fill="#1a1a1a"/><circle cx="24" cy="34" r="3" fill="#1a1a1a"/><circle cx="24" cy="24" r="4" fill="#1a1a1a"/><line x1="24" y1="14" x2="24" y2="20" stroke="#1a1a1a" stroke-width="2"/><line x1="14" y1="24" x2="20" y2="24" stroke="#1a1a1a" stroke-width="2"/><line x1="28" y1="24" x2="34" y2="24" stroke="#1a1a1a" stroke-width="2"/><line x1="24" y1="28" x2="24" y2="34" stroke="#1a1a1a" stroke-width="2"/></svg><span class="dm-logo-text">Otto</span></div>
           <div class="dm-tabs">
             <span class="dm-tab active">Vue d'ensemble</span>
             <span class="dm-tab">Commercial</span>
@@ -658,7 +687,7 @@
             </div>
             <div class="dm-col">
               <div class="dm-section-title">Derni&egrave;res interactions</div>
-              <div class="dm-row"><span>&#128172; Appel avec M-C Renaux</span><span class="dm-meta">Aujourd'hui</span></div>
+              <div class="dm-row"><span>&#128172; Appel avec Sophie Laurent</span><span class="dm-meta">Aujourd'hui</span></div>
               <div class="dm-row"><span>&#128232; Email &agrave; Jean Dupont</span><span class="dm-meta">Hier</span></div>
               <div class="dm-row"><span>&#129309; R&eacute;union Acme</span><span class="dm-meta">28 mars</span></div>
             </div>
@@ -767,12 +796,19 @@
     </div>
   </section>
 
-  <!-- ═══ FINAL CTA ═══ -->
-  <section class="final">
+  <!-- ═══ FINAL CTA — Contact form ═══ -->
+  <section class="final" id="contact">
     <div class="container">
       <h2 class="reveal">Et si votre entreprise tenait<br>dans une seule conversation ?</h2>
-      <p class="sub reveal d1">Votre prochain employ&eacute; n'aura pas besoin de bureau.</p>
-      <div class="reveal d2"><a href="mailto:contact@hntic.fr?subject=Otto%20-%20Demande%20d%27acc%C3%A8s" class="cta">Demander un acc&egrave;s &rarr;</a></div>
+      <p class="sub reveal d1">Laissez-nous vos coordonn&eacute;es. On vous recontacte en moins de 24h.</p>
+      <div class="contact-form reveal d2">
+        <input type="text" id="contact-name" placeholder="Votre nom" autocomplete="name">
+        <input type="email" id="contact-email" placeholder="Votre email" autocomplete="email">
+        <input type="text" id="contact-company" placeholder="Entreprise (optionnel)" autocomplete="organization">
+        <textarea id="contact-message" placeholder="Un mot sur votre besoin (optionnel)" rows="3"></textarea>
+        <button id="contact-btn" onclick="submitContact()">Demander un acc&egrave;s &rarr;</button>
+        <div class="contact-msg" id="contact-msg"></div>
+      </div>
     </div>
   </section>
 
@@ -790,6 +826,54 @@
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('v'); });
     }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
     document.querySelectorAll('.reveal,.reveal-scale').forEach(el => obs.observe(el));
+
+    async function submitContact() {
+      const name = document.getElementById('contact-name').value.trim();
+      const email = document.getElementById('contact-email').value.trim();
+      const company = document.getElementById('contact-company').value.trim();
+      const message = document.getElementById('contact-message').value.trim();
+      const btn = document.getElementById('contact-btn');
+      const msg = document.getElementById('contact-msg');
+
+      if (!name || !email) {
+        msg.className = 'contact-msg error';
+        msg.textContent = 'Nom et email requis.';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Envoi en cours\u2026';
+      msg.textContent = '';
+
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, company, message }),
+        });
+        if (res.ok) {
+          msg.className = 'contact-msg success';
+          msg.textContent = 'Merci ! Nous vous recontactons tr\u00e8s vite.';
+          document.getElementById('contact-name').value = '';
+          document.getElementById('contact-email').value = '';
+          document.getElementById('contact-company').value = '';
+          document.getElementById('contact-message').value = '';
+        } else {
+          msg.className = 'contact-msg error';
+          msg.textContent = 'Une erreur est survenue. R\u00e9essayez.';
+        }
+      } catch {
+        msg.className = 'contact-msg error';
+        msg.textContent = 'Impossible de contacter le serveur.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Demander un acc\u00e8s \u2192';
+      }
+    }
+
+    document.querySelectorAll('.contact-form input, .contact-form textarea').forEach(el => {
+      el.addEventListener('keydown', e => { if (e.key === 'Enter' && el.tagName !== 'TEXTAREA') submitContact(); });
+    });
   </script>
 
 </body>

@@ -224,3 +224,39 @@ export async function sendPortalLinkEmail(
 
   console.log(`[EMAIL] Portal link email sent to ${to}`);
 }
+
+/**
+ * Send a contact form notification to the team.
+ */
+export async function sendContactNotification(
+  name: string,
+  email: string,
+  company?: string,
+  message?: string,
+): Promise<void> {
+  const notifyTo = process.env.CONTACT_NOTIFY_EMAIL || process.env.SMTP_USER;
+  if (!transporter || !notifyTo) {
+    console.log(`[CONTACT] Notification not sent (SMTP not configured): ${name} <${email}>`);
+    return;
+  }
+
+  await transporter.sendMail({
+    from: FROM,
+    to: notifyTo,
+    replyTo: email,
+    subject: `Otto — Nouveau contact : ${name}${company ? ` (${company})` : ''}`,
+    html: `
+      <div style="font-family:'Inter',system-ui,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px">
+        <h2 style="font-size:1.1rem;margin-bottom:20px">Nouveau contact depuis otto.hntic.fr</h2>
+        <table style="width:100%;border-collapse:collapse">
+          <tr><td style="padding:8px 0;color:#888;font-size:0.85rem;width:100px">Nom</td><td style="padding:8px 0;font-size:0.95rem">${name}</td></tr>
+          <tr><td style="padding:8px 0;color:#888;font-size:0.85rem">Email</td><td style="padding:8px 0;font-size:0.95rem"><a href="mailto:${email}">${email}</a></td></tr>
+          ${company ? `<tr><td style="padding:8px 0;color:#888;font-size:0.85rem">Entreprise</td><td style="padding:8px 0;font-size:0.95rem">${company}</td></tr>` : ''}
+          ${message ? `<tr><td style="padding:8px 0;color:#888;font-size:0.85rem;vertical-align:top">Message</td><td style="padding:8px 0;font-size:0.95rem">${message}</td></tr>` : ''}
+        </table>
+      </div>
+    `,
+  });
+
+  console.log(`[EMAIL] Contact notification sent for ${name} <${email}>`);
+}
