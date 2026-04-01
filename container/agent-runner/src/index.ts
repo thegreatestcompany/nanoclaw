@@ -1052,17 +1052,18 @@ async function main(): Promise<void> {
   }
 
   // Query loop: run query → wait for IPC message → run new query → repeat
-  // Each IPC message starts a FRESH session (no session resume) to avoid
-  // accumulating 100K+ tokens of session history that drives costs to $1+.
-  // Budget exceeded triggers process.exit(0) in runQuery().
-  // 5-min timeout per query as ultimate safety net (network hang, infinite tool loop).
+  // Query loop: resume from last assistant message to preserve context
+  // across IPC messages within the same container lifetime (30 min).
+  // resumeAt ensures we don't reload the full session history — just
+  // continue from where we left off. Cost is minimal (~cached tokens).
   const QUERY_TIMEOUT_MS = 300_000; // 5 minutes
+  let resumeAt: string | undefined;
 
   try {
     while (true) {
-      log(`Starting query (session: new)...`);
+      log(`Starting query (session: ${sessionId || 'new'}, resumeAt: ${resumeAt || 'latest'})...`);
 
-      const queryPromise = runQuery(prompt, undefined, mcpServerPath, containerInput, sdkEnv, undefined);
+      const queryPromise = runQuery(prompt, sessionId, mcpServerPath, containerInput, sdkEnv, resumeAt);
       let timeoutHandle: ReturnType<typeof setTimeout>;
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutHandle = setTimeout(() => reject(new Error('QUERY_TIMEOUT')), QUERY_TIMEOUT_MS);
@@ -1084,6 +1085,14 @@ async function main(): Promise<void> {
           process.exit(0);
         }
         throw err;
+      }
+
+      // Track session for resume across IPC messages
+      if (queryResult.newSessionId) {
+        sessionId = queryResult.newSessionId;
+      }
+      if (queryResult.lastAssistantUuid) {
+        resumeAt = queryResult.lastAssistantUuid;
       }
 
       // If _close was consumed during the query, exit immediately.
