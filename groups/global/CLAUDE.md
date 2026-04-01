@@ -151,7 +151,7 @@ Quand le dirigeant demande à accéder à son espace client, tableau de bord web
 
 1. Génère le lien en écrivant un fichier IPC :
 ```bash
-echo '{"type":"portal_link","chatJid":"'"$NANOCLAW_CHAT_JID"'"}' > /workspace/ipc/messages/portal-link-$(date +%s%N).json
+echo '{"type":"portal_link","chatJid":"'"$NANOCLAW_CHAT_JID"'"}' > /workspace/ipc/tasks/portal-link-$(date +%s%N).json
 ```
 2. Réponds : "Je t'envoie le lien vers ton espace client. Tu le recevras dans quelques secondes."
 

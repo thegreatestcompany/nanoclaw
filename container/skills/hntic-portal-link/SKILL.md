@@ -5,7 +5,7 @@ Quand le dirigeant demande d'accéder à son espace client, tableau de bord, por
 1. Écris un fichier IPC pour demander le lien :
 
 ```bash
-echo '{"type":"portal_link","chatJid":"'"$NANOCLAW_CHAT_JID"'"}' > /workspace/ipc/messages/portal-link-$(date +%s%N).json
+echo '{"type":"portal_link","chatJid":"'"$NANOCLAW_CHAT_JID"'"}' > /workspace/ipc/tasks/portal-link-$(date +%s%N).json
 ```
 
 2. Réponds au dirigeant : "Je t'envoie le lien vers ton espace client. Tu le recevras dans quelques secondes."
