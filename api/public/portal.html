@@ -227,16 +227,61 @@
       letter-spacing: 0.03em;
     }
 
-    /* Responsive */
+    /* Responsive — tablet */
+    @media (max-width: 900px) {
+      .content { max-width: 100%; padding: 20px 14px; }
+      .kpi-card .kpi-value { font-size: 1.35rem; }
+    }
+
+    /* Responsive — mobile */
     @media (max-width: 640px) {
-      .landing-card { padding: 32px 24px; }
-      .content { padding: 16px 12px; }
+      .landing-card { padding: 32px 20px; }
+      .content { padding: 12px 8px; }
+      header { padding: 12px 14px; }
+      .header-left .logo-title { font-size: 0.95rem; }
+      .header-left .logo-sub { display: none; }
       .header-right .label { display: none; }
-      .table-wrap table { min-width: 580px; }
-      .doc-item { flex-wrap: wrap; }
-      .doc-meta { width: 100%; padding-left: 30px; }
+      .header-right .msg-badge { display: none; }
+      .header-time { display: none; }
+      .welcome-bar { font-size: 1rem; }
+      .welcome-bar .welcome-sub { font-size: 0.8rem; }
+      .tabs { gap: 0; margin-bottom: 16px; }
+      .tab { padding: 10px 12px; font-size: 0.8rem; }
+      .kpi-grid { gap: 8px; }
+      .kpi-card { padding: 14px; }
+      .kpi-card .kpi-label { font-size: 0.68rem; }
+      .kpi-card .kpi-value { font-size: 1.2rem; }
+      .two-col { grid-template-columns: 1fr; gap: 16px; }
+      .section-title { font-size: 0.8rem; }
+      .table-wrap th { padding: 8px 10px; font-size: 0.65rem; }
+      .table-wrap td { padding: 10px 10px; font-size: 0.8rem; }
+      .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .table-wrap table { min-width: 500px; }
       .pipeline-bar { height: 28px; }
-      .pipeline-segment .seg-label { font-size: 0.6rem; }
+      .pipeline-segment .seg-label { font-size: 0.55rem; }
+      .pipeline-legend { gap: 8px; }
+      .pipeline-legend-item { font-size: 0.7rem; }
+      .alert-banner { font-size: 0.82rem; padding: 12px 14px; }
+      .doc-item { flex-wrap: wrap; padding: 10px 12px; }
+      .doc-info { width: 100%; }
+      .doc-meta { width: 100%; padding-left: 30px; margin-top: 2px; }
+      .doc-dl { margin-top: 6px; margin-left: 30px; }
+      .interaction-item { padding: 10px 12px; }
+      .interaction-summary { font-size: 0.8rem; }
+      .meeting-item { padding: 10px 12px; }
+      .pagination { gap: 8px; }
+      .pagination button { padding: 6px 12px; font-size: 0.75rem; }
+      .msg-stat { font-size: 0.75rem; }
+      .portal-footer { font-size: 0.65rem; padding: 16px 12px 24px; }
+    }
+
+    /* Responsive — very small screens */
+    @media (max-width: 380px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+      .tab { padding: 8px 10px; font-size: 0.75rem; }
+      .landing-card { padding: 24px 16px; }
+      .landing-card .logo-title { font-size: 1.5rem; }
+      .landing-card h2 { font-size: 1.1rem; }
     }
   </style>
 </head>
