@@ -1710,9 +1710,15 @@ function initChat() {
       const data = JSON.parse(e.data);
       if (data.type === 'message') {
         removeStreamingBubble();
+        // Strip "Otto: " prefix from bot messages (host prepends it in DB)
+        if (data.isBot && data.text && data.text.startsWith('Otto: ')) {
+          data.text = data.text.slice(6);
+        }
         appendChatMessage(data);
       } else if (data.type === 'stream') {
         showStreamingBubble(data.text);
+      } else if (data.type === 'stream_end') {
+        removeStreamingBubble();
       } else if (data.type === 'error') {
         status.textContent = data.message;
         status.className = 'chat-status error';

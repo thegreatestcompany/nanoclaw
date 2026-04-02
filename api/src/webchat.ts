@@ -220,20 +220,6 @@ function injectMessage(conn: ChatConnection, text: string): void {
     db.close();
   }
 
-  // Mirror user message to WhatsApp so the conversation stays in sync
-  const ipcDir = path.join(CLIENTS_DIR, conn.clientId, 'data', 'ipc', 'main', 'messages');
-  try {
-    fs.mkdirSync(ipcDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(ipcDir, `webchat-echo-${Date.now()}.json`),
-      JSON.stringify({
-        type: 'message',
-        chatJid: conn.chatJid,
-        text: `[Web] ${text}`,
-      }),
-    );
-  } catch { /* non-critical */ }
-
   // Echo back to confirm
   conn.ws.send(
     JSON.stringify({
@@ -297,10 +283,11 @@ function pollNewMessages(conn: ChatConnection): void {
         }),
       );
       conn.lastSeenTimestamp = m.timestamp;
-      // Final message arrived — clear streaming state
+      // Final message arrived — clear streaming state + stream file
       if (isBot) {
         conn.lastStreamOffset = 0;
         conn.lastStreamText = '';
+        conn.ws.send(JSON.stringify({ type: 'stream_end' }));
       }
     }
   } finally {
