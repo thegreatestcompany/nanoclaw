@@ -1709,7 +1709,10 @@ function initChat() {
     try {
       const data = JSON.parse(e.data);
       if (data.type === 'message') {
+        removeStreamingBubble();
         appendChatMessage(data);
+      } else if (data.type === 'stream') {
+        showStreamingBubble(data.text);
       } else if (data.type === 'error') {
         status.textContent = data.message;
         status.className = 'chat-status error';
@@ -1761,6 +1764,25 @@ function appendChatMessage(data) {
     '<div class="chat-time">' + time + '</div>';
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
+}
+
+function showStreamingBubble(text) {
+  const messages = document.getElementById('chat-messages');
+  let bubble = document.getElementById('streaming-bubble');
+  if (!bubble) {
+    bubble = document.createElement('div');
+    bubble.id = 'streaming-bubble';
+    bubble.className = 'chat-msg bot';
+    bubble.style.opacity = '0.85';
+    messages.appendChild(bubble);
+  }
+  bubble.innerHTML = '<div class="chat-sender">Otto</div>' + escapeHtml(text) + '<div class="chat-time" style="font-style:italic">en cours...</div>';
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function removeStreamingBubble() {
+  const bubble = document.getElementById('streaming-bubble');
+  if (bubble) bubble.remove();
 }
 
 function sendChatMessage() {
