@@ -290,7 +290,7 @@ function createPostCompactHook(): HookCallback {
 /**
  * PreToolUse hook: block destructive Bash commands and writes outside workspace.
  */
-function createPreToolUseHook(): HookCallback {
+function createPreToolUseHook(chatJid?: string): HookCallback {
   // Auto-send ⏳ feedback on first "slow" tool call per query
   let lastFeedbackTime = 0;
   const SLOW_TOOLS_EXACT = new Set(['Bash', 'Skill', 'mcp__nanoclaw__schedule_task']);
@@ -345,7 +345,6 @@ function createPreToolUseHook(): HookCallback {
       try {
         const ipcDir = '/workspace/ipc/messages';
         fs.mkdirSync(ipcDir, { recursive: true });
-        const chatJid = process.env.NANOCLAW_CHAT_JID;
         if (chatJid) {
           fs.writeFileSync(
             path.join(ipcDir, `feedback-${Date.now()}.json`),
@@ -881,7 +880,7 @@ async function runQuery(
       hooks: {
         PreCompact: [{ hooks: [createPreCompactHook(containerInput.assistantName)] }],
         PostCompact: [{ hooks: [createPostCompactHook()] }],
-        PreToolUse: [{ hooks: [createPreToolUseHook()] }],
+        PreToolUse: [{ hooks: [createPreToolUseHook(containerInput.chatJid)] }],
         PostToolUse: [{ hooks: [createPostToolUseHook()] }],
       },
     }
