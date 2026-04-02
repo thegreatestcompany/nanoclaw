@@ -103,6 +103,9 @@ Projet séparé (`~/DEV/projets/otto-admin/`). Instance NanoClaw **upstream** (p
 ### Export données client au deprovisioning
 Au moment du deprovisioning, générer un ZIP (documents/ + CSV de chaque table business.db) et l'envoyer par email au client. Si > 20MB, garder le ZIP dans `/opt/otto/backups/exports/` et envoyer un lien de téléchargement temporaire. Le backup tar.gz existe déjà comme filet de sécurité.
 
+### Internationalisation (FR/EN/ES)
+Landing page, portail, emails transactionnels, messages WhatsApp système, CLAUDE.md global. Les données business du client et les skills ne sont pas à traduire. Détection par URL (`/fr/`, `/en/`, `/es/`) ou header `Accept-Language`. Fichiers de traduction JSON par langue.
+
 ### Streaming webchat (à revisiter)
 Tenté et reverté (timing race bulle/message final). Approche alternative à explorer : SSE (Server-Sent Events) au lieu de file polling, ou streaming natif côté host.
 
