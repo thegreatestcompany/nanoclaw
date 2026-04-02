@@ -17,6 +17,7 @@ import { fileURLToPath } from 'url';
 
 import { sendReconnectionEmail, sendWelcomeEmail } from './mailer.js';
 import {
+  getDb,
   getClientById,
   getClientByToken,
   getClientByEmail,
@@ -459,6 +460,8 @@ function registerClientChannel(clientId: string): void {
       registerProc.on('close', (code) => {
         if (code === 0) {
           console.log(`Channel registered for client ${clientId} (${phoneJid})`);
+          // Save WhatsApp JID for notifications (cancel, payment failed, etc.)
+          getDb().prepare('UPDATE clients SET whatsapp_jid = ? WHERE id = ?').run(phoneJid, clientId);
           updateClientStatus(clientId, 'active');
           startClientProcess(clientId);
           // Send welcome email
