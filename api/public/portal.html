@@ -1116,12 +1116,31 @@ function initChat() {
 
 function appendChatMessage(data) {
   const messages = document.getElementById('chat-messages');
+  // Deduplicate (avoid showing same message twice)
+  if (data.id && messages.querySelector('[data-msg-id="' + data.id + '"]')) return;
   const div = document.createElement('div');
   div.className = 'chat-msg ' + (data.isBot ? 'bot' : 'user');
+  if (data.id) div.setAttribute('data-msg-id', data.id);
   const time = data.timestamp ? new Date(data.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }) : '';
+
+  let content = escapeHtml(data.text || '');
+
+  // Render media
+  if (data.mediaType === 'document' && data.mediaFilename) {
+    const icon = fileIcon(data.mediaFilename);
+    const dlPath = 'documents/' + encodeURIComponent(data.mediaFilename);
+    content = '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:' + (data.isBot ? '#f0f4ff' : 'rgba(255,255,255,0.1)') + ';border-radius:8px;margin-bottom:6px;border:1px solid ' + (data.isBot ? '#e0e7ff' : 'rgba(255,255,255,0.15)') + '">'
+      + '<span style="font-size:1.3rem">' + icon + '</span>'
+      + '<div><div style="font-weight:600;font-size:0.82rem">' + escapeHtml(data.mediaFilename) + '</div>'
+      + '<a href="/api/portal/documents/download?file=' + dlPath + '" target="_blank" style="font-size:0.72rem;color:' + (data.isBot ? '#2563eb' : '#93c5fd') + '">T\u00e9l\u00e9charger</a></div></div>'
+      + content;
+  } else if (data.mediaType === 'image' && data.mediaFilename) {
+    content = '<div style="margin-bottom:6px;font-size:0.8rem;color:' + (data.isBot ? '#6b7280' : 'rgba(255,255,255,0.6)') + '">\uD83D\uDDBC\uFE0F Image : ' + escapeHtml(data.mediaFilename) + '</div>' + content;
+  }
+
   div.innerHTML =
     '<div class="chat-sender">' + escapeHtml(data.sender || '') + '</div>' +
-    escapeHtml(data.text || '') +
+    content +
     '<div class="chat-time">' + time + '</div>';
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;

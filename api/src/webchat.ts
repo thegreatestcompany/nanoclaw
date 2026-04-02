@@ -150,7 +150,7 @@ function sendRecentMessages(conn: ChatConnection): void {
   try {
     const messages = db
       .prepare(
-        `SELECT id, sender_name, content, timestamp, is_from_me, is_bot_message
+        `SELECT id, sender_name, content, timestamp, is_from_me, is_bot_message, media_type, media_filename
          FROM messages
          WHERE chat_jid = ?
          ORDER BY timestamp DESC LIMIT 20`,
@@ -162,6 +162,8 @@ function sendRecentMessages(conn: ChatConnection): void {
         timestamp: string;
         is_from_me: number;
         is_bot_message: number;
+        media_type: string | null;
+        media_filename: string | null;
       }>;
 
     // Send oldest first
@@ -175,6 +177,8 @@ function sendRecentMessages(conn: ChatConnection): void {
           text: m.content,
           timestamp: m.timestamp,
           isBot: !!m.is_bot_message,
+          mediaType: m.media_type || undefined,
+          mediaFilename: m.media_filename || undefined,
         }),
       );
     }
@@ -245,7 +249,7 @@ function pollNewMessages(conn: ChatConnection): void {
     // Skip webchat-originated messages (already echoed) via sender != 'webchat'
     const messages = db
       .prepare(
-        `SELECT id, sender, sender_name, content, timestamp, is_from_me, is_bot_message
+        `SELECT id, sender, sender_name, content, timestamp, is_from_me, is_bot_message, media_type, media_filename
          FROM messages
          WHERE chat_jid = ? AND timestamp > ? AND sender != 'webchat'
          ORDER BY timestamp ASC`,
@@ -258,6 +262,8 @@ function pollNewMessages(conn: ChatConnection): void {
         timestamp: string;
         is_from_me: number;
         is_bot_message: number;
+        media_type: string | null;
+        media_filename: string | null;
       }>;
 
     for (const m of messages) {
@@ -271,6 +277,8 @@ function pollNewMessages(conn: ChatConnection): void {
           text: m.content,
           timestamp: m.timestamp,
           isBot,
+          mediaType: m.media_type || undefined,
+          mediaFilename: m.media_filename || undefined,
         }),
       );
       conn.lastSeenTimestamp = m.timestamp;
