@@ -221,6 +221,44 @@
       font-size: 0.8rem; color: #6b7280; text-align: center;
     }
 
+    /* Chat */
+    .chat-container {
+      display: flex; flex-direction: column; height: calc(100vh - 160px); max-height: 700px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
+    }
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px;
+      background: #f9fafb;
+    }
+    .chat-msg {
+      max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 0.88rem; line-height: 1.5;
+      word-wrap: break-word; white-space: pre-wrap;
+    }
+    .chat-msg.bot { background: #fff; border: 1px solid #e5e7eb; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .chat-msg.user { background: #1a1a1a; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .chat-msg .chat-sender { font-size: 0.7rem; font-weight: 600; color: #2563eb; margin-bottom: 2px; }
+    .chat-msg.user .chat-sender { color: rgba(255,255,255,0.6); }
+    .chat-msg .chat-time { font-size: 0.65rem; color: #9ca3af; text-align: right; margin-top: 4px; }
+    .chat-msg.user .chat-time { color: rgba(255,255,255,0.4); }
+    .chat-typing { font-size: 0.8rem; color: #9ca3af; padding: 4px 16px; font-style: italic; }
+    .chat-input-bar {
+      display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e5e7eb; background: #fff;
+    }
+    .chat-input-bar input {
+      flex: 1; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 24px;
+      font-size: 0.9rem; outline: none; font-family: inherit; transition: border-color 0.15s;
+    }
+    .chat-input-bar input:focus { border-color: #2563eb; }
+    .chat-input-bar button {
+      padding: 12px 20px; background: #1a1a1a; color: #fff; border: none; border-radius: 24px;
+      font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: background 0.15s; white-space: nowrap;
+    }
+    .chat-input-bar button:hover { background: #333; }
+    .chat-input-bar button:disabled { background: #999; cursor: not-allowed; }
+    .chat-status { font-size: 0.75rem; color: #9ca3af; text-align: center; padding: 8px; }
+    .chat-status.connected { color: #059669; }
+    .chat-status.error { color: #dc2626; }
+
     /* Footer */
     .portal-footer {
       text-align: center; padding: 24px 16px 32px; font-size: 0.7rem; color: #9ca3af;
@@ -322,6 +360,7 @@
       <button class="tab" data-tab="finance" onclick="switchTab('finance')">Finance</button>
       <button class="tab" data-tab="equipe" onclick="switchTab('equipe')">&Eacute;quipe</button>
       <button class="tab" data-tab="documents" onclick="switchTab('documents')">Mes documents</button>
+      <button class="tab" data-tab="chat" onclick="switchTab('chat')">Chat</button>
     </div>
 
     <!-- Dashboard -->
@@ -353,6 +392,18 @@
       <div class="spinner" id="documents-loader"><span class="spinner-text">Chargement...</span></div>
       <div id="documents-content" style="display:none"></div>
     </div>
+
+    <!-- Chat -->
+    <div class="tab-pane" id="tab-chat">
+      <div class="chat-container">
+        <div class="chat-status" id="chat-status">Connexion...</div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-bar">
+          <input type="text" id="chat-input" placeholder="Parlez &agrave; Otto..." autocomplete="off">
+          <button id="chat-send" onclick="sendChatMessage()">Envoyer</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="portal-footer">Propuls&eacute; par Otto &middot; HNTIC</div>
@@ -360,7 +411,7 @@
 
 <script>
 const PARIS_TZ = 'Europe/Paris';
-const VALID_TABS = ['dashboard', 'commercial', 'finance', 'equipe', 'documents'];
+const VALID_TABS = ['dashboard', 'commercial', 'finance', 'equipe', 'documents', 'chat'];
 let currentTab = 'dashboard';
 let companyName = '';
 const cache = {};
@@ -565,6 +616,7 @@ function switchTab(tabId) {
   window.location.hash = tabId === 'dashboard' ? '' : tabId;
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tabId));
+  if (tabId === 'chat') { initChat(); return; }
   const loaders = { dashboard: loadDashboard, commercial: loadCommercial, finance: loadFinance, equipe: loadEquipe, documents: loadDocuments };
   if (!cache[tabId]) loaders[tabId]();
   else {
@@ -1014,6 +1066,79 @@ setInterval(() => {
   const el = document.getElementById('header-time');
   if (el) el.textContent = nowParis();
 }, 60000);
+
+/* ─── Chat ─── */
+
+let chatWs = null;
+let chatInitialized = false;
+
+function initChat() {
+  if (chatWs && chatWs.readyState === WebSocket.OPEN) return;
+  if (chatInitialized && chatWs && chatWs.readyState === WebSocket.CONNECTING) return;
+  chatInitialized = true;
+
+  const status = document.getElementById('chat-status');
+  const messages = document.getElementById('chat-messages');
+  status.textContent = 'Connexion...';
+  status.className = 'chat-status';
+
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  chatWs = new WebSocket(proto + '//' + location.host + '/ws/chat');
+
+  chatWs.onopen = () => {
+    status.textContent = 'Connect\u00e9';
+    status.className = 'chat-status connected';
+  };
+
+  chatWs.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data.type === 'message') {
+        appendChatMessage(data);
+      } else if (data.type === 'error') {
+        status.textContent = data.message;
+        status.className = 'chat-status error';
+      }
+    } catch {}
+  };
+
+  chatWs.onclose = () => {
+    status.textContent = 'D\u00e9connect\u00e9. Cliquez sur l\u0027onglet Chat pour reconnecter.';
+    status.className = 'chat-status error';
+    chatInitialized = false;
+  };
+
+  chatWs.onerror = () => {
+    status.textContent = 'Erreur de connexion';
+    status.className = 'chat-status error';
+  };
+}
+
+function appendChatMessage(data) {
+  const messages = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + (data.isBot ? 'bot' : 'user');
+  const time = data.timestamp ? new Date(data.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }) : '';
+  div.innerHTML =
+    '<div class="chat-sender">' + escapeHtml(data.sender || '') + '</div>' +
+    escapeHtml(data.text || '') +
+    '<div class="chat-time">' + time + '</div>';
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || !chatWs || chatWs.readyState !== WebSocket.OPEN) return;
+  chatWs.send(JSON.stringify({ type: 'message', text }));
+  input.value = '';
+  input.focus();
+}
+
+document.getElementById('chat-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendChatMessage();
+});
 
 /* ─── Boot ─── */
 
