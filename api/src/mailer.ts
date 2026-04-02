@@ -44,8 +44,8 @@ export async function sendOnboardingEmail(
     html: `
       <div style="font-family:'Inter',system-ui,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px">
         <div style="text-align:center;margin-bottom:32px">
-          <h1 style="font-size:1.5rem;font-weight:300;letter-spacing:0.3em;text-transform:uppercase;margin-bottom:4px">Otto</h1>
-          <p style="color:#999;font-style:italic;font-size:0.9rem">by HNTIC</p>
+          <h1 style="font-size:1.6rem;font-weight:800;letter-spacing:-0.03em;color:#128C7E;margin-bottom:4px">Otto</h1>
+          <p style="color:#999;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase">by HNTIC</p>
         </div>
         <p style="color:#333;font-size:1rem;line-height:1.6;margin-bottom:24px">
           ${greeting} Ton compte Otto est pr&ecirc;t. Connecte ton WhatsApp pour activer ton assistant IA.
@@ -90,8 +90,8 @@ export async function sendReconnectionEmail(
     html: `
       <div style="font-family:'Inter',system-ui,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px">
         <div style="text-align:center;margin-bottom:32px">
-          <h1 style="font-size:1.5rem;font-weight:300;letter-spacing:0.3em;text-transform:uppercase;margin-bottom:4px">Otto</h1>
-          <p style="color:#999;font-style:italic;font-size:0.9rem">by HNTIC</p>
+          <h1 style="font-size:1.6rem;font-weight:800;letter-spacing:-0.03em;color:#128C7E;margin-bottom:4px">Otto</h1>
+          <p style="color:#999;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase">by HNTIC</p>
         </div>
         <p style="color:#333;font-size:1rem;line-height:1.6;margin-bottom:24px">
           Clique sur le bouton ci-dessous pour reconnecter ton WhatsApp &agrave; Otto.
@@ -133,8 +133,8 @@ export async function sendWelcomeEmail(to: string, name?: string | null): Promis
     html: `
       <div style="font-family:'Inter',system-ui,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px">
         <div style="text-align:center;margin-bottom:32px">
-          <h1 style="font-size:1.5rem;font-weight:300;letter-spacing:0.3em;text-transform:uppercase;margin-bottom:4px">Otto</h1>
-          <p style="color:#999;font-style:italic;font-size:0.9rem">by HNTIC</p>
+          <h1 style="font-size:1.6rem;font-weight:800;letter-spacing:-0.03em;color:#128C7E;margin-bottom:4px">Otto</h1>
+          <p style="color:#999;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase">by HNTIC</p>
         </div>
 
         <p style="color:#333;font-size:1rem;line-height:1.6;margin-bottom:24px">
@@ -200,8 +200,8 @@ export async function sendPortalLinkEmail(
     html: `
       <div style="font-family:'Inter',system-ui,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px">
         <div style="text-align:center;margin-bottom:32px">
-          <h1 style="font-size:1.5rem;font-weight:300;letter-spacing:0.3em;text-transform:uppercase;margin-bottom:4px">Otto</h1>
-          <p style="color:#999;font-style:italic;font-size:0.9rem">by HNTIC</p>
+          <h1 style="font-size:1.6rem;font-weight:800;letter-spacing:-0.03em;color:#128C7E;margin-bottom:4px">Otto</h1>
+          <p style="color:#999;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase">by HNTIC</p>
         </div>
         <p style="color:#333;font-size:1rem;line-height:1.6;margin-bottom:24px">
           Clique sur le bouton ci-dessous pour acc&eacute;der &agrave; ton espace client.

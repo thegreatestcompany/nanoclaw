@@ -5,9 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Otto Admin</title>
   <link rel="icon" href="/static/hntic-logo.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@800&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #0a0a0f; color: #e0e0e0; min-height: 100vh; }
+    .otto-logo { display: flex; align-items: center; gap: 8px; }
+    .otto-logo svg { width: 24px; height: 24px; }
+    .otto-logo .logo-text { font-family: 'Sora', sans-serif; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.03em; background: linear-gradient(135deg, #25D366, #128C7E); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .otto-logo .logo-sub { font-size: 0.7rem; color: #888; font-weight: 400; }
 
     /* Auth screen */
     .auth-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
@@ -100,7 +105,7 @@
 <!-- Auth -->
 <div class="auth-screen" id="auth-screen">
   <div class="auth-box">
-    <h1>Otto Admin</h1>
+    <div class="otto-logo" style="justify-content:center;margin-bottom:20px"><svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M24 4L42 14V34L24 44L6 34V14L24 4Z" stroke="#e0e0e0" stroke-width="2.5" fill="none"/><circle cx="24" cy="14" r="3" fill="#e0e0e0"/><circle cx="14" cy="24" r="3" fill="#e0e0e0"/><circle cx="34" cy="24" r="3" fill="#e0e0e0"/><circle cx="24" cy="34" r="3" fill="#e0e0e0"/><circle cx="24" cy="24" r="4" fill="#e0e0e0"/><line x1="24" y1="14" x2="24" y2="20" stroke="#e0e0e0" stroke-width="2"/><line x1="14" y1="24" x2="20" y2="24" stroke="#e0e0e0" stroke-width="2"/><line x1="28" y1="24" x2="34" y2="24" stroke="#e0e0e0" stroke-width="2"/><line x1="24" y1="28" x2="24" y2="34" stroke="#e0e0e0" stroke-width="2"/></svg><span class="logo-text">Otto</span><span class="logo-sub">Admin</span></div>
     <input type="password" id="token-input" placeholder="Admin token" autocomplete="off">
     <button onclick="login()">Connexion</button>
     <div class="auth-error" id="auth-error"></div>
@@ -110,7 +115,7 @@
 <!-- Dashboard -->
 <div class="dashboard" id="dashboard">
   <header>
-    <h1>Otto Admin</h1>
+    <div class="otto-logo"><svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M24 4L42 14V34L24 44L6 34V14L24 4Z" stroke="#e0e0e0" stroke-width="2.5" fill="none"/><circle cx="24" cy="14" r="3" fill="#e0e0e0"/><circle cx="14" cy="24" r="3" fill="#e0e0e0"/><circle cx="34" cy="24" r="3" fill="#e0e0e0"/><circle cx="24" cy="34" r="3" fill="#e0e0e0"/><circle cx="24" cy="24" r="4" fill="#e0e0e0"/><line x1="24" y1="14" x2="24" y2="20" stroke="#e0e0e0" stroke-width="2"/><line x1="14" y1="24" x2="20" y2="24" stroke="#e0e0e0" stroke-width="2"/><line x1="28" y1="24" x2="34" y2="24" stroke="#e0e0e0" stroke-width="2"/><line x1="24" y1="28" x2="24" y2="34" stroke="#e0e0e0" stroke-width="2"/></svg><span class="logo-text">Otto</span><span class="logo-sub">Admin</span></div>
     <div class="header-right">
       <span class="header-time" id="header-time"></span>
       <button class="refresh-btn" onclick="loadDashboard()">Actualiser</button>
