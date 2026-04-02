@@ -346,25 +346,42 @@ async function processStripeEvent(event: { id: string; type: string; data: { obj
 
     case 'invoice.payment_failed': {
       const invoice = event.data.object;
-      db.prepare(
-        `UPDATE clients SET status = ?, updated_at = datetime('now') WHERE stripe_customer_id = ?`
-      ).run('payment_failed', invoice.customer as string);
+      const client = db.prepare(
+        'SELECT id FROM clients WHERE stripe_customer_id = ?'
+      ).get(invoice.customer as string) as { id: string } | undefined;
 
-      // TODO: send WhatsApp message with invoice.hosted_invoice_url
-      // to let client update their payment method
-      console.log(`Payment failed for customer ${invoice.customer} — invoice: ${invoice.hosted_invoice_url}`);
+      if (client) {
+        db.prepare(
+          `UPDATE clients SET status = 'payment_failed', updated_at = datetime('now') WHERE id = ?`
+        ).run(client.id);
+
+        const hostedUrl = invoice.hosted_invoice_url as string || '';
+        sendClientWhatsApp(client.id,
+          `⚠️ Le paiement de ton abonnement Otto a échoué.\n\n` +
+          (hostedUrl ? `Mets à jour ton moyen de paiement ici :\n${hostedUrl}\n\n` : '') +
+          `Sans action de ta part, ton compte sera désactivé après plusieurs tentatives.`
+        );
+      }
+
+      console.log(`Payment failed for customer ${invoice.customer}`);
       break;
     }
 
     case 'customer.subscription.trial_will_end': {
-      // Stripe sends this 3 days before trial ends — perfect for our reminder
+      // Stripe sends this 3 days before trial ends
       const sub = event.data.object;
       const client = db.prepare(
         'SELECT id FROM clients WHERE stripe_customer_id = ?'
       ).get(sub.customer as string) as { id: string } | undefined;
       if (client) {
-        console.log(`Trial ending soon for ${client.id} (Stripe notification)`);
-        // TODO: query client's business.db for usage stats and send WhatsApp summary
+        const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000) : null;
+        const daysLeft = trialEnd ? Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 3;
+        sendClientWhatsApp(client.id,
+          `📋 Ton essai gratuit Otto se termine dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}.\n\n` +
+          `Si tu as enregistré un moyen de paiement, ton abonnement démarrera automatiquement.\n\n` +
+          `Tu peux gérer ton abonnement depuis ton espace client (dis-moi "Mon espace").`
+        );
+        console.log(`Trial ending soon for ${client.id} — ${daysLeft} days left`);
       }
       break;
     }
@@ -373,9 +390,15 @@ async function processStripeEvent(event: { id: string; type: string; data: { obj
       // Restore active status after a previously failed payment
       const invoice = event.data.object;
       const updated = db.prepare(
-        `UPDATE clients SET status = ?, updated_at = datetime('now') WHERE stripe_customer_id = ? AND status = ?`
-      ).run('active', invoice.customer as string, 'payment_failed');
+        `UPDATE clients SET status = 'active', updated_at = datetime('now') WHERE stripe_customer_id = ? AND status = 'payment_failed'`
+      ).run(invoice.customer as string);
       if (updated.changes > 0) {
+        const client = db.prepare(
+          'SELECT id FROM clients WHERE stripe_customer_id = ?'
+        ).get(invoice.customer as string) as { id: string } | undefined;
+        if (client) {
+          sendClientWhatsApp(client.id, '✅ Paiement reçu ! Ton abonnement Otto est de nouveau actif.');
+        }
         console.log(`Payment recovered for customer ${invoice.customer}`);
       }
       break;
@@ -414,8 +437,10 @@ export async function runPeriodicChecks(): Promise<void> {
   ).all() as { id: string; trial_ends_at: string }[];
 
   for (const client of trialEnding) {
-    // TODO: send WhatsApp trial-ending summary via the client's Otto process
-    // Query their business.db for stats (contacts, deals, interactions, documents)
-    console.log(`Trial ending soon for ${client.id} (${client.trial_ends_at})`);
+    sendClientWhatsApp(client.id,
+      `📋 Rappel : ton essai gratuit Otto se termine bientôt.\n\n` +
+      `Vérifie que ton moyen de paiement est à jour depuis ton espace client (dis-moi "Mon espace").`
+    );
+    console.log(`Trial ending reminder sent to ${client.id} (${client.trial_ends_at})`);
   }
 }
