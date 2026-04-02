@@ -19,10 +19,41 @@
 
 import type { Express, Request, Response } from 'express';
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
+
+import Stripe from 'stripe';
 
 import { getDb, slugify } from './db.js';
 import { provisionClient, deprovisionClient } from './provision.js';
 import { sendOnboardingEmail } from './mailer.js';
+
+const CLIENTS_DIR = process.env.CLIENTS_DIR || path.join(process.cwd(), '..', 'clients');
+
+function getStripe(): Stripe | null {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return null;
+  return new Stripe(key);
+}
+
+/**
+ * Send a WhatsApp message to a client via IPC file.
+ * Works even if the client's process is running — the IPC watcher picks it up.
+ */
+function sendClientWhatsApp(clientId: string, text: string): void {
+  try {
+    const db = getDb();
+    const client = db.prepare('SELECT whatsapp_jid FROM clients WHERE id = ?').get(clientId) as { whatsapp_jid: string | null } | undefined;
+    if (!client?.whatsapp_jid) return;
+
+    const ipcDir = path.join(CLIENTS_DIR, clientId, 'data', 'ipc', 'main', 'messages');
+    fs.mkdirSync(ipcDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(ipcDir, `system-${Date.now()}.json`),
+      JSON.stringify({ type: 'message', chatJid: client.whatsapp_jid, text }),
+    );
+  } catch { /* best effort */ }
+}
 
 // In-memory set to deduplicate events (Stripe can send the same event multiple times)
 const processedEvents = new Set<string>();
@@ -84,7 +115,7 @@ async function handleCheckoutCompleted(session: any): Promise<void> {
       `UPDATE clients SET status = ?, cancel_at = NULL, cancel_reason = NULL, stripe_customer_id = ?, stripe_subscription_id = ?, updated_at = datetime('now') WHERE id = ?`
     ).run('active', session.customer, session.subscription, clientId);
     console.log(`Client ${clientId} reactivated (was pending_cancellation)`);
-    // TODO: send WhatsApp "Content de te revoir !"
+    sendClientWhatsApp(clientId, 'Content de te revoir ! 🎉 Ton abonnement Otto est réactivé. Envoie-moi un message pour reprendre là où on en était.');
     return;
   }
 
@@ -180,6 +211,54 @@ export function setupStripeRoutes(app: Express): void {
     return;
   }
 
+  // Stripe Customer Portal — allows client to manage/cancel subscription
+  app.post(
+    '/api/portal/billing',
+    express.json(),
+    async (req: Request, res: Response) => {
+      // Authenticated via portal JWT cookie (reuse the portal middleware logic)
+      const jwt = await import('jsonwebtoken');
+      const secret = process.env.PORTAL_JWT_SECRET;
+      const token = req.cookies?.portal_token;
+      if (!secret || !token) {
+        res.status(401).json({ error: 'Non authentifié' });
+        return;
+      }
+
+      let clientId: string;
+      try {
+        const payload = jwt.default.verify(token, secret) as { client_id: string };
+        clientId = payload.client_id;
+      } catch {
+        res.status(401).json({ error: 'Session expirée' });
+        return;
+      }
+
+      const client = getDb().prepare('SELECT stripe_customer_id FROM clients WHERE id = ?').get(clientId) as { stripe_customer_id: string | null } | undefined;
+      if (!client?.stripe_customer_id) {
+        res.status(400).json({ error: 'Pas d\'abonnement Stripe trouvé' });
+        return;
+      }
+
+      const stripe = getStripe();
+      if (!stripe) {
+        res.status(503).json({ error: 'Stripe non configuré' });
+        return;
+      }
+
+      try {
+        const baseUrl = process.env.BASE_URL || 'https://otto.hntic.fr';
+        const session = await stripe.billingPortal.sessions.create({
+          customer: client.stripe_customer_id,
+          return_url: `${baseUrl}/portal`,
+        });
+        res.json({ url: session.url });
+      } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  );
+
   // Stripe webhook (raw body required for signature verification)
   app.post(
     '/api/stripe-webhook',
@@ -241,7 +320,7 @@ async function processStripeEvent(event: { id: string; type: string; data: { obj
         ).run(sub.cancellation_details?.reason || 'subscription_deleted', client.id);
 
         console.log(`Client ${client.id} → pending_cancellation (24h grace period)`);
-        // TODO: send WhatsApp farewell message with export offer
+        sendClientWhatsApp(client.id, 'Ton abonnement Otto a été annulé. Tu as encore 24h pour exporter tes documents depuis ton espace client (dis-moi "Mon espace"). Après ce délai, tes données seront archivées.\n\nSi c\'est une erreur, tu peux te réabonner et tout sera restauré instantanément.');
       }
       break;
     }
