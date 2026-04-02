@@ -291,6 +291,15 @@ function createPostCompactHook(): HookCallback {
  * PreToolUse hook: block destructive Bash commands and writes outside workspace.
  */
 function createPreToolUseHook(): HookCallback {
+  // Auto-send ⏳ feedback on first "slow" tool call per query
+  let lastFeedbackTime = 0;
+  const SLOW_TOOLS = new Set([
+    'Bash', 'Skill',
+    'mcp__exa__web_search', 'mcp__exa__answer', 'mcp__exa__get_contents', 'mcp__exa__find_similar',
+    'mcp__composio__COMPOSIO_SEARCH_TOOLS', 'mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL', 'mcp__composio__COMPOSIO_EXECUTE_TOOL',
+    'mcp__nanoclaw__schedule_task',
+  ]);
+
   const BLOCKED_PATTERNS = [
     // Destructive operations
     /rm\s+(-[rf]+\s+)*\//,     // rm -rf /
@@ -331,6 +340,24 @@ function createPreToolUseHook(): HookCallback {
         ? (toolInput.file_path as string || '')
         : JSON.stringify(toolInput).slice(0, 150);
     log(`[TOOL] ${hookInput.tool_name}: ${summary}`);
+
+    // Auto-send feedback on first slow tool call (max once per 30s)
+    const now = Date.now();
+    if (now - lastFeedbackTime > 30000 && SLOW_TOOLS.has(hookInput.tool_name)) {
+      lastFeedbackTime = now;
+      try {
+        const ipcDir = '/workspace/ipc/messages';
+        fs.mkdirSync(ipcDir, { recursive: true });
+        const chatJid = process.env.NANOCLAW_CHAT_JID;
+        if (chatJid) {
+          fs.writeFileSync(
+            path.join(ipcDir, `feedback-${Date.now()}.json`),
+            JSON.stringify({ type: 'message', chatJid, text: '\u23F3' }),
+          );
+          log('[FEEDBACK] Auto-sent ⏳ via IPC');
+        }
+      } catch { /* non-critical */ }
+    }
 
     // Block dev/admin skills — not for clients
     if (hookInput.tool_name === 'Skill') {
