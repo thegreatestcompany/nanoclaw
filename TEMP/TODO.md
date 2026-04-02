@@ -100,6 +100,9 @@ Projet séparé (`~/DEV/projets/otto-admin/`). Instance NanoClaw **upstream** (p
 - CLAUDE.md "admin" avec instructions de monitoring et runbooks
 - Peut restart des processes, checker les logs, diagnostiquer des problèmes
 
+### Export données client au deprovisioning
+Au moment du deprovisioning, générer un ZIP (documents/ + CSV de chaque table business.db) et l'envoyer par email au client. Si > 20MB, garder le ZIP dans `/opt/otto/backups/exports/` et envoyer un lien de téléchargement temporaire. Le backup tar.gz existe déjà comme filet de sécurité.
+
 ### Streaming webchat (à revisiter)
 Tenté et reverté (timing race bulle/message final). Approche alternative à explorer : SSE (Server-Sent Events) au lieu de file polling, ou streaming natif côté host.
 
