@@ -483,7 +483,7 @@ export async function processTaskIpc(
       break;
 
     case 'portal_link': {
-      // Generate a magic link for the client portal
+      // Generate a 6-digit code for the client portal (no token in URL)
       const portalSecret = process.env.PORTAL_JWT_SECRET;
       const clientId = process.env.CLIENT_ID;
       if (!portalSecret || !clientId) {
@@ -494,11 +494,11 @@ export async function processTaskIpc(
         break;
       }
 
-      // Sign JWT using Node's built-in crypto (no dependency needed)
+      // Sign JWT using Node's built-in crypto
       const header = Buffer.from(
         JSON.stringify({ alg: 'HS256', typ: 'JWT' }),
       ).toString('base64url');
-      const payload = Buffer.from(
+      const jwtPayload = Buffer.from(
         JSON.stringify({
           client_id: clientId,
           exp: Math.floor(Date.now() / 1000) + 86400,
@@ -507,20 +507,42 @@ export async function processTaskIpc(
       ).toString('base64url');
       const signature = crypto
         .createHmac('sha256', portalSecret)
-        .update(`${header}.${payload}`)
+        .update(`${header}.${jwtPayload}`)
         .digest('base64url');
-      const portalToken = `${header}.${payload}.${signature}`;
+      const portalToken = `${header}.${jwtPayload}.${signature}`;
+
+      // Generate 6-digit code
+      const portalCode = crypto.randomInt(100000, 999999).toString();
+      const formattedCode = `${portalCode.slice(0, 3)} ${portalCode.slice(3)}`;
+
+      // Store code in the API via HTTP
+      const apiPort = process.env.API_PORT || '3000';
+      try {
+        await fetch(`http://localhost:${apiPort}/api/internal/portal-code`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-portal-secret': portalSecret,
+          },
+          body: JSON.stringify({
+            code: portalCode,
+            jwt: portalToken,
+            client_id: clientId,
+          }),
+        });
+      } catch (err) {
+        logger.error({ err }, 'Failed to store portal code in API');
+        break;
+      }
 
       const baseUrl = process.env.BASE_URL || 'https://otto.hntic.fr';
-      const portalUrl = `${baseUrl}/portal?token=${portalToken}`;
-
       const chatJid = data.chatJid || data.targetJid;
       if (chatJid) {
         await deps.sendMessage(
           chatJid,
-          `Voici ton espace client Otto :\n\n${portalUrl}\n\nCe lien est valable 24h.`,
+          `Voici ton code d'accès au portail Otto :\n\n*${formattedCode}*\n\nRendez-vous sur ${baseUrl}/portal et entre ce code.\nIl expire dans 5 minutes.`,
         );
-        logger.info({ sourceGroup, chatJid }, 'Portal link sent via IPC');
+        logger.info({ sourceGroup, chatJid }, 'Portal code sent via IPC');
       }
       break;
     }

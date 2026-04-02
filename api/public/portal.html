@@ -780,10 +780,15 @@
     <div class="logo-text">Otto</div>
     <div class="logo-sub">by HNTIC</div>
     <h2>Mon Espace</h2>
-    <p class="subtitle">Demande un lien d'acc&egrave;s via WhatsApp en &eacute;crivant "Mon espace" &agrave; Otto, ou entre ton email ci-dessous.</p>
-    <input type="email" id="email-input" placeholder="ton@email.com" autocomplete="email">
-    <button id="request-btn" onclick="requestLink()">Recevoir le lien</button>
+    <p class="subtitle">&Eacute;crivez "Mon espace" &agrave; Otto sur WhatsApp pour recevoir votre code d'acc&egrave;s.</p>
+    <input type="text" id="code-input" placeholder="Code &agrave; 6 chiffres" autocomplete="one-time-code" inputmode="numeric" maxlength="7" style="text-align:center;font-size:1.4rem;letter-spacing:0.3em;font-weight:600">
+    <button id="verify-btn" onclick="verifyCode()">Acc&eacute;der au portail</button>
     <div class="landing-msg" id="landing-msg"></div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border,#e5e7eb)">
+      <p class="subtitle" style="margin-bottom:12px;font-size:0.82rem">Pas de WhatsApp ? Recevez le code par email :</p>
+      <input type="email" id="email-input" placeholder="votre@email.com" autocomplete="email" style="font-size:0.9rem">
+      <button id="request-btn" onclick="requestLink()" style="font-size:0.85rem;padding:10px;background:#374151">Recevoir par email</button>
+    </div>
   </div>
 </div>
 
@@ -1101,6 +1106,7 @@ async function portalFetch(path) {
 /* ─── Auth / Init ─── */
 
 async function init() {
+  // Support legacy token-in-URL (backward compat) + cookie-based auth
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
   try {
@@ -1116,6 +1122,46 @@ async function init() {
       showPortal(data);
     } else { showLanding(); }
   } catch { showLanding(); }
+}
+
+async function verifyCode() {
+  const input = document.getElementById('code-input');
+  const code = input.value.trim();
+  const msg = document.getElementById('landing-msg');
+  const btn = document.getElementById('verify-btn');
+
+  if (!code || code.replace(/\s/g, '').length < 6) {
+    msg.className = 'landing-msg error';
+    msg.textContent = 'Entrez le code \u00e0 6 chiffres re\u00e7u sur WhatsApp.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'V\u00e9rification...';
+  msg.textContent = '';
+
+  try {
+    const res = await fetch('/api/portal/verify-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code.replace(/\s/g, '') }),
+      credentials: 'same-origin',
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      // Cookie is set — reload to enter portal
+      window.location.href = '/portal';
+    } else {
+      msg.className = 'landing-msg error';
+      msg.textContent = data.error || 'Code invalide.';
+    }
+  } catch {
+    msg.className = 'landing-msg error';
+    msg.textContent = 'Impossible de contacter le serveur.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Acc\u00e9der au portail';
+  }
 }
 
 function showLanding() {
@@ -1616,6 +1662,9 @@ window.addEventListener('hashchange', () => {
   else if (!hash && currentTab !== 'dashboard') switchTab('dashboard');
 });
 
+document.getElementById('code-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') verifyCode();
+});
 document.getElementById('email-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') requestLink();
 });
