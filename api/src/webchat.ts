@@ -120,7 +120,7 @@ export function setupWebchat(server: HttpServer): void {
     sendRecentMessages(conn);
 
     // Start polling for bot responses
-    conn.pollInterval = setInterval(() => pollBotMessages(conn), 1500);
+    conn.pollInterval = setInterval(() => pollNewMessages(conn), 1500);
 
     ws.on('message', (raw) => {
       try {
@@ -204,6 +204,20 @@ function injectMessage(conn: ChatConnection, text: string): void {
     db.close();
   }
 
+  // Mirror user message to WhatsApp so the conversation stays in sync
+  const ipcDir = path.join(CLIENTS_DIR, conn.clientId, 'data', 'ipc', 'main', 'messages');
+  try {
+    fs.mkdirSync(ipcDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(ipcDir, `webchat-echo-${Date.now()}.json`),
+      JSON.stringify({
+        type: 'message',
+        chatJid: conn.chatJid,
+        text: `[Web] ${text}`,
+      }),
+    );
+  } catch { /* non-critical */ }
+
   // Echo back to confirm
   conn.ws.send(
     JSON.stringify({
@@ -219,7 +233,7 @@ function injectMessage(conn: ChatConnection, text: string): void {
   conn.lastSeenTimestamp = timestamp;
 }
 
-function pollBotMessages(conn: ChatConnection): void {
+function pollNewMessages(conn: ChatConnection): void {
   if (conn.ws.readyState !== WebSocket.OPEN) return;
 
   const dbPath = getMessagesDbPath(conn.clientId);
@@ -227,29 +241,36 @@ function pollBotMessages(conn: ChatConnection): void {
 
   const db = new Database(dbPath, { readonly: true });
   try {
+    // Poll ALL new messages (bot responses + WhatsApp user messages)
+    // Skip webchat-originated messages (already echoed) via sender != 'webchat'
     const messages = db
       .prepare(
-        `SELECT id, sender_name, content, timestamp
+        `SELECT id, sender, sender_name, content, timestamp, is_from_me, is_bot_message
          FROM messages
-         WHERE chat_jid = ? AND is_bot_message = 1 AND timestamp > ?
+         WHERE chat_jid = ? AND timestamp > ? AND sender != 'webchat'
          ORDER BY timestamp ASC`,
       )
       .all(conn.chatJid, conn.lastSeenTimestamp) as Array<{
         id: string;
+        sender: string;
         sender_name: string;
         content: string;
         timestamp: string;
+        is_from_me: number;
+        is_bot_message: number;
       }>;
 
     for (const m of messages) {
+      const isBot = !!m.is_bot_message;
+      const sender = isBot ? 'Otto' : m.is_from_me ? 'Vous (WhatsApp)' : m.sender_name || 'Vous';
       conn.ws.send(
         JSON.stringify({
           type: 'message',
           id: m.id,
-          sender: 'Otto',
+          sender,
           text: m.content,
           timestamp: m.timestamp,
-          isBot: true,
+          isBot,
         }),
       );
       conn.lastSeenTimestamp = m.timestamp;
