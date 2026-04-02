@@ -1684,6 +1684,7 @@ setInterval(() => {
 
 let chatWs = null;
 let chatInitialized = false;
+let streamingBlocked = false;
 
 function initChat() {
   if (chatWs && chatWs.readyState === WebSocket.OPEN) return;
@@ -1709,6 +1710,8 @@ function initChat() {
     try {
       const data = JSON.parse(e.data);
       if (data.type === 'message') {
+        // Block streaming when final message arrives (prevents re-creation by poll)
+        if (data.isBot) streamingBlocked = true;
         removeStreamingBubble();
         // Strip "Otto: " prefix from bot messages (host prepends it in DB)
         if (data.isBot && data.text && data.text.startsWith('Otto: ')) {
@@ -1716,8 +1719,9 @@ function initChat() {
         }
         appendChatMessage(data);
       } else if (data.type === 'stream') {
-        showStreamingBubble(data.text);
+        if (!streamingBlocked) showStreamingBubble(data.text);
       } else if (data.type === 'stream_end') {
+        streamingBlocked = true;
         removeStreamingBubble();
       } else if (data.type === 'error') {
         status.textContent = data.message;
@@ -1795,6 +1799,7 @@ function sendChatMessage() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if (!text || !chatWs || chatWs.readyState !== WebSocket.OPEN) return;
+  streamingBlocked = false;
   chatWs.send(JSON.stringify({ type: 'message', text }));
   input.value = '';
   input.focus();
