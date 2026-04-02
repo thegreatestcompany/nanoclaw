@@ -822,6 +822,7 @@ async function runQuery(
         ? { type: 'preset' as const, preset: 'claude_code' as const, append: globalClaudeMd }
         : undefined,
       tools: [
+        'Agent',
         'Bash',
         'Read', 'Write', 'Edit', 'Glob', 'Grep',
         'WebSearch', 'WebFetch',
@@ -834,6 +835,7 @@ async function runQuery(
         ...(composioServer ? ['mcp__composio__*'] : []),
       ],
       allowedTools: [
+        'Agent',
         'Bash',
         'Read', 'Write', 'Edit', 'Glob', 'Grep',
         'WebSearch', 'WebFetch',
