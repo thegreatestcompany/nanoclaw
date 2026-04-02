@@ -863,28 +863,17 @@ async function runQuery(
 
     // Stream assistant text chunks to IPC for webchat
     if (message.type === 'assistant') {
-      const msg = message as Record<string, unknown>;
-      const msgField = msg.message;
-      log(`[STREAM-DEBUG] assistant keys: ${Object.keys(msg).join(', ')} | message type: ${typeof msgField}${typeof msgField === 'object' && msgField ? ' keys: ' + Object.keys(msgField as object).join(',') : ''}`);
-      // Try all known formats
-      let streamText = '';
-      if (Array.isArray(msg.content)) {
-        const textParts = (msg.content as Array<{ type: string; text?: string }>)
-          .filter(c => c.type === 'text' && c.text).map(c => c.text!);
-        streamText = textParts.join('');
-      } else if (typeof msg.content === 'string') {
-        streamText = msg.content;
-      } else if (typeof msg.message === 'string') {
-        streamText = msg.message;
-      } else if (typeof msg.text === 'string') {
-        streamText = msg.text;
-      }
-      if (streamText) {
-        try {
-          const streamFile = '/workspace/ipc/stream.jsonl';
-          fs.appendFileSync(streamFile, JSON.stringify({ text: streamText, ts: Date.now() }) + '\n');
-        } catch { /* non-critical */ }
-      }
+      try {
+        // SDK format: message.message is an API response object with .content array
+        const apiMsg = (message as { message?: { content?: Array<{ type: string; text?: string }> } }).message;
+        if (apiMsg?.content) {
+          const textParts = apiMsg.content.filter(c => c.type === 'text' && c.text).map(c => c.text!);
+          if (textParts.length > 0) {
+            const streamFile = '/workspace/ipc/stream.jsonl';
+            fs.appendFileSync(streamFile, JSON.stringify({ text: textParts.join(''), ts: Date.now() }) + '\n');
+          }
+        }
+      } catch { /* non-critical */ }
     }
 
     if (message.type === 'system' && message.subtype === 'init') {
