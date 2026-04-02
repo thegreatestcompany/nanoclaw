@@ -73,6 +73,9 @@ Passer de test à prod :
     - Vérifier : webhook `subscription.deleted` reçu → status `pending_cancellation` → WhatsApp farewell → 24h grâce → deprovisioning → backup
 13. Tester le paiement échoué : vérifier que le client reçoit une notification
 
+### Pages légales (obligatoire avant lancement)
+Mentions légales, CGV/CGU, Politique de confidentialité, Politique cookies. Infos HNTIC : SAS, 9 rue des Colonnes 75002 Paris, SIRET 999 125 420 00011, RCS Paris B 999 125 420. Hébergeur : Hetzner (Allemagne). Sous-traitants à déclarer : Anthropic (US), Hetzner (DE), Stripe (US), Meta/WhatsApp (US). Points sensibles : transferts hors UE, responsabilité IA, données business. **Faire valider par un juriste.**
+
 ### Monitoring
 Alerting quand un process client crash (PM2 auto-restart déjà en place).
 
