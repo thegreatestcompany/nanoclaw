@@ -179,7 +179,7 @@ function sendRecentMessages(conn: ChatConnection): void {
     // Send oldest first
     messages.reverse();
     for (const m of messages) {
-      const isBot = !!m.is_bot_message || (!!m.is_from_me && m.sender !== 'webchat');
+      const isBot = !!m.is_bot_message;
       conn.ws.send(
         JSON.stringify({
           type: 'message',
@@ -281,9 +281,8 @@ function pollNewMessages(conn: ChatConnection): void {
       }>;
 
     for (const m of messages) {
-      // is_from_me=1 + not webchat = Otto's outgoing message (sendMessage/sendDocument)
-      const isBot = !!m.is_bot_message || (!!m.is_from_me && m.sender !== 'webchat');
-      const sender = isBot ? 'Otto' : m.sender_name || 'Vous (WhatsApp)';
+      const isBot = !!m.is_bot_message;
+      const sender = isBot ? 'Otto' : m.is_from_me ? 'Vous (WhatsApp)' : m.sender_name || 'Vous';
       conn.ws.send(
         JSON.stringify({
           type: 'message',
