@@ -343,6 +343,8 @@ function createPreToolUseHook(): HookCallback {
         'add-telegram-swarm', 'use-local-whisper', 'use-native-credential-proxy',
         'x-integration', 'add-voice-transcription', 'add-image-vision',
         'add-reactions', 'add-pdf-reader', 'add-gmail',
+        'channel-formatting', 'get-qodo-rules', 'qodo-pr-resolver',
+        'slack-formatting', 'capabilities', 'status',
       ]);
       if (BLOCKED_SKILLS.has(skillName)) {
         log(`[SECURITY] Blocked admin skill: ${skillName}`);
