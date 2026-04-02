@@ -1050,6 +1050,33 @@ function fmtPercent(n) {
 function nowParis() {
   return new Date().toLocaleString('fr-FR', { timeZone: PARIS_TZ, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
+function renderMarkdown(text) {
+  // Escape HTML first
+  let html = escapeHtml(text);
+  // Headers: ### Title → <strong>Title</strong> (no h tags in chat)
+  html = html.replace(/^#{1,3}\s+(.+)$/gm, '<strong>$1</strong>');
+  // Bold: **text** or *text* (WhatsApp style)
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<strong>$1</strong>');
+  // Italic: _text_
+  html = html.replace(/(?<![a-zA-Z0-9])_(.+?)_(?![a-zA-Z0-9])/g, '<em>$1</em>');
+  // Strikethrough: ~text~
+  html = html.replace(/~(.+?)~/g, '<del>$1</del>');
+  // Code: `text`
+  html = html.replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:3px;font-size:0.82em">$1</code>');
+  // Links: [text](url)
+  html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:#075E54">$1</a>');
+  // Bare URLs
+  html = html.replace(/(?<!["\(])(https?:\/\/[^\s<\)]+)/g, '<a href="$1" target="_blank" rel="noopener" style="color:#075E54">$1</a>');
+  // Bullet lists: • or - at start of line
+  html = html.replace(/^[\u2022\-]\s+(.+)$/gm, '<div style="padding-left:12px;text-indent:-12px">\u2022 $1</div>');
+  // Numbered lists: 1. at start of line
+  html = html.replace(/^(\d+)\.\s+(.+)$/gm, '<div style="padding-left:16px;text-indent:-16px">$1. $2</div>');
+  // Line breaks
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
 function escapeHtml(str) {
   if (typeof str !== 'string') return String(str ?? '');
   const div = document.createElement('div');
@@ -1744,7 +1771,7 @@ function appendChatMessage(data) {
   if (data.id) div.setAttribute('data-msg-id', data.id);
   const time = data.timestamp ? new Date(data.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }) : '';
 
-  let content = escapeHtml(data.text || '');
+  let content = data.isBot ? renderMarkdown(data.text || '') : escapeHtml(data.text || '');
 
   // Render media
   if (data.mediaType === 'document' && data.mediaFilename) {
