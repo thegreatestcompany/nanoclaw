@@ -864,7 +864,8 @@ async function runQuery(
     // Stream assistant text chunks to IPC for webchat
     if (message.type === 'assistant') {
       const msg = message as Record<string, unknown>;
-      log(`[STREAM-DEBUG] assistant keys: ${Object.keys(msg).join(', ')}`);
+      const msgField = msg.message;
+      log(`[STREAM-DEBUG] assistant keys: ${Object.keys(msg).join(', ')} | message type: ${typeof msgField}${typeof msgField === 'object' && msgField ? ' keys: ' + Object.keys(msgField as object).join(',') : ''}`);
       // Try all known formats
       let streamText = '';
       if (Array.isArray(msg.content)) {
