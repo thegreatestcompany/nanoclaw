@@ -160,7 +160,7 @@ function sendRecentMessages(conn: ChatConnection): void {
       .prepare(
         `SELECT id, sender, sender_name, content, timestamp, is_from_me, is_bot_message, media_type, media_path, media_filename
          FROM messages
-         WHERE chat_jid = ? AND content NOT LIKE '[Web] %'
+         WHERE chat_jid = ? AND content NOT LIKE '%[Web] %'
          ORDER BY timestamp DESC LIMIT 20`,
       )
       .all(conn.chatJid) as Array<{
@@ -264,7 +264,7 @@ function pollNewMessages(conn: ChatConnection): void {
       .prepare(
         `SELECT id, sender, sender_name, content, timestamp, is_from_me, is_bot_message, media_type, media_path, media_filename
          FROM messages
-         WHERE chat_jid = ? AND timestamp > ? AND sender != 'webchat' AND content NOT LIKE '[Web] %'
+         WHERE chat_jid = ? AND timestamp > ? AND sender != 'webchat' AND content NOT LIKE '%[Web] %'
          ORDER BY timestamp ASC`,
       )
       .all(conn.chatJid, conn.lastSeenTimestamp) as Array<{
