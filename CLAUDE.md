@@ -17,17 +17,23 @@ Multi-tenant SaaS on a single Hetzner VPS. Each client gets their own PM2 proces
 | `src/transcription.ts` | Voice transcription (OpenAI Whisper API, fallback whisper.cpp) |
 | `src/memory-consolidator.ts` | Daily learnings + weekly AutoDream |
 | `src/passive-scanner.ts` | Scans unregistered conversations for business data |
-| `src/ipc.ts` | IPC watcher and task processing |
+| `src/ipc.ts` | IPC watcher and task processing (portal_link, messages, tasks) |
 | `src/db.ts` | SQLite operations (messages.db) |
 | `container/agent-runner/src/index.ts` | Code running inside the container |
 | `container/agent-runner/src/business-db-mcp.ts` | MCP server for business.db (query/mutate with audit) |
-| `container/skills/` | 53 skills loaded inside agent containers |
+| `container/agent-runner/src/ipc-mcp-stdio.ts` | MCP tools: send_message, send_document, portal_link, schedule_task |
+| `container/skills/` | 47 business skills + blocked admin skills |
 | `groups/global/CLAUDE.md` | Global agent instructions (shared across clients) |
 | `scripts/init-business-db.sql` | Business DB schema (25 tables) |
-| `api/src/stripe.ts` | Stripe webhook → auto-provisioning |
+| `api/src/stripe.ts` | Stripe webhook → provisioning/deprovisioning + WhatsApp notifications |
 | `api/src/onboard.ts` | WhatsApp QR code/pairing + reconnection flow |
 | `api/src/mailer.ts` | Transactional emails (Gmail SMTP) |
 | `api/src/admin.ts` | Admin back-office API |
+| `api/src/client-portal.ts` | Client portal routes (JWT auth, business data, documents) |
+| `api/src/webchat.ts` | WebSocket bridge for portal chat |
+| `api/public/portal.html` | Client portal SPA (6 tabs + chat) |
+| `api/public/index.html` | Landing page (otto.hntic.fr) |
+| `api/src/db.ts` | Onboarding DB (clients table — HNTIC CRM data) |
 
 ## Secrets / Credentials
 
@@ -40,16 +46,18 @@ The API's `.env` is at `api/.env` (gitignored) and contains Stripe, SMTP, and ad
 ```
 /opt/otto/
   app/           ← This repo (git pull to update)
-    api/         ← Onboarding API (runs as PM2 process otto-api)
+    api/         ← Onboarding API + portal + webchat (PM2 process otto-api)
+      data/onboarding.db  ← HNTIC CRM (all clients, Stripe data, contacts)
     src/         ← Host process code
     container/   ← Docker image + skills
-    groups/      ← Global CLAUDE.md template
+    groups/      ← CLAUDE.md templates (global + main)
   clients/       ← Per-client isolated directories
     {id}/
-      .env       ← Client API key (never mounted in containers)
+      .env       ← Client API key + PORTAL_JWT_SECRET (never mounted in containers)
       groups/    ← Client data (business.db, CLAUDE.md, documents/)
-      data/      ← Sessions, skills cache
-      store/     ← WhatsApp auth credentials
+      data/      ← Sessions, skills cache, IPC
+      store/     ← WhatsApp auth credentials + messages.db
+  backups/       ← Client backups (tar.gz, created on deprovisioning)
 ```
 
 ## Permissions
@@ -83,6 +91,23 @@ pm2 restart otto-test  # or the client process
 - **Session resume is enabled** — sessions persist across container restarts via mounted .claude/
 - **maxTurns: 30, maxBudgetUsd: 0.50** — guardrails against infinite loops
 - **Whisper: OpenAI API** when OPENAI_API_KEY is set, local whisper.cpp (ggml-small) as fallback
+- **WebSearch blocked when Exa available** — PreToolUse hook forces Exa for web search (better results)
+- **HITL on all INSERT** — business tables require user confirmation before creating data (anti-hallucination)
+- **Auto ⏳ feedback** — PreToolUse hook sends hourglass on first slow tool call (code-level, not prompting)
+- **Portal auth by 6-digit code** — no JWT in URL, code sent via WhatsApp, 5min TTL, single-use
+- **PM2 exponential backoff** — `--exp-backoff-restart-delay=1000` prevents crash restart loops
+- **Stripe shared API key** — Admin API can't create keys programmatically, workspace per client for cost tracking
+- **Deprovisioning 24h grace** — WhatsApp farewell → backup tar.gz → delete → status cancelled
+
+## Web Pages
+
+| URL | Description |
+|-----|-------------|
+| `https://otto.hntic.fr` | Landing page |
+| `https://otto.hntic.fr/portal` | Client portal (code auth) |
+| `https://otto.hntic.fr/admin` | Admin dashboard (token auth) |
+| `https://otto.hntic.fr/reconnect` | WhatsApp reconnection |
+| `https://otto.hntic.fr/onboard/:token` | QR code onboarding |
 
 ## Troubleshooting
 
@@ -92,3 +117,6 @@ See [TEMP/POSTMORTEM-DEPLOIEMENT.md](TEMP/POSTMORTEM-DEPLOIEMENT.md) for all kno
 - **Container crashes on start**: Check entrypoint — TypeScript compilation may fail if source changed
 - **WhatsApp not connecting**: Check `store/auth/` exists and has valid creds. Use `/reconnect` page.
 - **PM2 "Script already launched"**: Use `pm2 restart` instead of `pm2 start`
+- **PM2 PID N/A + 0b memory**: Process in crash loop — `pm2 delete` + `pm2 start` to reset restart counter
+- **Global CLAUDE.md not updated on client**: It's copied at provisioning, not symlinked. Update manually: `cp groups/global/CLAUDE.md /opt/otto/clients/{id}/groups/global/CLAUDE.md`
+- **Session purge needed after CLAUDE.md changes**: `sqlite3 store/messages.db "DELETE FROM sessions"` + pm2 restart
