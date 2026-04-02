@@ -1128,7 +1128,7 @@ function appendChatMessage(data) {
   // Render media
   if (data.mediaType === 'document' && data.mediaFilename) {
     const icon = fileIcon(data.mediaFilename);
-    const dlPath = 'documents/' + encodeURIComponent(data.mediaFilename);
+    const dlPath = data.mediaPath || ('documents/' + encodeURIComponent(data.mediaFilename));
     content = '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:' + (data.isBot ? '#f0f4ff' : 'rgba(255,255,255,0.1)') + ';border-radius:8px;margin-bottom:6px;border:1px solid ' + (data.isBot ? '#e0e7ff' : 'rgba(255,255,255,0.15)') + '">'
       + '<span style="font-size:1.3rem">' + icon + '</span>'
       + '<div><div style="font-weight:600;font-size:0.82rem">' + escapeHtml(data.mediaFilename) + '</div>'

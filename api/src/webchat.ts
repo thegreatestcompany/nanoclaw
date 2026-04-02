@@ -150,7 +150,7 @@ function sendRecentMessages(conn: ChatConnection): void {
   try {
     const messages = db
       .prepare(
-        `SELECT id, sender, sender_name, content, timestamp, is_from_me, is_bot_message, media_type, media_filename
+        `SELECT id, sender, sender_name, content, timestamp, is_from_me, is_bot_message, media_type, media_path, media_filename
          FROM messages
          WHERE chat_jid = ? AND content NOT LIKE '[Web] %'
          ORDER BY timestamp DESC LIMIT 20`,
@@ -164,6 +164,7 @@ function sendRecentMessages(conn: ChatConnection): void {
         is_from_me: number;
         is_bot_message: number;
         media_type: string | null;
+        media_path: string | null;
         media_filename: string | null;
       }>;
 
@@ -180,6 +181,7 @@ function sendRecentMessages(conn: ChatConnection): void {
           timestamp: m.timestamp,
           isBot,
           mediaType: m.media_type || undefined,
+          mediaPath: m.media_path || undefined,
           mediaFilename: m.media_filename || undefined,
         }),
       );
@@ -252,7 +254,7 @@ function pollNewMessages(conn: ChatConnection): void {
     // Skip [Web] echo messages (mirrored to WhatsApp by us)
     const messages = db
       .prepare(
-        `SELECT id, sender, sender_name, content, timestamp, is_from_me, is_bot_message, media_type, media_filename
+        `SELECT id, sender, sender_name, content, timestamp, is_from_me, is_bot_message, media_type, media_path, media_filename
          FROM messages
          WHERE chat_jid = ? AND timestamp > ? AND sender != 'webchat' AND content NOT LIKE '[Web] %'
          ORDER BY timestamp ASC`,
@@ -266,6 +268,7 @@ function pollNewMessages(conn: ChatConnection): void {
         is_from_me: number;
         is_bot_message: number;
         media_type: string | null;
+        media_path: string | null;
         media_filename: string | null;
       }>;
 
@@ -282,6 +285,7 @@ function pollNewMessages(conn: ChatConnection): void {
           timestamp: m.timestamp,
           isBot,
           mediaType: m.media_type || undefined,
+          mediaPath: m.media_path || undefined,
           mediaFilename: m.media_filename || undefined,
         }),
       );
