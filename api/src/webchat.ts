@@ -220,6 +220,20 @@ function injectMessage(conn: ChatConnection, text: string): void {
     db.close();
   }
 
+  // Mirror user message to WhatsApp so the conversation stays in sync
+  const ipcDir = path.join(CLIENTS_DIR, conn.clientId, 'data', 'ipc', 'main', 'messages');
+  try {
+    fs.mkdirSync(ipcDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(ipcDir, `webchat-echo-${Date.now()}.json`),
+      JSON.stringify({
+        type: 'message',
+        chatJid: conn.chatJid,
+        text: `[Web] ${text}`,
+      }),
+    );
+  } catch { /* non-critical */ }
+
   // Echo back to confirm
   conn.ws.send(
     JSON.stringify({
@@ -303,6 +317,11 @@ function pollStreamChunks(conn: ChatConnection): void {
 
   try {
     const content = fs.readFileSync(streamFile, 'utf-8');
+    // Reset offset if file was truncated (new query started)
+    if (content.length < conn.lastStreamOffset) {
+      conn.lastStreamOffset = 0;
+      conn.lastStreamText = '';
+    }
     if (content.length <= conn.lastStreamOffset) return;
 
     const newContent = content.slice(conn.lastStreamOffset);
