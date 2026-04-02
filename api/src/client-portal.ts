@@ -1,7 +1,7 @@
 /**
  * Client portal routes — JWT-authenticated access to client's own data.
  *
- * Auth: magic link → JWT in httpOnly cookie.
+ * Auth: 6-digit code → JWT in httpOnly cookie. No token in URL.
  * Security: client_id from JWT only, path traversal protection, read-only.
  */
 
@@ -20,6 +20,36 @@ const CLIENTS_DIR =
   process.env.CLIENTS_DIR || path.join(process.cwd(), '..', 'clients');
 
 const SAFE_ID_PATTERN = /^[a-z0-9-]+$/;
+
+// --- Portal code store (in-memory, short-lived) ---
+
+interface PortalCode {
+  jwt: string;
+  clientId: string;
+  expiresAt: number;
+}
+
+const portalCodes = new Map<string, PortalCode>();
+const codeAttempts = new Map<string, { count: number; resetAt: number }>();
+
+// Cleanup expired codes every 2 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, entry] of portalCodes) {
+    if (now > entry.expiresAt) portalCodes.delete(code);
+  }
+  for (const [key, entry] of codeAttempts) {
+    if (now > entry.resetAt) codeAttempts.delete(key);
+  }
+}, 2 * 60 * 1000);
+
+export function storePortalCode(code: string, jwtToken: string, clientId: string): void {
+  portalCodes.set(code, {
+    jwt: jwtToken,
+    clientId,
+    expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+  });
+}
 
 const ALLOWED_EXTENSIONS = new Set([
   '.pdf',
@@ -190,7 +220,7 @@ export function setupPortalRoutes(app: Express): void {
       return;
     }
     const clientId = req.clientId || 'anon';
-    if (!rateLimit(`portal:${clientId}`, 60, 60 * 1000)) {
+    if (!rateLimit(`portal:${clientId}`, 200, 60 * 1000)) {
       res.status(429).json({ error: 'Trop de requêtes' });
       return;
     }
@@ -600,7 +630,32 @@ export function setupPortalRoutes(app: Express): void {
     },
   );
 
-  // --- Internal endpoint: generate portal link (admin-only) ---
+  // --- Internal endpoint: store a portal code (called by host IPC handler) ---
+
+  app.post(
+    '/api/internal/portal-code',
+    express.json(),
+    (req, res) => {
+      // Auth via PORTAL_JWT_SECRET as shared secret (both host and API have it)
+      const authHeader = req.headers['x-portal-secret'] as string;
+      const secret = getPortalSecret();
+      if (!secret || authHeader !== secret) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+
+      const { code, jwt: jwtToken, client_id } = req.body;
+      if (!code || !jwtToken || !client_id) {
+        res.status(400).json({ error: 'code, jwt, and client_id required' });
+        return;
+      }
+
+      storePortalCode(code, jwtToken, client_id);
+      res.json({ ok: true });
+    },
+  );
+
+  // --- Internal endpoint: generate portal link (admin-only, kept for backward compat) ---
 
   app.post(
     '/api/internal/portal-link',
@@ -624,6 +679,57 @@ export function setupPortalRoutes(app: Express): void {
       const url = `${baseUrl}/portal?token=${token}`;
 
       res.json({ url, expiresIn: '24h' });
+    },
+  );
+
+  // --- Public endpoint: verify portal code ---
+
+  app.post(
+    '/api/portal/verify-code',
+    express.json(),
+    (req, res) => {
+      const { code } = req.body;
+      if (!code || typeof code !== 'string') {
+        res.status(400).json({ error: 'Code requis' });
+        return;
+      }
+
+      const normalized = code.replace(/\s/g, ''); // Remove spaces (user might type "847 291")
+      const ip = req.ip || 'unknown';
+
+      // Rate limit: 5 attempts per 15 minutes per IP
+      const attemptKey = `verify:${ip}`;
+      const attempt = codeAttempts.get(attemptKey);
+      const now = Date.now();
+      if (attempt && now < attempt.resetAt && attempt.count >= 5) {
+        res.status(429).json({ error: 'Trop de tentatives. R\u00e9essayez dans quelques minutes.' });
+        return;
+      }
+      if (!attempt || now > attempt.resetAt) {
+        codeAttempts.set(attemptKey, { count: 1, resetAt: now + 15 * 60 * 1000 });
+      } else {
+        attempt.count++;
+      }
+
+      const entry = portalCodes.get(normalized);
+      if (!entry || now > entry.expiresAt) {
+        portalCodes.delete(normalized);
+        res.status(401).json({ error: 'Code invalide ou expir\u00e9' });
+        return;
+      }
+
+      // Valid code — set JWT cookie and delete the code (single use)
+      portalCodes.delete(normalized);
+
+      res.cookie('portal_token', entry.jwt, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+
+      res.json({ ok: true });
     },
   );
 

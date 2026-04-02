@@ -185,6 +185,8 @@ export function setupOnboardRoutes(app: Express, server: Server): void {
 
   server.on('upgrade', (req, socket, head) => {
     const url = req.url || '';
+    // Skip non-onboard WebSocket paths (e.g., /ws/chat is handled by webchat)
+    if (url.startsWith('/ws/chat')) return;
     const match = url.match(/^\/ws\/(.+)$/);
     if (!match) {
       socket.destroy();

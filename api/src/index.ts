@@ -22,6 +22,7 @@ import { setupAdminRoutes } from './admin.js';
 import { setupPortalRoutes } from './client-portal.js';
 import { setupOnboardRoutes } from './onboard.js';
 import { sendReconnectionEmail, sendContactNotification } from './mailer.js';
+import { setupWebchat } from './webchat.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.API_PORT || '3000', 10);
@@ -143,4 +144,7 @@ server.listen(PORT, () => {
 
   // Listen for PM2 IPC messages from client processes (disconnection alerts)
   setupPm2IpcListener();
+
+  // Webchat WebSocket bridge
+  setupWebchat(server);
 });

@@ -390,6 +390,109 @@ Les skills sont chargés automatiquement dans le container via `container/skills
 
 ---
 
+## Portail client
+
+Chaque client dispose d'un portail web (`/portal`) qui lui donne accès à ses données business via une interface ERP. L'authentification se fait par code à 6 chiffres envoyé via WhatsApp (pas de token dans l'URL).
+
+### Authentification par code
+
+```
+1. Dirigeant écrit "Mon espace" à Otto sur WhatsApp
+
+2. Otto appelle l'outil MCP portal_link
+   → IPC task file → Host IPC handler
+
+3. Host génère :
+   - JWT signé (HS256, PORTAL_JWT_SECRET, 24h)
+   - Code 6 chiffres aléatoire (crypto.randomInt)
+
+4. Host appelle POST /api/internal/portal-code
+   → stocke { code → JWT } en mémoire dans l'API (5 min TTL)
+
+5. Host envoie via WhatsApp : "Ton code : 847 291"
+
+6. Dirigeant va sur otto.hntic.fr/portal, tape le code
+
+7. POST /api/portal/verify-code
+   → vérifie le code (rate limité: 5 tentatives/15min/IP)
+   → set cookie portal_token (httpOnly, secure, sameSite strict, 24h)
+   → supprime le code (usage unique)
+
+8. Le navigateur recharge → cookie valide → portail affiché
+```
+
+### Sécurité du portail
+
+| Couche | Mécanisme |
+|--------|-----------|
+| Auth | JWT dans cookie httpOnly (jamais dans l'URL) |
+| Code | 6 chiffres, 5 min TTL, usage unique, rate limité |
+| Isolation | client_id extrait du JWT uniquement (jamais de paramètre URL) |
+| Fichiers | Path traversal check + extension whitelist + paths bloqués |
+| DB | Queries prédéfinies, Database ouvert en readonly |
+| Rate limit | 60 req/min par client sur les routes portail |
+
+### Routes du portail
+
+| Route | Description |
+|-------|-------------|
+| `GET /api/portal/dashboard` | KPIs, deals récents, interactions, réunions, obligations |
+| `GET /api/portal/business/:section` | Données détaillées (contacts, deals, team, invoices, contracts, candidates, goals, suppliers, expenses) |
+| `GET /api/portal/documents` | Liste des fichiers |
+| `GET /api/portal/documents/download?file=...` | Téléchargement (stream, path traversal check) |
+| `GET /api/portal/memory` | Fichiers mémoire (company.md, preferences.md, glossary.md) |
+| `GET /api/portal/audit?page=N` | Journal d'activité paginé |
+| `GET /api/portal/usage` | Stats messages par semaine |
+
+**Fichiers clés :**
+- `api/src/client-portal.ts` — routes + JWT middleware + code store
+- `api/public/portal.html` — SPA frontend (sidebar, 6 onglets, chat)
+- `container/agent-runner/src/ipc-mcp-stdio.ts` — outil MCP `portal_link`
+- `src/ipc.ts` — handler IPC `portal_link` (génère code + appelle API)
+
+---
+
+## Webchat
+
+Le portail inclut un chat web qui permet de parler à Otto directement depuis le navigateur, en parallèle de WhatsApp.
+
+### Architecture
+
+```
+Navigateur (portal.html)
+  ↕ WebSocket /ws/chat (JWT cookie)
+API (otto-api)
+  ↕ messages.db (lecture/écriture directe)
+Client process (otto-test)
+  → message loop détecte le nouveau message
+  → lance un container → agent traite
+  → réponse écrite en DB
+API poll les nouvelles réponses toutes les 1.5s
+  → WebSocket → navigateur
+```
+
+### Synchronisation WhatsApp ↔ Webchat
+
+Les deux canaux partagent la même `messages.db` et le même `chat_jid` :
+
+| Direction | Mécanisme |
+|-----------|-----------|
+| Webchat → DB | L'API écrit dans `messages.db` avec `sender='webchat'`, `is_from_me=1` |
+| Webchat → WhatsApp | L'API écrit un fichier IPC `messages/webchat-echo-*.json` avec le préfixe `[Web]` |
+| WhatsApp → Webchat | Le polling lit tous les messages `timestamp > lastSeen AND sender != 'webchat' AND content NOT LIKE '[Web] %'` |
+| Otto → les deux | Les réponses d'Otto (`is_bot_message=1`) sont envoyées via WhatsApp normalement + captées par le polling |
+| Documents | `media_type`, `media_path`, `media_filename` passés via WebSocket, rendus comme cartes téléchargeables |
+
+### Pourquoi ça marche sans modifier le host
+
+Le message loop dans `src/index.ts` poll `getNewMessages()` qui lit `messages.db`. Quand l'API y écrit un message webchat, le loop le détecte comme n'importe quel message WhatsApp et le traite normalement (même container, même agent, mêmes skills).
+
+**Fichiers clés :**
+- `api/src/webchat.ts` — WebSocket server, injection messages, polling réponses
+- `api/src/onboard.ts` — guard pour ne pas intercepter `/ws/chat` (ligne `if (url.startsWith('/ws/chat')) return`)
+
+---
+
 ## Déploiement
 
 Tout le code vit dans `/opt/otto/app/` (repo git). L'API tourne depuis `/opt/otto/app/api/`.
