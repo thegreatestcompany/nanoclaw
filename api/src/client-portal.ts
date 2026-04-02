@@ -220,7 +220,7 @@ export function setupPortalRoutes(app: Express): void {
       return;
     }
     const clientId = req.clientId || 'anon';
-    if (!rateLimit(`portal:${clientId}`, 60, 60 * 1000)) {
+    if (!rateLimit(`portal:${clientId}`, 200, 60 * 1000)) {
       res.status(429).json({ error: 'Trop de requêtes' });
       return;
     }
