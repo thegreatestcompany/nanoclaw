@@ -1684,7 +1684,6 @@ setInterval(() => {
 
 let chatWs = null;
 let chatInitialized = false;
-let streamingBlocked = false;
 
 function initChat() {
   if (chatWs && chatWs.readyState === WebSocket.OPEN) return;
@@ -1710,19 +1709,11 @@ function initChat() {
     try {
       const data = JSON.parse(e.data);
       if (data.type === 'message') {
-        // Block streaming when final message arrives (prevents re-creation by poll)
-        if (data.isBot) streamingBlocked = true;
-        removeStreamingBubble();
         // Strip "Otto: " prefix from bot messages (host prepends it in DB)
         if (data.isBot && data.text && data.text.startsWith('Otto: ')) {
           data.text = data.text.slice(6);
         }
         appendChatMessage(data);
-      } else if (data.type === 'stream') {
-        if (!streamingBlocked) showStreamingBubble(data.text);
-      } else if (data.type === 'stream_end') {
-        streamingBlocked = true;
-        removeStreamingBubble();
       } else if (data.type === 'error') {
         status.textContent = data.message;
         status.className = 'chat-status error';
@@ -1776,30 +1767,10 @@ function appendChatMessage(data) {
   messages.scrollTop = messages.scrollHeight;
 }
 
-function showStreamingBubble(text) {
-  const messages = document.getElementById('chat-messages');
-  let bubble = document.getElementById('streaming-bubble');
-  if (!bubble) {
-    bubble = document.createElement('div');
-    bubble.id = 'streaming-bubble';
-    bubble.className = 'chat-msg bot';
-    bubble.style.opacity = '0.85';
-    messages.appendChild(bubble);
-  }
-  bubble.innerHTML = '<div class="chat-sender">Otto</div>' + escapeHtml(text) + '<div class="chat-time" style="font-style:italic">en cours...</div>';
-  messages.scrollTop = messages.scrollHeight;
-}
-
-function removeStreamingBubble() {
-  const bubble = document.getElementById('streaming-bubble');
-  if (bubble) bubble.remove();
-}
-
 function sendChatMessage() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if (!text || !chatWs || chatWs.readyState !== WebSocket.OPEN) return;
-  streamingBlocked = false;
   chatWs.send(JSON.stringify({ type: 'message', text }));
   input.value = '';
   input.focus();

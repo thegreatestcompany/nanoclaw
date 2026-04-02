@@ -703,9 +703,6 @@ async function runQuery(
 ): Promise<{ newSessionId?: string; lastAssistantUuid?: string; closedDuringQuery: boolean; resumeFailed?: boolean }> {
   const stream = new MessageStream();
 
-  // Clear stream file for webchat streaming
-  try { fs.writeFileSync('/workspace/ipc/stream.jsonl', ''); } catch { /* ok */ }
-
   // If there are image attachments, send as multimodal content blocks
   if (containerInput.imageAttachments?.length) {
     const blocks: ContentBlock[] = [{ type: 'text', text: prompt }];
@@ -861,20 +858,6 @@ async function runQuery(
       lastAssistantUuid = (message as { uuid: string }).uuid;
     }
 
-    // Stream assistant text chunks to IPC for webchat
-    if (message.type === 'assistant') {
-      try {
-        // SDK format: message.message is an API response object with .content array
-        const apiMsg = (message as { message?: { content?: Array<{ type: string; text?: string }> } }).message;
-        if (apiMsg?.content) {
-          const textParts = apiMsg.content.filter(c => c.type === 'text' && c.text).map(c => c.text!);
-          if (textParts.length > 0) {
-            const streamFile = '/workspace/ipc/stream.jsonl';
-            fs.appendFileSync(streamFile, JSON.stringify({ text: textParts.join(''), ts: Date.now() }) + '\n');
-          }
-        }
-      } catch { /* non-critical */ }
-    }
 
     if (message.type === 'system' && message.subtype === 'init') {
       newSessionId = message.session_id;

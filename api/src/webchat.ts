@@ -27,9 +27,6 @@ interface ChatConnection {
   chatJid: string;
   lastSeenTimestamp: string;
   pollInterval: ReturnType<typeof setInterval> | null;
-  streamInterval: ReturnType<typeof setInterval> | null;
-  lastStreamOffset: number;
-  lastStreamText: string;
 }
 
 function getMessagesDbPath(clientId: string): string {
@@ -116,9 +113,6 @@ export function setupWebchat(server: HttpServer): void {
       chatJid,
       lastSeenTimestamp: new Date().toISOString(),
       pollInterval: null,
-      streamInterval: null,
-      lastStreamOffset: 0,
-      lastStreamText: '',
     };
     connections.set(ws, conn);
 
@@ -127,7 +121,6 @@ export function setupWebchat(server: HttpServer): void {
 
     // Start polling for bot responses + streaming chunks
     conn.pollInterval = setInterval(() => pollNewMessages(conn), 1500);
-    conn.streamInterval = setInterval(() => pollStreamChunks(conn), 400);
 
     ws.on('message', (raw) => {
       try {
@@ -140,7 +133,6 @@ export function setupWebchat(server: HttpServer): void {
 
     ws.on('close', () => {
       if (conn.pollInterval) clearInterval(conn.pollInterval);
-      if (conn.streamInterval) clearInterval(conn.streamInterval);
       connections.delete(ws);
     });
 
@@ -297,52 +289,9 @@ function pollNewMessages(conn: ChatConnection): void {
         }),
       );
       conn.lastSeenTimestamp = m.timestamp;
-      // Final message arrived — clear streaming state + stream file
-      if (isBot) {
-        conn.lastStreamOffset = 0;
-        conn.lastStreamText = '';
-        conn.ws.send(JSON.stringify({ type: 'stream_end' }));
-      }
     }
   } finally {
     db.close();
   }
 }
 
-function pollStreamChunks(conn: ChatConnection): void {
-  if (conn.ws.readyState !== WebSocket.OPEN) return;
-
-  const streamFile = path.join(CLIENTS_DIR, conn.clientId, 'data', 'ipc', 'main', 'stream.jsonl');
-  if (!fs.existsSync(streamFile)) return;
-
-  try {
-    const content = fs.readFileSync(streamFile, 'utf-8');
-    // Reset offset if file was truncated (new query started)
-    if (content.length < conn.lastStreamOffset) {
-      conn.lastStreamOffset = 0;
-      conn.lastStreamText = '';
-    }
-    if (content.length <= conn.lastStreamOffset) return;
-
-    const newContent = content.slice(conn.lastStreamOffset);
-    conn.lastStreamOffset = content.length;
-
-    // Parse new lines and accumulate text
-    const lines = newContent.split('\n').filter(l => l.trim());
-    let fullText = '';
-    for (const line of lines) {
-      try {
-        const chunk = JSON.parse(line) as { text: string };
-        fullText = chunk.text; // Each chunk is the full assistant text so far
-      } catch { /* skip malformed */ }
-    }
-
-    if (fullText && fullText !== conn.lastStreamText) {
-      conn.lastStreamText = fullText;
-      conn.ws.send(JSON.stringify({
-        type: 'stream',
-        text: fullText,
-      }));
-    }
-  } catch { /* file may be temporarily locked */ }
-}
