@@ -221,43 +221,76 @@
       font-size: 0.8rem; color: #6b7280; text-align: center;
     }
 
-    /* Chat */
+    /* Chat — WhatsApp style */
     .chat-container {
-      display: flex; flex-direction: column; height: calc(100vh - 160px); max-height: 700px;
-      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;
+      display: flex; flex-direction: column; height: calc(100vh - 160px); max-height: 750px;
+      background: #efeae2; border-radius: 12px; overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid #d1d5db;
     }
+    .chat-header-bar {
+      background: #075E54; color: #fff; padding: 10px 16px;
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    .chat-avatar {
+      width: 38px; height: 38px; background: rgba(255,255,255,0.2); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.95rem; flex-shrink: 0;
+    }
+    .chat-header-info { flex: 1; }
+    .chat-header-name { font-weight: 600; font-size: 0.92rem; }
+    .chat-header-status { font-size: 0.72rem; opacity: 0.75; }
+    .chat-header-status.online { opacity: 1; color: #25D366; }
     .chat-messages {
-      flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px;
-      background: #f9fafb;
+      flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;
+      background: #efeae2 url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4cfc6' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .chat-date-sep {
+      align-self: center; background: #e2ddd5; color: #54656f; font-size: 0.7rem;
+      padding: 4px 14px; border-radius: 8px; margin: 8px 0; font-weight: 500;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.06);
     }
     .chat-msg {
-      max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 0.88rem; line-height: 1.5;
-      word-wrap: break-word; white-space: pre-wrap;
+      max-width: 75%; padding: 6px 10px 4px; border-radius: 8px; font-size: 0.88rem; line-height: 1.45;
+      word-wrap: break-word; white-space: pre-wrap; position: relative;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.08);
     }
-    .chat-msg.bot { background: #fff; border: 1px solid #e5e7eb; align-self: flex-start; border-bottom-left-radius: 4px; }
-    .chat-msg.user { background: #1a1a1a; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
-    .chat-msg .chat-sender { font-size: 0.7rem; font-weight: 600; color: #2563eb; margin-bottom: 2px; }
-    .chat-msg.user .chat-sender { color: rgba(255,255,255,0.6); }
-    .chat-msg .chat-time { font-size: 0.65rem; color: #9ca3af; text-align: right; margin-top: 4px; }
-    .chat-msg.user .chat-time { color: rgba(255,255,255,0.4); }
-    .chat-typing { font-size: 0.8rem; color: #9ca3af; padding: 4px 16px; font-style: italic; }
+    .chat-msg.bot {
+      background: #fff; align-self: flex-start; border-top-left-radius: 0;
+    }
+    .chat-msg.user {
+      background: #d9fdd3; align-self: flex-end; border-top-right-radius: 0;
+    }
+    .chat-msg .chat-sender {
+      font-size: 0.7rem; font-weight: 600; color: #075E54; margin-bottom: 1px;
+    }
+    .chat-msg.user .chat-sender { color: #1b7e4e; }
+    .chat-msg .chat-time {
+      font-size: 0.62rem; color: rgba(0,0,0,0.38); text-align: right; margin-top: 2px;
+      display: flex; align-items: center; justify-content: flex-end; gap: 4px;
+    }
+    .chat-msg.user .chat-time::after {
+      content: '\2713\2713'; font-size: 0.72rem; color: #53bdeb;
+    }
     .chat-input-bar {
-      display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e5e7eb; background: #fff;
+      display: flex; gap: 6px; padding: 8px 10px; background: #f0f2f5; flex-shrink: 0;
     }
     .chat-input-bar input {
-      flex: 1; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 24px;
-      font-size: 0.9rem; outline: none; font-family: inherit; transition: border-color 0.15s;
+      flex: 1; padding: 10px 16px; border: none; border-radius: 24px; background: #fff;
+      font-size: 0.9rem; outline: none; font-family: inherit;
     }
-    .chat-input-bar input:focus { border-color: #2563eb; }
-    .chat-input-bar button {
-      padding: 12px 20px; background: #1a1a1a; color: #fff; border: none; border-radius: 24px;
-      font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: background 0.15s; white-space: nowrap;
+    .chat-input-bar input::placeholder { color: #8696a0; }
+    .chat-send-btn {
+      width: 42px; height: 42px; border-radius: 50%; border: none;
+      background: #00a884; color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s; flex-shrink: 0;
     }
-    .chat-input-bar button:hover { background: #333; }
-    .chat-input-bar button:disabled { background: #999; cursor: not-allowed; }
-    .chat-status { font-size: 0.75rem; color: #9ca3af; text-align: center; padding: 8px; }
-    .chat-status.connected { color: #059669; }
-    .chat-status.error { color: #dc2626; }
+    .chat-send-btn:hover { background: #008f72; }
+    .chat-send-btn:disabled { background: #8696a0; cursor: not-allowed; }
+    .chat-send-btn svg { width: 20px; height: 20px; fill: #fff; }
+    .chat-status { font-size: 0.72rem; color: #667781; text-align: center; padding: 6px; background: #fdf4c5; }
+    .chat-status.connected { background: transparent; color: transparent; height: 0; padding: 0; }
+    .chat-status.error { background: #fde8e8; color: #dc2626; }
 
     /* Footer */
     .portal-footer {
@@ -396,11 +429,18 @@
     <!-- Chat -->
     <div class="tab-pane" id="tab-chat">
       <div class="chat-container">
+        <div class="chat-header-bar">
+          <div class="chat-avatar">O</div>
+          <div class="chat-header-info">
+            <div class="chat-header-name">Otto</div>
+            <div class="chat-header-status" id="chat-header-status">connexion...</div>
+          </div>
+        </div>
         <div class="chat-status" id="chat-status">Connexion...</div>
         <div class="chat-messages" id="chat-messages"></div>
         <div class="chat-input-bar">
-          <input type="text" id="chat-input" placeholder="Parlez &agrave; Otto..." autocomplete="off">
-          <button id="chat-send" onclick="sendChatMessage()">Envoyer</button>
+          <input type="text" id="chat-input" placeholder="Votre message..." autocomplete="off">
+          <button class="chat-send-btn" id="chat-send" onclick="sendChatMessage()"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
         </div>
       </div>
     </div>
@@ -1086,8 +1126,10 @@ function initChat() {
   chatWs = new WebSocket(proto + '//' + location.host + '/ws/chat');
 
   chatWs.onopen = () => {
-    status.textContent = 'Connect\u00e9';
+    status.textContent = '';
     status.className = 'chat-status connected';
+    const hs = document.getElementById('chat-header-status');
+    if (hs) { hs.textContent = 'en ligne'; hs.className = 'chat-header-status online'; }
   };
 
   chatWs.onmessage = (e) => {
@@ -1103,8 +1145,10 @@ function initChat() {
   };
 
   chatWs.onclose = () => {
-    status.textContent = 'D\u00e9connect\u00e9. Cliquez sur l\u0027onglet Chat pour reconnecter.';
+    status.textContent = 'D\u00e9connect\u00e9 \u2014 cliquez sur Chat pour reconnecter';
     status.className = 'chat-status error';
+    const hs = document.getElementById('chat-header-status');
+    if (hs) { hs.textContent = 'hors ligne'; hs.className = 'chat-header-status'; }
     chatInitialized = false;
   };
 
@@ -1129,13 +1173,13 @@ function appendChatMessage(data) {
   if (data.mediaType === 'document' && data.mediaFilename) {
     const icon = fileIcon(data.mediaFilename);
     const dlPath = data.mediaPath || ('documents/' + encodeURIComponent(data.mediaFilename));
-    content = '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:' + (data.isBot ? '#f0f4ff' : 'rgba(255,255,255,0.1)') + ';border-radius:8px;margin-bottom:6px;border:1px solid ' + (data.isBot ? '#e0e7ff' : 'rgba(255,255,255,0.15)') + '">'
-      + '<span style="font-size:1.3rem">' + icon + '</span>'
-      + '<div><div style="font-weight:600;font-size:0.82rem">' + escapeHtml(data.mediaFilename) + '</div>'
-      + '<a href="/api/portal/documents/download?file=' + dlPath + '" target="_blank" style="font-size:0.72rem;color:' + (data.isBot ? '#2563eb' : '#93c5fd') + '">T\u00e9l\u00e9charger</a></div></div>'
+    content = '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(0,0,0,0.04);border-radius:8px;margin-bottom:6px">'
+      + '<span style="font-size:1.4rem">' + icon + '</span>'
+      + '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(data.mediaFilename) + '</div>'
+      + '<a href="/api/portal/documents/download?file=' + encodeURIComponent(dlPath) + '" target="_blank" style="font-size:0.72rem;color:#075E54;font-weight:500">T\u00e9l\u00e9charger</a></div></div>'
       + content;
   } else if (data.mediaType === 'image' && data.mediaFilename) {
-    content = '<div style="margin-bottom:6px;font-size:0.8rem;color:' + (data.isBot ? '#6b7280' : 'rgba(255,255,255,0.6)') + '">\uD83D\uDDBC\uFE0F Image : ' + escapeHtml(data.mediaFilename) + '</div>' + content;
+    content = '<div style="margin-bottom:6px;font-size:0.8rem;color:rgba(0,0,0,0.45)">\uD83D\uDDBC\uFE0F Image : ' + escapeHtml(data.mediaFilename) + '</div>' + content;
   }
 
   div.innerHTML =
