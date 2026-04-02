@@ -100,9 +100,20 @@ async function handleCheckoutCompleted(session: any): Promise<void> {
     return;
   }
 
-  // Extract customer details from Stripe checkout
-  const customerName = (session.customer_details?.name as string) || null;
-  const companyName = (session.customer_details?.business_name as string) || null;
+  // Extract ALL customer details from Stripe checkout
+  const details = session.customer_details || {};
+  const customerName = (details.name as string) || null;
+  const companyName = (details.business_name as string) || null;
+  const phone = (details.phone as string) || null;
+  const address = details.address || {};
+  const addressLine1 = (address.line1 as string) || null;
+  const addressLine2 = (address.line2 as string) || null;
+  const addressCity = (address.city as string) || null;
+  const addressPostalCode = (address.postal_code as string) || null;
+  const addressCountry = (address.country as string) || null;
+  const taxExempt = (details.tax_exempt as string) || null;
+  const taxIds = details.tax_ids as Array<{ type: string; value: string }> | null;
+  const taxId = taxIds?.length ? `${taxIds[0].type}:${taxIds[0].value}` : null;
 
   const clientId = slugify(email);
   const db = getDb();
@@ -146,8 +157,16 @@ async function handleCheckoutCompleted(session: any): Promise<void> {
       updates.trial_ends_at = trialEndsAt;
     }
     db.prepare(
-      `UPDATE clients SET stripe_subscription_id = ?, trial_ends_at = ?, updated_at = datetime('now') WHERE id = ?`
-    ).run(session.subscription || null, trialEndsAt, clientId);
+      `UPDATE clients SET stripe_subscription_id = ?, trial_ends_at = ?,
+       phone = ?, address_line1 = ?, address_line2 = ?, address_city = ?,
+       address_postal_code = ?, address_country = ?, tax_id = ?, tax_exempt = ?,
+       updated_at = datetime('now') WHERE id = ?`
+    ).run(
+      session.subscription || null, trialEndsAt,
+      phone, addressLine1, addressLine2, addressCity,
+      addressPostalCode, addressCountry, taxId, taxExempt,
+      clientId,
+    );
 
     console.log(`Client provisioned via Stripe: ${clientId} → ${result.onboardUrl}`);
     await sendOnboardingEmail(email, result.onboardUrl, customerName).catch((err) =>

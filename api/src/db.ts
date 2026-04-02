@@ -39,10 +39,21 @@ export function initDb(): void {
     )
   `);
 
-  // Migration for existing DBs
-  try {
-    db.exec('ALTER TABLE clients ADD COLUMN proxy_port INTEGER');
-  } catch { /* column already exists */ }
+  // Migrations for existing DBs
+  const migrations = [
+    'ALTER TABLE clients ADD COLUMN proxy_port INTEGER',
+    'ALTER TABLE clients ADD COLUMN phone TEXT',
+    'ALTER TABLE clients ADD COLUMN address_line1 TEXT',
+    'ALTER TABLE clients ADD COLUMN address_line2 TEXT',
+    'ALTER TABLE clients ADD COLUMN address_city TEXT',
+    'ALTER TABLE clients ADD COLUMN address_postal_code TEXT',
+    'ALTER TABLE clients ADD COLUMN address_country TEXT',
+    'ALTER TABLE clients ADD COLUMN tax_id TEXT',
+    'ALTER TABLE clients ADD COLUMN tax_exempt TEXT',
+  ];
+  for (const sql of migrations) {
+    try { db.exec(sql); } catch { /* column already exists */ }
+  }
 }
 
 export function getDb(): Database.Database {
@@ -54,6 +65,14 @@ export interface Client {
   email: string;
   name: string | null;
   company: string | null;
+  phone: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  address_city: string | null;
+  address_postal_code: string | null;
+  address_country: string | null;
+  tax_id: string | null;
+  tax_exempt: string | null;
   stripe_customer_id: string | null;
   anthropic_workspace_id: string | null;
   anthropic_api_key_id: string | null;
