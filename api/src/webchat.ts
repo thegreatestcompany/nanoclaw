@@ -150,13 +150,14 @@ function sendRecentMessages(conn: ChatConnection): void {
   try {
     const messages = db
       .prepare(
-        `SELECT id, sender_name, content, timestamp, is_from_me, is_bot_message, media_type, media_filename
+        `SELECT id, sender, sender_name, content, timestamp, is_from_me, is_bot_message, media_type, media_filename
          FROM messages
-         WHERE chat_jid = ?
+         WHERE chat_jid = ? AND content NOT LIKE '[Web] %'
          ORDER BY timestamp DESC LIMIT 20`,
       )
       .all(conn.chatJid) as Array<{
         id: string;
+        sender: string;
         sender_name: string;
         content: string;
         timestamp: string;
@@ -169,14 +170,15 @@ function sendRecentMessages(conn: ChatConnection): void {
     // Send oldest first
     messages.reverse();
     for (const m of messages) {
+      const isBot = !!m.is_bot_message || (!!m.is_from_me && m.sender !== 'webchat');
       conn.ws.send(
         JSON.stringify({
           type: 'message',
           id: m.id,
-          sender: m.is_bot_message ? 'Otto' : m.sender_name || 'Vous',
+          sender: isBot ? 'Otto' : (m.sender === 'webchat' ? 'Vous' : m.sender_name || 'Vous (WhatsApp)'),
           text: m.content,
           timestamp: m.timestamp,
-          isBot: !!m.is_bot_message,
+          isBot,
           mediaType: m.media_type || undefined,
           mediaFilename: m.media_filename || undefined,
         }),
@@ -247,11 +249,12 @@ function pollNewMessages(conn: ChatConnection): void {
   try {
     // Poll ALL new messages (bot responses + WhatsApp user messages)
     // Skip webchat-originated messages (already echoed) via sender != 'webchat'
+    // Skip [Web] echo messages (mirrored to WhatsApp by us)
     const messages = db
       .prepare(
         `SELECT id, sender, sender_name, content, timestamp, is_from_me, is_bot_message, media_type, media_filename
          FROM messages
-         WHERE chat_jid = ? AND timestamp > ? AND sender != 'webchat'
+         WHERE chat_jid = ? AND timestamp > ? AND sender != 'webchat' AND content NOT LIKE '[Web] %'
          ORDER BY timestamp ASC`,
       )
       .all(conn.chatJid, conn.lastSeenTimestamp) as Array<{
@@ -267,8 +270,9 @@ function pollNewMessages(conn: ChatConnection): void {
       }>;
 
     for (const m of messages) {
-      const isBot = !!m.is_bot_message;
-      const sender = isBot ? 'Otto' : m.is_from_me ? 'Vous (WhatsApp)' : m.sender_name || 'Vous';
+      // is_from_me=1 + not webchat = Otto's outgoing message (sendMessage/sendDocument)
+      const isBot = !!m.is_bot_message || (!!m.is_from_me && m.sender !== 'webchat');
+      const sender = isBot ? 'Otto' : m.sender_name || 'Vous (WhatsApp)';
       conn.ws.send(
         JSON.stringify({
           type: 'message',
