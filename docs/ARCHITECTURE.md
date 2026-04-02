@@ -116,6 +116,27 @@ Payment Link Stripe → paiement → email "Connecte ton WhatsApp"
      → email de bienvenue "Otto est actif"
 ```
 
+**Flow de désabonnement :**
+```
+Client clique "Gérer mon abonnement" dans le portail
+  → Stripe Customer Portal (hébergé par Stripe)
+  → Annulation
+
+Stripe envoie webhook customer.subscription.deleted
+  → status = pending_cancellation
+  → WhatsApp farewell : "Tu as 24h pour exporter tes données"
+
+24h de grâce (client peut encore parler à Otto et télécharger ses docs)
+  → Si réabonnement pendant la grâce : status = active + WhatsApp "Content de te revoir"
+
+Après 24h (check périodique toutes les heures) :
+  → PM2 stop + delete
+  → Backup tar.gz dans /opt/otto/backups/
+  → Suppression du dossier client
+  → Suppression user Linux + règle UFW
+  → status = cancelled
+```
+
 ---
 
 ## Identification des clients

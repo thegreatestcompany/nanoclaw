@@ -1,5 +1,20 @@
 # TODO — Otto by HNTIC
 
+## Fait (validé — 02/04/2026)
+
+- [x] Portail client ERP (/portal — 6 onglets, sidebar, dashboard business, auth code 6 chiffres)
+- [x] Webchat (WebSocket, sync WhatsApp, markdown renderer, documents inline)
+- [x] Anti-hallucination code-level (HITL sur tous les INSERT business)
+- [x] Feedback ⏳ automatique (PreToolUse hook, pas de prompting)
+- [x] WebSearch bloqué → Exa forcé (code-level)
+- [x] Landing page redesign (formulaire contact, mockup dashboard, vouvoiement)
+- [x] Agent teams activé (outil Agent dispo, Haiku ne l'utilise pas spontanément)
+- [x] Blocklist skills complétée (32 skills admin bloqués)
+- [x] Flow désabonnement complet (Stripe webhook → 24h grâce → WhatsApp farewell → backup tar.gz → deprovisioning → status cancelled)
+- [x] Bouton "Gérer mon abonnement" dans le portail (→ Stripe Customer Portal)
+- [x] WhatsApp JID sauvé à l'onboarding (bug fix — était vide avant)
+- [x] Nettoyage VPS : suppression /opt/otto/app/clients (obsolète) et symlink /opt/otto/api
+
 ## Fait (validé)
 
 - [x] Flow onboarding complet : Stripe → email → QR code → WhatsApp connecté → email bienvenue
@@ -22,12 +37,41 @@
 - [x] Système de migration business.db (PRAGMA user_version, prêt pour futures migrations)
 - [x] Personnalisation onboarding (nom + entreprise depuis Stripe → CLAUDE.md, business.db, emails)
 - [x] Exa search API intégrée (web_search, answer, get_contents, find_similar)
-- [x] Symlink /opt/otto/api → /opt/otto/app/api (plus de confusion)
+- [x] Symlink /opt/otto/api → /opt/otto/app/api (supprimé depuis, était inutile)
 
 ## À faire avant le premier vrai client
 
 ### Stripe live
-Passer de test à prod : nouvelles clés + nouveau webhook endpoint dans le dashboard Stripe.
+Passer de test à prod :
+
+**Dashboard Stripe :**
+1. Activer le mode live dans le dashboard Stripe
+2. Créer les clés prod (publishable + secret)
+3. Créer un webhook endpoint prod : `https://otto.hntic.fr/api/stripe-webhook`
+   - Événements : `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `customer.subscription.deleted`, `invoice.payment_failed`, `invoice.paid`, `customer.subscription.trial_will_end`
+4. Créer un produit "Otto by HNTIC" + prix 447€/mois HT
+5. Créer un payment link avec essai gratuit 7 jours
+6. Configurer le Stripe Customer Portal (Settings → Billing → Customer portal) :
+   - Activer l'annulation d'abonnement
+   - Activer la mise à jour du moyen de paiement
+   - Historique des factures visible
+   - URL de retour : `https://otto.hntic.fr/portal`
+
+**VPS :**
+7. Mettre à jour `/opt/otto/api/.env` :
+   - `STRIPE_SECRET_KEY=sk_live_...`
+   - `STRIPE_WEBHOOK_SECRET=whsec_...` (le nouveau, pas celui de test)
+8. `pm2 restart otto-api`
+
+**Landing page :**
+9. Mettre à jour le lien du CTA dans `api/public/index.html` (formulaire contact → payment link Stripe)
+
+**Test end-to-end :**
+10. Faire un vrai paiement (carte réelle, petit montant ou rembourser après)
+11. Vérifier : provisioning → email → QR code → WhatsApp connecté → Otto répond
+12. Tester le désabonnement via le Stripe Customer Portal :
+    - Vérifier : webhook `subscription.deleted` reçu → status `pending_cancellation` → WhatsApp farewell → 24h grâce → deprovisioning → backup
+13. Tester le paiement échoué : vérifier que le client reçoit une notification
 
 ### Monitoring
 Alerting quand un process client crash (PM2 auto-restart déjà en place).
@@ -36,8 +80,6 @@ Alerting quand un process client crash (PM2 auto-restart déjà en place).
 Infra en place, désactivé en dev. Activation = une ligne de code (commit `f332aa7`).
 À faire : endpoint admin API pour gérer les exclusions scan_config + page onboarding pour exclure les conversations perso.
 
-### Gmail OAuth automatisé
-Intégration actuellement manuelle (scp). Pour le self-service : flow OAuth dans l'API d'onboarding (GCP déjà configuré).
 
 ### Lifecycle des documents
 Après des mois/années d'utilisation, le dossier `documents/` d'un client va grossir (PPT, Word, Excel accumulés). À anticiper :
@@ -46,6 +88,20 @@ Après des mois/années d'utilisation, le dossier `documents/` d'un client va gr
 - Quota disque par client avec alerte dans le dashboard admin
 - Purge des fichiers temporaires (.js build scripts) si l'agent en laisse traîner
 - Impact sur les backups VPS (240 GB SSD limité)
+
+## À faire prochainement
+
+### Instance admin locale (otto-admin)
+Projet séparé (`~/DEV/projets/otto-admin/`). Instance NanoClaw **upstream** (pas le fork) sur Docker local Mac. Utilise le token OAuth du plan Max Claude (pas de clé API nécessaire).
+- SSH vers le VPS (clé montée read-only dans le container)
+- Appels HTTP à l'API admin (`/api/admin/*` avec `ADMIN_TOKEN`)
+- Tâches planifiées : health check PM2, coûts API, état WhatsApp des clients
+- Alertes WhatsApp si un client crash ou si les coûts explosent
+- CLAUDE.md "admin" avec instructions de monitoring et runbooks
+- Peut restart des processes, checker les logs, diagnostiquer des problèmes
+
+### Streaming webchat (à revisiter)
+Tenté et reverté (timing race bulle/message final). Approche alternative à explorer : SSE (Server-Sent Events) au lieu de file polling, ou streaming natif côté host.
 
 ## Roadmap (moyen terme)
 
@@ -56,8 +112,8 @@ Remplacer Baileys par l'API officielle Meta. Résout : notifications, multi-tena
 ### Multi-tenant single-process
 1 process PM2 pour tous les clients au lieu de 1 par client. Prérequis : WhatsApp Business API.
 
-### Admin key Anthropic par client
-Workspace + clé API isolés par client via Admin API. Isolation des coûts et révocation individuelle. Code déjà en place, à activer.
+### Isolation Anthropic par client
+Workspace créé automatiquement par client via Admin API ✅. Clé API partagée (une seule pour tous les clients) car l'Admin API **ne supporte pas la création de clés** (uniquement via la Console). Isolation des coûts via workspace_id dans l'usage_report API. Suffisant pour le moment.
 
 ## Optimisation des coûts API (documenté le 30/03/2026)
 
