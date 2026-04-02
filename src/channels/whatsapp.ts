@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
+import { wrapSocket } from 'baileys-antiban';
 import makeWASocket, {
   Browsers,
   DisconnectReason,
@@ -106,7 +107,7 @@ export class WhatsAppChannel implements Channel {
       );
       return { version: undefined };
     });
-    this.sock = makeWASocket({
+    const rawSock = makeWASocket({
       version,
       auth: {
         creds: state.creds,
@@ -128,6 +129,27 @@ export class WhatsAppChannel implements Channel {
         return undefined;
       },
     });
+
+    // Wrap with anti-ban protection (health monitoring + human-like delays)
+    this.sock = wrapSocket(rawSock, {
+      rateLimiter: {
+        maxPerMinute: 12,   // Conservative — our use case is low volume
+        maxPerHour: 200,
+        maxPerDay: 1500,
+        minDelayMs: 800,
+        maxDelayMs: 2500,
+      },
+      health: {
+        autoPauseAt: 'critical',
+        onRiskChange: (status: { risk: string; score: number; recommendation: string }) => {
+          logger.warn({ risk: status.risk, score: status.score }, `Anti-ban risk: ${status.recommendation}`);
+          if (status.risk === 'critical') {
+            logger.error('Anti-ban: CRITICAL risk — consider pausing');
+          }
+        },
+      },
+      logging: false, // We use our own logger
+    }) as unknown as typeof rawSock;
 
     this.sock.ev.on('connection.update', (update) => {
       const { connection, lastDisconnect, qr } = update;
@@ -185,6 +207,11 @@ export class WhatsAppChannel implements Channel {
           'Connection closed',
         );
 
+        // Feed disconnect to anti-ban health monitor
+        if ((this.sock as any).antiban) {
+          (this.sock as any).antiban.onDisconnect(reason);
+        }
+
         // Explicit logout — clear auth and pause for re-auth
         if (reason === DisconnectReason.loggedOut) {
           logger.info(
@@ -223,6 +250,11 @@ export class WhatsAppChannel implements Channel {
         this.paused = false;
         this.qrCount = 0;
         this.notifiedReauth = false;
+
+        // Feed reconnect to anti-ban health monitor
+        if ((this.sock as any).antiban) {
+          (this.sock as any).antiban.onReconnect();
+        }
         logger.info('Connected to WhatsApp');
 
         // Notify parent process (PM2) that WhatsApp is connected

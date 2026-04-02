@@ -24,6 +24,7 @@
     "@composio/core": "^0.6.7",
     "@onecli-sh/sdk": "^0.2.0",
     "@whiskeysockets/baileys": "^7.0.0-rc.9",
+    "baileys-antiban": "^1.1.0",
     "better-sqlite3": "11.10.0",
     "cron-parser": "5.5.0",
     "google-auth-library": "^10.6.2",
