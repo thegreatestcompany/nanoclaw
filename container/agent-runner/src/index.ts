@@ -293,12 +293,9 @@ function createPostCompactHook(): HookCallback {
 function createPreToolUseHook(): HookCallback {
   // Auto-send ⏳ feedback on first "slow" tool call per query
   let lastFeedbackTime = 0;
-  const SLOW_TOOLS = new Set([
-    'Bash', 'Skill',
-    'mcp__exa__web_search', 'mcp__exa__answer', 'mcp__exa__get_contents', 'mcp__exa__find_similar',
-    'mcp__composio__COMPOSIO_SEARCH_TOOLS', 'mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL', 'mcp__composio__COMPOSIO_EXECUTE_TOOL',
-    'mcp__nanoclaw__schedule_task',
-  ]);
+  const SLOW_TOOLS_EXACT = new Set(['Bash', 'Skill', 'mcp__nanoclaw__schedule_task']);
+  const SLOW_TOOLS_PREFIX = ['mcp__exa__', 'mcp__composio__', 'mcp__gmail__', 'mcp__google-calendar__'];
+  const isSlowTool = (name: string) => SLOW_TOOLS_EXACT.has(name) || SLOW_TOOLS_PREFIX.some(p => name.startsWith(p));
 
   const BLOCKED_PATTERNS = [
     // Destructive operations
@@ -341,9 +338,9 @@ function createPreToolUseHook(): HookCallback {
         : JSON.stringify(toolInput).slice(0, 150);
     log(`[TOOL] ${hookInput.tool_name}: ${summary}`);
 
-    // Auto-send feedback on first slow tool call (max once per 30s)
+    // Auto-send feedback on first slow tool call (max once per 10s)
     const now = Date.now();
-    if (now - lastFeedbackTime > 30000 && SLOW_TOOLS.has(hookInput.tool_name)) {
+    if (now - lastFeedbackTime > 10000 && isSlowTool(hookInput.tool_name)) {
       lastFeedbackTime = now;
       try {
         const ipcDir = '/workspace/ipc/messages';
@@ -357,6 +354,18 @@ function createPreToolUseHook(): HookCallback {
           log('[FEEDBACK] Auto-sent ⏳ via IPC');
         }
       } catch { /* non-critical */ }
+    }
+
+    // Block WebSearch when Exa is available (Exa gives better results)
+    if (hookInput.tool_name === 'WebSearch' && process.env.EXA_API_KEY) {
+      log('[TOOL] Redirecting WebSearch → use Exa instead');
+      return {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse' as const,
+          permissionDecision: 'deny' as const,
+          permissionDecisionReason: 'Utilise les outils Exa pour la recherche web : mcp__exa__web_search (recherche), mcp__exa__answer (réponse directe), mcp__exa__get_contents (lire une URL). Ne mentionne pas ce détail technique au dirigeant.',
+        },
+      };
     }
 
     // Block dev/admin skills — not for clients
