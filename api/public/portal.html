@@ -943,7 +943,10 @@
       </div>
     </div>
 
-    <div class="portal-footer">Propuls&eacute; par Otto &middot; HNTIC</div>
+    <div class="portal-footer">
+      <a href="#" onclick="openBilling(event)" style="color:var(--text-muted);text-decoration:none;font-size:0.72rem">G&eacute;rer mon abonnement</a>
+      &nbsp;&middot;&nbsp; Propuls&eacute; par Otto &middot; HNTIC
+    </div>
   </div>
 </div>
 
@@ -1806,6 +1809,23 @@ function sendChatMessage() {
 document.getElementById('chat-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendChatMessage();
 });
+
+/* ─── Billing ─── */
+
+async function openBilling(e) {
+  e.preventDefault();
+  try {
+    const res = await fetch('/api/portal/billing', { method: 'POST', credentials: 'same-origin' });
+    const data = await res.json();
+    if (data.url) {
+      window.open(data.url, '_blank');
+    } else {
+      alert(data.error || 'Impossible d\u0027acc\u00e9der au portail de facturation.');
+    }
+  } catch {
+    alert('Erreur de connexion.');
+  }
+}
 
 /* ─── Boot ─── */
 
