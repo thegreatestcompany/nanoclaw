@@ -50,6 +50,7 @@ export function initDb(): void {
     'ALTER TABLE clients ADD COLUMN address_country TEXT',
     'ALTER TABLE clients ADD COLUMN tax_id TEXT',
     'ALTER TABLE clients ADD COLUMN tax_exempt TEXT',
+    'ALTER TABLE clients ADD COLUMN trial_reminder_sent INTEGER DEFAULT 0', // 0=none, 1=J-2 sent, 2=J-1 sent, 3=J-0 sent
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column already exists */ }

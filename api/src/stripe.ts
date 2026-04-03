@@ -391,8 +391,7 @@ async function processStripeEvent(event: { id: string; type: string; data: { obj
         const daysLeft = trialEnd ? Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 3;
         sendClientNotification(client.id,
           `📋 Ton essai gratuit Otto se termine dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}.\n\n` +
-          `Si tu as enregistré un moyen de paiement, ton abonnement démarrera automatiquement.\n\n` +
-          `Tu peux gérer ton abonnement depuis ton espace client (dis-moi "Mon espace").`
+          `Ton abonnement démarrera automatiquement. Pour modifier ou annuler, dis-moi "Mon espace".`
         );
         console.log(`Trial ending soon for ${client.id} — ${daysLeft} days left`);
       }
@@ -441,19 +440,46 @@ export async function runPeriodicChecks(): Promise<void> {
     }
   }
 
-  // 2. Trial ending reminders (2 days before trial_ends_at)
-  const trialEnding = db.prepare(
-    `SELECT id, trial_ends_at FROM clients
+  // 2. Trial ending reminders — one notification per day (J-2, J-1, J-0)
+  // trial_reminder_sent: 0=none, 1=J-2 sent, 2=J-1 sent, 3=J-0 sent
+  const trialClients = db.prepare(
+    `SELECT id, trial_ends_at, trial_reminder_sent FROM clients
      WHERE trial_ends_at IS NOT NULL
-     AND trial_ends_at BETWEEN datetime('now') AND datetime('now', '+2 days')
-     AND status = 'active'`
-  ).all() as { id: string; trial_ends_at: string }[];
+     AND trial_ends_at > datetime('now')
+     AND trial_ends_at <= datetime('now', '+3 days')
+     AND status = 'active'
+     AND trial_reminder_sent < 3`
+  ).all() as { id: string; trial_ends_at: string; trial_reminder_sent: number }[];
 
-  for (const client of trialEnding) {
-    sendClientNotification(client.id,
-      `📋 Rappel : ton essai gratuit Otto se termine bientôt.\n\n` +
-      `Vérifie que ton moyen de paiement est à jour depuis ton espace client (dis-moi "Mon espace").`
-    );
-    console.log(`Trial ending reminder sent to ${client.id} (${client.trial_ends_at})`);
+  for (const client of trialClients) {
+    const hoursLeft = (new Date(client.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60);
+    const daysLeft = Math.ceil(hoursLeft / 24);
+
+    let shouldSend = false;
+    let nextLevel = client.trial_reminder_sent;
+    let message = '';
+
+    if (daysLeft <= 0 && client.trial_reminder_sent < 3) {
+      // J-0 : dernier rappel
+      shouldSend = true;
+      nextLevel = 3;
+      message = `⚠️ Ton essai gratuit Otto se termine aujourd'hui.\n\nTon abonnement démarrera automatiquement. Si tu souhaites modifier ou annuler, dis-moi "Mon espace" → Gérer mon abonnement.`;
+    } else if (daysLeft <= 1 && client.trial_reminder_sent < 2) {
+      // J-1
+      shouldSend = true;
+      nextLevel = 2;
+      message = `📋 Ton essai gratuit Otto se termine demain.\n\nTon abonnement démarrera automatiquement. Pour modifier ou annuler, dis-moi "Mon espace".`;
+    } else if (daysLeft <= 2 && client.trial_reminder_sent < 1) {
+      // J-2
+      shouldSend = true;
+      nextLevel = 1;
+      message = `📋 Ton essai gratuit Otto se termine dans 2 jours.\n\nTon abonnement démarrera automatiquement. Pour modifier ou annuler, dis-moi "Mon espace".`;
+    }
+
+    if (shouldSend) {
+      sendClientNotification(client.id, message);
+      db.prepare('UPDATE clients SET trial_reminder_sent = ? WHERE id = ?').run(nextLevel, client.id);
+      console.log(`Trial reminder (level ${nextLevel}) sent to ${client.id} — ${daysLeft} days left`);
+    }
   }
 }
