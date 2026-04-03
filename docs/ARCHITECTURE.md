@@ -2,19 +2,23 @@
 
 ## Vue d'ensemble
 
-Otto est un assistant IA accessible via WhatsApp. Un dirigeant envoie un message, Otto répond en quelques secondes. Derrière, c'est un serveur Node.js qui orchestre des containers Docker contenant Claude (l'IA d'Anthropic).
+Otto est un assistant IA accessible via WhatsApp et webchat. Un dirigeant envoie un message, Otto répond en quelques secondes. Derrière, c'est un serveur Node.js qui orchestre des containers Docker contenant Claude (l'IA d'Anthropic).
 
 ```
 Dirigeant                    VPS (Hetzner)                         Cloud
 ─────────                    ────────────                          ─────
 
   WhatsApp ────────────►  Host Node.js (PM2)
-                              │
+  Webchat  ────────────►  API (WebSocket)                         Anthropic API
+                              │                                    (via credential proxy)
                               ├─ Identifie le client
-                              ├─ Lance un container Docker ──────► Anthropic API
-                              │   └─ Claude traite le message       (via credential proxy)
+                              ├─ Lance un container Docker ──────► Claude (Haiku 4.5)
+                              │   └─ 47 skills business             Exa (recherche web)
+                              │   └─ Composio (Gmail, Calendar)     Composio (980+ apps)
                               │
   WhatsApp ◄────────────  Récupère la réponse et l'envoie
+  Webchat  ◄────────────  (via polling DB 1.5s)
+  Portail  ◄────────────  Dashboard ERP web (/portal)
 ```
 
 ---
@@ -97,16 +101,27 @@ SDK appelle Claude
 
 ### 4. La base de données métier (SQLite)
 
-Chaque client a sa propre base `business.db` avec 25 tables : contacts, companies, deals, candidates, invoices, contracts, contract_clauses, team_members, projects, meetings, etc. Claude la lit et la modifie via un serveur MCP (outil structuré) avec human-in-the-loop sur les opérations sensibles (modifications financières, changement de stage deal).
+Chaque client a sa propre base `business.db` avec 25 tables : contacts, companies, deals, candidates, invoices, contracts, contract_clauses, team_members, projects, meetings, etc. Claude la lit et la modifie via un serveur MCP (outil structuré) avec human-in-the-loop sur :
+- Tous les **INSERT** sur les tables business (anti-hallucination — empêche Otto d'inventer des données)
+- Les **DELETE** (soft delete obligatoire)
+- Les modifications **financières** (montants, salaires, budgets)
+- Les changements de **stage deal**
+- Les modifications **en masse** (UPDATE sans WHERE)
+
+Seules les tables auto-générées (audit_log, interactions, memories, activity_digests, relationship_summaries) sont exemptées du HITL INSERT.
 
 ### 5. L'API d'onboarding
 
 Serveur Express séparé (`api/`) qui gère :
-- **Stripe webhooks** — paiement → provisioning automatique du client
+- **Stripe webhooks** — paiement → provisioning, désabonnement → deprovisioning, échec paiement → notification WhatsApp
 - **Onboarding WhatsApp** — page QR code / pairing code pour lier WhatsApp
-- **Reconnexion** — `/reconnect` pour relancer la liaison si déconnexion
-- **Emails transactionnels** — onboarding, bienvenue, reconnexion (via Gmail SMTP)
+- **Reconnexion** — `/reconnect` pour relancer la liaison si déconnexion (email auto envoyé par PM2 IPC)
+- **Portail client** — `/portal` avec auth par code 6 chiffres, dashboard ERP, webchat
+- **Webchat** — WebSocket `/ws/chat` bridge vers le même pipeline que WhatsApp
+- **Emails transactionnels** — onboarding, bienvenue, reconnexion, farewell, trial reminder, portal link (via Gmail SMTP)
+- **Formulaire de contact** — `POST /api/contact` depuis la landing page
 - **Admin back-office** — API REST pour gérer les clients
+- **Base HNTIC** — `onboarding.db` stocke toutes les infos clients Stripe (email, nom, entreprise, téléphone, adresse, TVA)
 
 **Flow d'onboarding complet :**
 ```
@@ -250,13 +265,18 @@ On désactive la sandbox SDK (`sandbox: { enabled: false }`) parce que Docker fo
 
 ---
 
-## Sécurité — les 3 couches
+## Sécurité — les couches
 
 | Couche | Ce qu'elle protège | Comment |
 |--------|--------------------|---------|
 | **Docker** | Isolation filesystem et réseau | Chaque container ne voit que ses propres fichiers montés |
 | **Credential proxy** | Clés API | Le container n'a jamais la vraie clé, elle est injectée au vol |
-| **Hooks PreToolUse** | Commandes destructrices | Bloque `rm -rf /`, `DROP TABLE`, écriture hors workspace |
+| **Hooks PreToolUse** | Commandes destructrices | Bloque `rm -rf /`, `DROP TABLE`, écriture hors workspace, WebSearch (→ Exa) |
+| **HITL INSERT** | Hallucination de données | Tous les INSERT business nécessitent confirmation du dirigeant |
+| **Auto ⏳** | Feedback utilisateur | PreToolUse envoie ⏳ automatiquement sur les outils lents (10s cooldown) |
+| **Skills blocklist** | Accès admin | 32 skills NanoClaw upstream bloqués (add-telegram, setup, debug, etc.) |
+| **Portail auth** | Accès données client | Code 6 chiffres (5min TTL, usage unique, rate limité), JWT cookie httpOnly |
+| **PM2 backoff** | Crash loops | `--exp-backoff-restart-delay=1000` — délai exponentiel entre restarts |
 
 Les permissions fichier (`root:1000, 770`) ajoutent l'isolation **entre clients** sur le host.
 
@@ -304,32 +324,38 @@ Les permissions fichier (`root:1000, 770`) ajoutent l'isolation **entre clients*
 
 ```
 /opt/otto/
-  ├─ app/                    ← Code source (partagé, read-only pour les containers)
-  │   ├─ src/
-  │   ├─ container/
+  ├─ app/                    ← Code source (git pull pour update)
+  │   ├─ src/                ← Host process
+  │   ├─ container/          ← Docker image + 47 skills
+  │   ├─ groups/             ← Templates CLAUDE.md (global + main)
+  │   ├─ api/                ← API (onboarding, portail, webchat, admin)
+  │   │   ├─ src/
+  │   │   ├─ public/         ← Landing page, portail, admin dashboard
+  │   │   └─ data/
+  │   │       └─ onboarding.db  ← Base HNTIC (clients, Stripe, contacts)
   │   └─ dist/
   │
-  ├─ api/                    ← API d'onboarding (Stripe, provisioning)
-  │   └─ src/
+  ├─ clients/                ← Un dossier par client (isolé)
+  │   ├─ dupont/
+  │   │   ├─ .env            ← Clé API + PORTAL_JWT_SECRET (600, jamais monté)
+  │   │   ├─ start-pm2.sh    ← Wrapper PM2 (avec exp-backoff-restart-delay)
+  │   │   ├─ groups/
+  │   │   │   ├─ main/       ← Données du chat principal
+  │   │   │   │   ├─ business.db   ← 25 tables CRM/finance/RH/legal
+  │   │   │   │   ├─ CLAUDE.md     ← Instructions agent (copié du template)
+  │   │   │   │   ├─ documents/    ← Fichiers créés par Otto
+  │   │   │   │   └─ memory/       ← Contexte entreprise, préférences
+  │   │   │   └─ global/     ← Instructions globales (copié du template)
+  │   │   ├─ data/
+  │   │   │   ├─ sessions/   ← Sessions SDK, skills
+  │   │   │   └─ ipc/main/   ← Communication host ↔ container
+  │   │   └─ store/
+  │   │       ├─ auth/       ← Credentials WhatsApp
+  │   │       └─ messages.db ← Messages WhatsApp + sessions
+  │   │
+  │   └─ martin/             ← Autre client, même structure
   │
-  └─ clients/                ← Un dossier par client (isolé)
-      ├─ dupont/
-      │   ├─ .env            ← Clé API Anthropic (600, jamais monté)
-      │   ├─ start-pm2.sh    ← Wrapper PM2
-      │   ├─ groups/
-      │   │   ├─ main/       ← Données du chat principal
-      │   │   │   ├─ business.db
-      │   │   │   ├─ CLAUDE.md
-      │   │   │   └─ documents/
-      │   │   └─ global/     ← Mémoire partagée entre groupes
-      │   ├─ data/
-      │   │   └─ sessions/   ← Sessions SDK, skills
-      │   └─ store/
-      │       └─ auth/       ← Credentials WhatsApp
-      │
-      └─ martin/             ← Autre client, même structure
-          ├─ .env
-          └─ ...
+  └─ backups/                ← Backups clients (tar.gz au deprovisioning + quotidien Hetzner)
 ```
 
 ---
@@ -399,15 +425,28 @@ otto-garcia  (180MB, port 3004)                ├─ WhatsApp Martin   ├─ r
 
 ## Skills de l'agent
 
-L'agent dispose de 53 skills répartis en 3 catégories :
+L'agent dispose de 47 skills business répartis en 4 catégories :
 
 **Skills documentaires (Anthropic officiels)** — `docx`, `pptx`, `xlsx`, `pdf` avec scripts de validation, templates, et QA automatisé.
 
 **Skills métier (knowledge-work-plugins)** — Sales (call-prep, pipeline-review, forecast...), Finance (financial-statements, reconciliation...), Legal (review-contract, compliance-check...), HR (recruiting-pipeline, performance-review...), Operations (status-report, vendor-review...).
 
-**Skills HNTIC (custom)** — Spécifiques à notre base de données : classify, memory, session-learnings, scan-passive, whatsapp-format.
+**Skills HNTIC (custom)** — Spécifiques à notre plateforme : classify, memory, session-learnings, scan-passive, whatsapp-format, portal-link, daily-briefing, call-prep, finance, legal, team, operations, pipeline-review, document-extract.
+
+**Skills bloqués (32)** — Skills admin NanoClaw upstream (add-telegram, add-slack, setup, debug, etc.) bloqués par le PreToolUse hook. L'agent ne peut pas les utiliser.
 
 Les skills sont chargés automatiquement dans le container via `container/skills/` → sync dans `/home/node/.claude/skills/`.
+
+## Intégrations
+
+| Service | Usage | Accès |
+|---------|-------|-------|
+| **Exa** (recherche web) | MCP in-process (web_search, answer, get_contents, find_similar) | `EXA_API_KEY` dans .env client |
+| **Composio** (Gmail, Calendar, 980+ apps) | MCP in-process (6 meta-tools) | `COMPOSIO_API_KEY` + auth configs par app |
+| **OpenAI Whisper** | Transcription vocale (~2s) | `OPENAI_API_KEY` dans .env client |
+| **agent-browser** | Navigation web (Chromium headless) | Installé dans le container Docker |
+
+WebSearch (outil SDK natif) est **bloqué** quand Exa est configuré — le PreToolUse hook redirige vers Exa pour de meilleurs résultats.
 
 ---
 
@@ -451,7 +490,8 @@ Chaque client dispose d'un portail web (`/portal`) qui lui donne accès à ses d
 | Isolation | client_id extrait du JWT uniquement (jamais de paramètre URL) |
 | Fichiers | Path traversal check + extension whitelist + paths bloqués |
 | DB | Queries prédéfinies, Database ouvert en readonly |
-| Rate limit | 60 req/min par client sur les routes portail |
+| Rate limit | 200 req/min par client sur les routes portail |
+| Billing | Lien "Gérer mon abonnement" → Stripe Customer Portal (hébergé par Stripe) |
 
 ### Routes du portail
 
@@ -514,6 +554,21 @@ Le message loop dans `src/index.ts` poll `getNewMessages()` qui lit `messages.db
 
 ---
 
+## Notifications WhatsApp automatiques
+
+Tous les événements billing envoient un message WhatsApp au client via IPC :
+
+| Événement | Message |
+|---|---|
+| Trial se termine (3j avant) | "Ton essai se termine dans X jours" |
+| Paiement échoué | "⚠️ Paiement échoué" + lien mise à jour carte |
+| Paiement récupéré | "✅ Paiement reçu, tout est actif" |
+| Annulation | "Tu as 24h pour exporter tes données" |
+| Réabonnement pendant grâce | "Content de te revoir !" |
+| WhatsApp déconnecté | Email de reconnexion (auto via PM2 IPC) |
+
+---
+
 ## Déploiement
 
 Tout le code vit dans `/opt/otto/app/` (repo git). L'API tourne depuis `/opt/otto/app/api/`.
@@ -526,4 +581,9 @@ cd api && npm run build && pm2 restart otto-api
 # Rebuild container (si Dockerfile ou skills modifiés)
 cd /opt/otto/app/container && ./build.sh
 pm2 restart otto-test  # ou le client concerné
+
+# Après mise à jour du global CLAUDE.md — copier chez chaque client + purger session
+cp groups/global/CLAUDE.md /opt/otto/clients/{id}/groups/global/CLAUDE.md
+sqlite3 /opt/otto/clients/{id}/store/messages.db "DELETE FROM sessions"
+pm2 restart otto-{id}
 ```
