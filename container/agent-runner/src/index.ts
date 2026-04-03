@@ -393,56 +393,78 @@ function createPreToolUseHook(chatJid?: string): HookCallback {
       }
     }
 
-    // Human-in-the-loop for email sending
-    // Catches both legacy MCP Gmail (mcp__gmail__send_email) and Composio
-    // (COMPOSIO_EXECUTE_TOOL / COMPOSIO_MULTI_EXECUTE_TOOL with GMAIL_SEND_EMAIL slug)
-    const isLegacyGmailSend = hookInput.tool_name === 'mcp__gmail__send_email';
-    const isComposioEmailSend = (
-      hookInput.tool_name === 'mcp__composio__COMPOSIO_EXECUTE_TOOL' ||
-      hookInput.tool_name === 'mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL'
-    ) && JSON.stringify(toolInput).includes('GMAIL_SEND_EMAIL');
-
-    if (isLegacyGmailSend || isComposioEmailSend) {
+    // Human-in-the-loop for legacy Gmail MCP
+    if (hookInput.tool_name === 'mcp__gmail__send_email') {
       const pendingDir = '/workspace/group/.pending_emails';
       const pendingFiles = fs.existsSync(pendingDir) ? fs.readdirSync(pendingDir).filter(f => f.endsWith('.json')) : [];
-
       if (pendingFiles.length > 0) {
-        // Pending email exists → user has seen it and confirmed → ALLOW
-        const pendingFile = path.join(pendingDir, pendingFiles[0]);
-        log(`[EMAIL] Sending approved email (pending: ${pendingFiles[0]})`);
-        try { fs.unlinkSync(pendingFile); } catch { /* ok */ }
-        // Fall through — allow the tool call
+        try { fs.unlinkSync(path.join(pendingDir, pendingFiles[0])); } catch {}
       } else {
-        // No pending → extract email details and BLOCK
         fs.mkdirSync(pendingDir, { recursive: true });
-        // Extract email details from either format
-        let to = '?';
-        let subject = '(sans objet)';
-        if (isComposioEmailSend) {
-          const toolsArg = (toolInput as { tools?: Array<{ arguments?: { recipient_email?: string; subject?: string } }> }).tools;
-          const emailTool = toolsArg?.find(t => (t as any).tool_slug === 'GMAIL_SEND_EMAIL');
-          if (emailTool?.arguments) {
-            to = emailTool.arguments.recipient_email || '?';
-            subject = emailTool.arguments.subject || '(sans objet)';
-          }
+        const emailData = toolInput as { to?: string | string[]; subject?: string };
+        const to = Array.isArray(emailData.to) ? emailData.to.join(', ') : emailData.to || '?';
+        const subject = emailData.subject || '(sans objet)';
+        fs.writeFileSync(path.join(pendingDir, `email-${Date.now()}.json`), JSON.stringify({ to, subject, created: new Date().toISOString() }));
+        log(`[HITL] Blocked legacy send_email`);
+        return { hookSpecificOutput: { hookEventName: 'PreToolUse' as const, permissionDecision: 'deny' as const, permissionDecisionReason: `Email en attente de confirmation. Envoie ce résumé au dirigeant via send_message :\n\nDestinataire : ${to}\nObjet : ${subject}\n\nQuand le dirigeant confirme, rappelle l'outil.` } };
+      }
+    }
+
+    // Human-in-the-loop for ALL Composio actions (default: block, whitelist: allow)
+    if (
+      hookInput.tool_name === 'mcp__composio__COMPOSIO_EXECUTE_TOOL' ||
+      hookInput.tool_name === 'mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL'
+    ) {
+      // Read-only actions that don't need confirmation
+      const SAFE_COMPOSIO_SLUGS = new Set([
+        // Gmail read
+        'GMAIL_GET_EMAIL', 'GMAIL_LIST_EMAILS', 'GMAIL_SEARCH_EMAILS', 'GMAIL_GET_ATTACHMENT',
+        'GMAIL_LIST_LABELS', 'GMAIL_GET_THREAD',
+        // Calendar read
+        'GOOGLECALENDAR_GET_EVENT', 'GOOGLECALENDAR_LIST_EVENTS', 'GOOGLECALENDAR_FIND_FREE_SLOTS',
+        'GOOGLECALENDAR_LIST_CALENDARS',
+        // Composio meta (search, connection management)
+        'COMPOSIO_SEARCH_TOOLS', 'COMPOSIO_GET_REQUIRED_PARAMETERS', 'COMPOSIO_CHECK_ACTIVE_CONNECTIONS',
+        'COMPOSIO_GET_DEPENDENCY_GRAPH', 'COMPOSIO_GET_RESPONSE_SCHEMA', 'COMPOSIO_GET_TOOL_SCHEMAS',
+        'COMPOSIO_LIST_TOOLKITS', 'COMPOSIO_LIST_TRIGGERS',
+      ]);
+
+      // Extract tool slugs from the request
+      const inputStr = JSON.stringify(toolInput);
+      const slugMatches = inputStr.match(/"tool_slug"\s*:\s*"([^"]+)"/g) || [];
+      const slugs = slugMatches.map(m => m.match(/"([^"]+)"$/)?.[1] || '');
+      // Also check single-tool format
+      const singleSlug = (toolInput as { tool_slug?: string }).tool_slug;
+      if (singleSlug) slugs.push(singleSlug);
+
+      const hasSensitiveAction = slugs.some(s => !SAFE_COMPOSIO_SLUGS.has(s));
+
+      if (hasSensitiveAction && slugs.length > 0) {
+        const pendingDir = '/workspace/group/.pending_composio';
+        const pendingFiles = fs.existsSync(pendingDir) ? fs.readdirSync(pendingDir).filter(f => f.endsWith('.json')) : [];
+
+        if (pendingFiles.length > 0) {
+          // Pending exists → user confirmed → ALLOW
+          try { fs.unlinkSync(path.join(pendingDir, pendingFiles[0])); } catch {}
+          log(`[HITL] Composio action approved: ${slugs.join(', ')}`);
         } else {
-          const emailData = toolInput as { to?: string | string[]; subject?: string };
-          to = Array.isArray(emailData.to) ? emailData.to.join(', ') : emailData.to || '?';
-          subject = emailData.subject || '(sans objet)';
+          // BLOCK and ask for confirmation
+          fs.mkdirSync(pendingDir, { recursive: true });
+          const pendingId = `composio-${Date.now()}.json`;
+          fs.writeFileSync(
+            path.join(pendingDir, pendingId),
+            JSON.stringify({ slugs, created: new Date().toISOString() }),
+          );
+          const actionList = slugs.filter(s => !SAFE_COMPOSIO_SLUGS.has(s)).join(', ');
+          log(`[HITL] Blocked Composio action: ${actionList}`);
+          return {
+            hookSpecificOutput: {
+              hookEventName: 'PreToolUse' as const,
+              permissionDecision: 'deny' as const,
+              permissionDecisionReason: `Action en attente de confirmation. Envoie un résumé de ce que tu vas faire au dirigeant via send_message et demande sa confirmation.\n\nAction : ${actionList}\n\nQuand le dirigeant confirme ("oui", "go", etc.), rappelle l'outil avec les mêmes paramètres.`,
+            },
+          };
         }
-        const pendingId = `email-${Date.now()}.json`;
-        fs.writeFileSync(
-          path.join(pendingDir, pendingId),
-          JSON.stringify({ to, subject, created: new Date().toISOString() }),
-        );
-        log(`[EMAIL] Blocked send_email — pending approval: ${pendingId}`);
-        return {
-          hookSpecificOutput: {
-            hookEventName: 'PreToolUse' as const,
-            permissionDecision: 'deny' as const,
-            permissionDecisionReason: `Email en attente de confirmation. Envoie ce résumé au dirigeant via send_message et demande sa confirmation :\n\nDestinataire : ${to}\nObjet : ${subject}\n\nQuand le dirigeant confirme ("oui", "go", "envoie", etc.), rappelle l'outil avec les mêmes paramètres.`,
-          },
-        };
       }
     }
 
