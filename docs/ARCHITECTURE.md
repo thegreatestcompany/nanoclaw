@@ -570,7 +570,7 @@ Les événements billing envoient un message WhatsApp au client via `sendClientW
 | Annulation | "Tu as 24h pour exporter tes données" |
 | Réabonnement pendant grâce | "Content de te revoir !" |
 
-**⚠️ Limite actuelle :** si WhatsApp est déconnecté au moment d'un événement billing, le message IPC échoue silencieusement. Pas de fallback email pour les événements billing.
+**Fallback email :** si WhatsApp est déconnecté (pas de JID, dossier IPC inaccessible), le message est automatiquement envoyé par email avec une mention "Ce message a été envoyé par email car WhatsApp n'était pas disponible" + lien de reconnexion.
 
 ### Email (via Gmail SMTP)
 

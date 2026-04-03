@@ -260,3 +260,47 @@ export async function sendContactNotification(
 
   console.log(`[EMAIL] Contact notification sent for ${name} <${email}>`);
 }
+
+/**
+ * Send a billing notification via email (fallback when WhatsApp is unavailable).
+ */
+export async function sendBillingNotificationEmail(
+  to: string,
+  text: string,
+): Promise<void> {
+  if (!transporter) {
+    console.warn(`SMTP not configured — billing email not sent to ${to}`);
+    console.log(`[EMAIL] Would send billing notification to ${to}: ${text}`);
+    return;
+  }
+
+  // Convert WhatsApp-style text to simple HTML
+  const htmlText = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>')
+    .replace(/\*([^*]+)\*/g, '<strong>$1</strong>');
+
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: 'Otto — Notification abonnement',
+    html: `
+      <div style="font-family:'Inter',system-ui,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px">
+        <div style="text-align:center;margin-bottom:32px">
+          <h1 style="font-size:1.6rem;font-weight:800;letter-spacing:-0.03em;color:#128C7E;margin-bottom:4px">Otto</h1>
+          <p style="color:#999;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase">by HNTIC</p>
+        </div>
+        <div style="color:#333;font-size:1rem;line-height:1.6;margin-bottom:24px">
+          ${htmlText}
+        </div>
+        <hr style="border:none;border-top:1px solid #eee;margin:32px 0">
+        <p style="color:#bbb;font-size:0.75rem;text-align:center">
+          Ce message a &eacute;t&eacute; envoy&eacute; par email car WhatsApp n'&eacute;tait pas disponible.<br>
+          <a href="https://otto.hntic.fr/reconnect" style="color:#999">Reconnecter WhatsApp</a>
+        </p>
+      </div>
+    `,
+  });
+
+  console.log(`[EMAIL] Billing notification sent to ${to}`);
+}

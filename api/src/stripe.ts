@@ -26,7 +26,7 @@ import Stripe from 'stripe';
 
 import { getDb, slugify } from './db.js';
 import { provisionClient, deprovisionClient } from './provision.js';
-import { sendOnboardingEmail } from './mailer.js';
+import { sendOnboardingEmail, sendBillingNotificationEmail } from './mailer.js';
 
 const CLIENTS_DIR = process.env.CLIENTS_DIR || path.join(process.cwd(), '..', 'clients');
 
@@ -38,21 +38,34 @@ function getStripe(): Stripe | null {
 
 /**
  * Send a WhatsApp message to a client via IPC file.
- * Works even if the client's process is running — the IPC watcher picks it up.
+ * Falls back to email if WhatsApp is unavailable (no JID, client dir missing, etc.)
  */
-function sendClientWhatsApp(clientId: string, text: string): void {
-  try {
-    const db = getDb();
-    const client = db.prepare('SELECT whatsapp_jid FROM clients WHERE id = ?').get(clientId) as { whatsapp_jid: string | null } | undefined;
-    if (!client?.whatsapp_jid) return;
+function sendClientNotification(clientId: string, text: string): void {
+  const db = getDb();
+  const client = db.prepare('SELECT email, whatsapp_jid FROM clients WHERE id = ?').get(clientId) as { email: string; whatsapp_jid: string | null } | undefined;
+  if (!client) return;
 
-    const ipcDir = path.join(CLIENTS_DIR, clientId, 'data', 'ipc', 'main', 'messages');
-    fs.mkdirSync(ipcDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(ipcDir, `system-${Date.now()}.json`),
-      JSON.stringify({ type: 'message', chatJid: client.whatsapp_jid, text }),
+  let whatsappSent = false;
+
+  if (client.whatsapp_jid) {
+    try {
+      const ipcDir = path.join(CLIENTS_DIR, clientId, 'data', 'ipc', 'main', 'messages');
+      fs.mkdirSync(ipcDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(ipcDir, `system-${Date.now()}.json`),
+        JSON.stringify({ type: 'message', chatJid: client.whatsapp_jid, text }),
+      );
+      whatsappSent = true;
+    } catch {
+      console.warn(`Failed to write IPC for ${clientId} — falling back to email`);
+    }
+  }
+
+  if (!whatsappSent && client.email) {
+    sendBillingNotificationEmail(client.email, text).catch((err) =>
+      console.error(`Failed to send billing email to ${client.email}:`, err),
     );
-  } catch { /* best effort */ }
+  }
 }
 
 // In-memory set to deduplicate events (Stripe can send the same event multiple times)
@@ -126,7 +139,7 @@ async function handleCheckoutCompleted(session: any): Promise<void> {
       `UPDATE clients SET status = ?, cancel_at = NULL, cancel_reason = NULL, stripe_customer_id = ?, stripe_subscription_id = ?, updated_at = datetime('now') WHERE id = ?`
     ).run('active', session.customer, session.subscription, clientId);
     console.log(`Client ${clientId} reactivated (was pending_cancellation)`);
-    sendClientWhatsApp(clientId, 'Content de te revoir ! 🎉 Ton abonnement Otto est réactivé. Envoie-moi un message pour reprendre là où on en était.');
+    sendClientNotification(clientId, 'Content de te revoir ! 🎉 Ton abonnement Otto est réactivé. Envoie-moi un message pour reprendre là où on en était.');
     return;
   }
 
@@ -339,7 +352,7 @@ async function processStripeEvent(event: { id: string; type: string; data: { obj
         ).run(sub.cancellation_details?.reason || 'subscription_deleted', client.id);
 
         console.log(`Client ${client.id} → pending_cancellation (24h grace period)`);
-        sendClientWhatsApp(client.id, 'Ton abonnement Otto a été annulé. Tu as encore 24h pour exporter tes documents depuis ton espace client (dis-moi "Mon espace"). Après ce délai, tes données seront archivées.\n\nSi c\'est une erreur, tu peux te réabonner et tout sera restauré instantanément.');
+        sendClientNotification(client.id, 'Ton abonnement Otto a été annulé. Tu as encore 24h pour exporter tes documents depuis ton espace client (dis-moi "Mon espace"). Après ce délai, tes données seront archivées.\n\nSi c\'est une erreur, tu peux te réabonner et tout sera restauré instantanément.');
       }
       break;
     }
@@ -356,7 +369,7 @@ async function processStripeEvent(event: { id: string; type: string; data: { obj
         ).run(client.id);
 
         const hostedUrl = invoice.hosted_invoice_url as string || '';
-        sendClientWhatsApp(client.id,
+        sendClientNotification(client.id,
           `⚠️ Le paiement de ton abonnement Otto a échoué.\n\n` +
           (hostedUrl ? `Mets à jour ton moyen de paiement ici :\n${hostedUrl}\n\n` : '') +
           `Sans action de ta part, ton compte sera désactivé après plusieurs tentatives.`
@@ -376,7 +389,7 @@ async function processStripeEvent(event: { id: string; type: string; data: { obj
       if (client) {
         const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000) : null;
         const daysLeft = trialEnd ? Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 3;
-        sendClientWhatsApp(client.id,
+        sendClientNotification(client.id,
           `📋 Ton essai gratuit Otto se termine dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}.\n\n` +
           `Si tu as enregistré un moyen de paiement, ton abonnement démarrera automatiquement.\n\n` +
           `Tu peux gérer ton abonnement depuis ton espace client (dis-moi "Mon espace").`
@@ -397,7 +410,7 @@ async function processStripeEvent(event: { id: string; type: string; data: { obj
           'SELECT id FROM clients WHERE stripe_customer_id = ?'
         ).get(invoice.customer as string) as { id: string } | undefined;
         if (client) {
-          sendClientWhatsApp(client.id, '✅ Paiement reçu ! Ton abonnement Otto est de nouveau actif.');
+          sendClientNotification(client.id, '✅ Paiement reçu ! Ton abonnement Otto est de nouveau actif.');
         }
         console.log(`Payment recovered for customer ${invoice.customer}`);
       }
@@ -437,7 +450,7 @@ export async function runPeriodicChecks(): Promise<void> {
   ).all() as { id: string; trial_ends_at: string }[];
 
   for (const client of trialEnding) {
-    sendClientWhatsApp(client.id,
+    sendClientNotification(client.id,
       `📋 Rappel : ton essai gratuit Otto se termine bientôt.\n\n` +
       `Vérifie que ton moyen de paiement est à jour depuis ton espace client (dis-moi "Mon espace").`
     );
