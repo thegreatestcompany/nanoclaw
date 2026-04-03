@@ -57,7 +57,20 @@ Un mécanisme de confirmation **côté code** basé sur des fichiers "pending" d
 |---------|--------------------------------------------------|
 | Contenu | `{ sql, table, created }` |
 | Hook | `mcp__business-db__mutate_business_db` dans PreToolUse |
-| Opérations | DELETE, modifications financières, changement de stage deal, UPDATE sans WHERE |
+| Opérations protégées | Voir tableau ci-dessous |
+
+**Opérations nécessitant confirmation :**
+
+| Type | Condition | Pourquoi |
+|------|-----------|----------|
+| **INSERT** (toutes tables business) | Sauf audit_log, interactions, memories, activity_digests, relationship_summaries | Anti-hallucination : empêche Otto d'inventer des contacts, deals, factures, etc. |
+| **DELETE** | Tous | Soft delete obligatoire (UPDATE SET deleted_at) |
+| **UPDATE financier** | deals, invoices, expenses, contracts, team_members + champs amount/salary/value/budget/etc. | Protège les données financières |
+| **UPDATE stage deal** | deals + champ stage | Changement de pipeline |
+| **UPDATE en masse** | UPDATE sans WHERE | Modification accidentelle de toutes les lignes |
+
+**Tables exemptées du HITL INSERT** (auto-générées, faible risque) :
+`audit_log`, `interactions`, `memories`, `activity_digests`, `relationship_summaries`
 
 ## Ajouter une nouvelle opération protégée
 

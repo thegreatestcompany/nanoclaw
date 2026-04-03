@@ -99,16 +99,30 @@ Inside the container, the agent-runner applies security hooks before each tool e
 rm -rf /              — destructive filesystem operations
 DROP TABLE/DATABASE   — destructive SQL
 TRUNCATE              — destructive SQL
-> /outside/workspace  — redirect outside workspace (except /dev/null, /tmp/)
+> /outside/workspace  — redirect outside workspace (except /workspace/group, /workspace/ipc, /dev/null, /tmp/)
 ```
+
+**Tool redirections:**
+- `WebSearch` bloqué quand Exa est configuré — le hook redirige vers `mcp__exa__*` (meilleurs résultats)
 
 **Write restrictions:**
 - `Write` and `Edit` tools limited to `/workspace/group/` and `/tmp/`
 - Writes outside these paths are denied with an explanation
 
+**HITL INSERT (anti-hallucination):**
+- Tous les INSERT sur les tables business nécessitent une confirmation du dirigeant via la state machine pending_mutations
+- Empêche l'agent d'inventer des contacts, deals, factures, etc. sans instruction explicite
+- Tables exemptées (auto-générées) : audit_log, interactions, memories, activity_digests, relationship_summaries
+
+**Auto feedback ⏳:**
+- Le hook envoie automatiquement un ⏳ via IPC au premier appel d'outil lent (Bash, Skill, Exa, Composio, Gmail, Calendar)
+- Cooldown de 10s entre chaque feedback
+- chatJid passé par closure (pas process.env — non disponible dans les hooks)
+
 **PostToolUse audit logging:**
 - SQL mutations via Bash are logged for audit
 - All tool calls are logged with `[TOOL]` prefix for monitoring
+- Documents créés à la racine sont auto-déplacés vers `documents/`
 
 ## Multi-Tenant Isolation
 
@@ -221,7 +235,7 @@ The admin back-office (`api/src/admin.ts`) is protected by:
 
 ### Skills natifs bloqués (PreToolUse hook)
 
-26 skills dev/admin bloqués par nom : update-config, setup, debug, customize, init-onecli, claw, convert-to-apple-container, update-nanoclaw, update-skills, add-telegram, add-slack, add-discord, add-emacs, add-parallel, add-ollama-tool, add-macos-statusbar, add-whatsapp, add-compact, add-telegram-swarm, use-local-whisper, use-native-credential-proxy, x-integration, add-voice-transcription, add-image-vision, add-reactions, add-pdf-reader, add-gmail.
+32 skills dev/admin bloqués par nom : update-config, setup, debug, customize, init-onecli, claw, convert-to-apple-container, update-nanoclaw, update-skills, add-telegram, add-slack, add-discord, add-emacs, add-parallel, add-ollama-tool, add-macos-statusbar, add-whatsapp, add-compact, add-telegram-swarm, use-local-whisper, use-native-credential-proxy, x-integration, add-voice-transcription, add-image-vision, add-reactions, add-pdf-reader, add-gmail, channel-formatting, get-qodo-rules, qodo-pr-resolver, slack-formatting, capabilities, status.
 
 ### Incident du 30/03 : contournement du blocage Skill
 
@@ -258,9 +272,46 @@ Le prompt engineering seul ne suffit JAMAIS pour la sécurité. Le modèle peut 
 
 ### Risques résiduels
 
-- L'agent peut toujours `curl` vers des sites externes (pas seulement le host) — nécessaire pour WebSearch/WebFetch
+- L'agent peut toujours `curl` vers des sites externes (pas seulement le host) — nécessaire pour Exa/WebFetch. L'accès au host Docker (`172.17.*`) est bloqué.
 - L'agent peut lire le contenu de `/workspace/group/` qui contient business.db — c'est légitime mais un client malveillant pourrait tenter une injection de prompt via les données
-- `mcp__gmail__send_email` n'est pas bloqué côté code — l'agent peut envoyer des emails sans confirmation (instruction CLAUDE.md seulement)
+- `mcp__gmail__send_email` / Composio : les emails nécessitent une confirmation via CLAUDE.md (instruction) + HITL pending_emails. Le code bloque l'envoi et demande confirmation au dirigeant.
+- Les clés Exa, OpenAI (Whisper), Composio sont dans les env vars du container. En cas de compromission, un attaquant pourrait les utiliser — risque acceptable (rate limitées, scopées, par client).
+- Le global CLAUDE.md est **copié** à chaque client au provisioning, pas symlinké. Une mise à jour nécessite de copier manuellement chez chaque client + purger les sessions.
+
+## Portail client & Webchat
+
+### Authentification portail
+
+| Couche | Mécanisme |
+|--------|-----------|
+| Entrée | Code 6 chiffres envoyé via WhatsApp (pas de token dans l'URL) |
+| Code | 5 min TTL, usage unique, stocké en mémoire API (pas en DB) |
+| Brute force | Rate limité : 5 tentatives / 15 min / IP |
+| Session | JWT cookie httpOnly + secure + sameSite strict, 24h |
+| Isolation | client_id extrait du JWT uniquement, jamais de paramètre URL |
+| Fichiers | Path traversal (`path.resolve` + préfixe check), extension whitelist, paths bloqués (.env, store/, data/, .claude/, business.db) |
+| DB | Queries prédéfinies (pas de SQL arbitraire), Database ouvert en readonly |
+| Rate limit | 200 req/min par client |
+| Billing | Lien vers Stripe Customer Portal (hébergé par Stripe, pas nous) |
+
+### Webchat
+
+| Risque | Protection |
+|--------|-----------|
+| Auth WebSocket | JWT vérifié à l'upgrade (cookie ou query param) |
+| Injection messages | Écrits avec `sender='webchat'`, `is_from_me=1` — traités comme messages du dirigeant |
+| Cross-client | Chaque connexion est scopée au `chatJid` du client (extrait de `registered_groups` dans sa propre `messages.db`) |
+| [Web] echo | Messages filtrés par `content NOT LIKE '%[Web] %'` pour éviter les doublons |
+
+### Billing & Deprovisioning
+
+| Risque | Protection |
+|--------|-----------|
+| Webhook Stripe spoofé | Signature vérifiée avec `STRIPE_WEBHOOK_SECRET` |
+| Deprovisioning accidentel | 24h de grâce, réabonnement possible pendant la grâce |
+| Données perdues | Backup tar.gz automatique avant suppression + backups quotidiens Hetzner |
+| Notification manquée | Fallback email si WhatsApp est déconnecté |
+| PM2 crash loop | Exponential backoff (`--exp-backoff-restart-delay=1000`) |
 
 ## Known Pitfalls
 
