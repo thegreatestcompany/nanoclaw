@@ -554,9 +554,13 @@ Le message loop dans `src/index.ts` poll `getNewMessages()` qui lit `messages.db
 
 ---
 
-## Notifications WhatsApp automatiques
+## Notifications client
 
-Tous les événements billing envoient un message WhatsApp au client via IPC :
+Deux canaux de notification selon le contexte :
+
+### WhatsApp (via IPC fichier)
+
+Les événements billing envoient un message WhatsApp au client via `sendClientWhatsApp()` (écrit un fichier JSON dans `data/ipc/main/messages/`, le host le traite et envoie via Baileys) :
 
 | Événement | Message |
 |---|---|
@@ -565,7 +569,20 @@ Tous les événements billing envoient un message WhatsApp au client via IPC :
 | Paiement récupéré | "✅ Paiement reçu, tout est actif" |
 | Annulation | "Tu as 24h pour exporter tes données" |
 | Réabonnement pendant grâce | "Content de te revoir !" |
-| WhatsApp déconnecté | Email de reconnexion (auto via PM2 IPC) |
+
+**⚠️ Limite actuelle :** si WhatsApp est déconnecté au moment d'un événement billing, le message IPC échoue silencieusement. Pas de fallback email pour les événements billing.
+
+### Email (via Gmail SMTP)
+
+Les emails sont utilisés quand WhatsApp n'est pas (encore) disponible ou quand le canal est cassé :
+
+| Événement | Email |
+|---|---|
+| Après paiement Stripe | "Connecte ton WhatsApp à Otto" + lien onboarding |
+| Après connexion WhatsApp | "Otto est actif — ton assistant IA est prêt" |
+| WhatsApp déconnecté | "Reconnecte ton WhatsApp à Otto" (auto via PM2 IPC → API) |
+| Demande portal par email | "Ton espace client Otto" + lien magic link |
+| Formulaire contact landing | Notification interne à HNTIC |
 
 ---
 
