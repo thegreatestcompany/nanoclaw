@@ -76,12 +76,7 @@ Passer de test à prod :
 ### Pages légales (obligatoire avant lancement)
 Mentions légales, CGV/CGU, Politique de confidentialité, Politique cookies. Infos HNTIC : SAS, 9 rue des Colonnes 75002 Paris, SIRET 999 125 420 00011, RCS Paris B 999 125 420. Hébergeur : Hetzner (Allemagne). Sous-traitants à déclarer : Anthropic (US), Hetzner (DE), Stripe (US), Meta/WhatsApp (US). Points sensibles : transferts hors UE, responsabilité IA, données business. **Faire valider par un juriste.**
 
-### Monitoring
-Alerting quand un process client crash (PM2 auto-restart déjà en place).
-
-### Passive scanner
-Infra en place, désactivé en dev. Activation = une ligne de code (commit `f332aa7`).
-À faire : endpoint admin API pour gérer les exclusions scan_config + page onboarding pour exclure les conversations perso.
+### ~~Monitoring~~ ✅ Claude Code admin installé sur VPS (Remote Control + /loop)
 
 
 ### Lifecycle des documents
@@ -92,16 +87,42 @@ Après des mois/années d'utilisation, le dossier `documents/` d'un client va gr
 - Purge des fichiers temporaires (.js build scripts) si l'agent en laisse traîner
 - Impact sur les backups VPS (240 GB SSD limité)
 
+## Proactivité & Autonomie (demandé par les clients)
+
+### Otto proactif — alertes automatiques
+Tâche planifiée créée à l'onboarding qui check business.db toutes les 24h :
+- Deals sans activité depuis X jours → "Tu veux que je relance ?"
+- Obligations à échéance dans 7 jours → rappel
+- Contrats qui expirent bientôt → alerte
+- Factures en retard → notification
+Template de prompt à créer dans le CLAUDE.md ou comme skill.
+
+### Passive scanner — activation
+Infra en place (src/passive-scanner.ts), désactivé. Scanne les conversations WhatsApp et extrait contacts/deals/tâches automatiquement. À activer + endpoint admin pour gérer les exclusions scan_config + page onboarding pour exclure les conversations perso.
+
+### Briefing quotidien automatique
+Créé à l'onboarding via schedule_task. Tous les matins à 8h : résumé des deals, obligations du jour, rappels. Skill `hntic-daily-briefing` existe déjà.
+
+### Memory consolidation — activation
+`src/memory-consolidator.ts` existe : daily learnings + weekly AutoDream. À activer pour que Otto consolide sa mémoire automatiquement.
+
+### Onboarding proactif
+Après connexion WhatsApp, au lieu de juste "Bonjour" :
+- Se présenter avec ses capacités
+- Proposer de scanner les dernières conversations
+- Proposer de configurer un briefing quotidien/hebdo
+- Demander les infos clés de l'entreprise (secteur, équipe, objectifs)
+
+### Groupes WhatsApp — ajout de groupes
+Permettre au client d'ajouter Otto dans ses groupes d'équipe. Déjà supporté par l'architecture (registered_groups, requiresTrigger, trigger @otto). À faire :
+- Flow d'enregistrement de groupe (via le portail ou via WhatsApp)
+- Le client ajoute Otto dans un groupe → Otto détecte et demande confirmation
+- Otto écoute les conversations du groupe (passive scanner) et répond quand on l'interpelle avec @otto
+- Isolation : chaque groupe a son propre dossier et container
+
 ## À faire prochainement
 
-### Instance admin locale (otto-admin)
-Projet séparé (`~/DEV/projets/otto-admin/`). Instance NanoClaw **upstream** (pas le fork) sur Docker local Mac. Utilise le token OAuth du plan Max Claude (pas de clé API nécessaire).
-- SSH vers le VPS (clé montée read-only dans le container)
-- Appels HTTP à l'API admin (`/api/admin/*` avec `ADMIN_TOKEN`)
-- Tâches planifiées : health check PM2, coûts API, état WhatsApp des clients
-- Alertes WhatsApp si un client crash ou si les coûts explosent
-- CLAUDE.md "admin" avec instructions de monitoring et runbooks
-- Peut restart des processes, checker les logs, diagnostiquer des problèmes
+### ~~Instance admin locale (otto-admin)~~ ✅ Remplacé par Claude Code admin sur VPS
 
 ### Export données client au deprovisioning
 Au moment du deprovisioning, générer un ZIP (documents/ + CSV de chaque table business.db) et l'envoyer par email au client. Si > 20MB, garder le ZIP dans `/opt/otto/backups/exports/` et envoyer un lien de téléchargement temporaire. Le backup tar.gz existe déjà comme filet de sécurité.
