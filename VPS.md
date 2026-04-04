@@ -182,6 +182,27 @@ ssh otto-vps 'docker run --rm --entrypoint bash nanoclaw-agent:latest -c "python
 ssh otto-vps 'cd /opt/otto/app && npm install --os=linux --cpu=x64 sharp'
 ```
 
+## Claude Code Admin (monitoring VPS)
+
+Claude Code est installé sur le VPS pour le monitoring et l'administration. Il tourne dans une session tmux persistante et est accessible depuis l'app Claude sur iPhone via Remote Control.
+
+```bash
+# Lancer une nouvelle session (première fois ou si tmux est mort)
+ssh -t otto-vps 'cd /root/claude-admin && export PATH="$HOME/.local/bin:$PATH" && tmux new -s claude-admin "claude"'
+
+# Se reconnecter à la session existante (tmux tourne déjà)
+ssh -t otto-vps 'tmux attach -t claude-admin'
+
+# Vérifier si la session tmux existe
+ssh otto-vps 'tmux ls'
+```
+
+**Depuis ton iPhone :** ouvre l'app Claude → tu verras la session avec un point vert → tu peux parler à Claude qui a accès au VPS.
+
+**Dossier de travail :** `/root/claude-admin/` (contient un CLAUDE.md avec les règles de sécurité admin).
+
+**Auth :** `claude auth login` (token full-scope, se refresh automatiquement). Si le token expire, relance `claude` et refais le login.
+
 ## Structure du VPS
 
 ```
@@ -218,4 +239,8 @@ ssh otto-vps 'cd /opt/otto/app && npm install --os=linux --cpu=x64 sharp'
         ipc/main/         ← Communication host ↔ container
         env/              ← Copie du .env pour le container
   backups/             ← Backups clients (tar.gz au deprovisioning + quotidien Hetzner)
+
+/root/
+  claude-admin/        ← Claude Code admin (monitoring VPS, séparé d'Otto)
+    CLAUDE.md          ← Règles de sécurité et contexte admin
 ```
