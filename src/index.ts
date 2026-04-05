@@ -372,6 +372,15 @@ async function runAgent(
     })),
   );
 
+  // Sync group metadata before writing snapshot (ensures new groups are visible)
+  if (isMain) {
+    await Promise.all(
+      channels
+        .filter((c) => c.syncGroups)
+        .map((c) => c.syncGroups!(false).catch(() => {})),
+    );
+  }
+
   // Update available groups snapshot (main group only can see all groups)
   const availableGroups = getAvailableGroups();
   writeGroupsSnapshot(
