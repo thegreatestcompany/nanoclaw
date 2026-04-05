@@ -144,15 +144,18 @@ function registerGroup(jid: string, group: RegisteredGroup): void {
   // Create group folder
   fs.mkdirSync(path.join(groupDir, 'logs'), { recursive: true });
 
-  // Copy CLAUDE.md template into the new group folder so agents have
+  // Copy CLAUDE.md into the new group folder so agents have
   // identity and instructions from the first run.
+  // Non-main groups get the client's main CLAUDE.md (same business context, DB access, etc.)
   const groupMdFile = path.join(groupDir, 'CLAUDE.md');
   if (!fs.existsSync(groupMdFile)) {
-    const templateFile = path.join(
-      GROUPS_DIR,
-      group.isMain ? 'main' : 'global',
-      'CLAUDE.md',
-    );
+    // Prefer client's main CLAUDE.md (has personalized business context)
+    const mainMdFile = path.join(GROUPS_DIR, 'main', 'CLAUDE.md');
+    const templateFile = group.isMain
+      ? path.join(GROUPS_DIR, 'main', 'CLAUDE.md')
+      : fs.existsSync(mainMdFile)
+        ? mainMdFile
+        : path.join(GROUPS_DIR, 'global', 'CLAUDE.md');
     if (fs.existsSync(templateFile)) {
       let content = fs.readFileSync(templateFile, 'utf-8');
       if (ASSISTANT_NAME !== 'Andy') {
@@ -160,7 +163,7 @@ function registerGroup(jid: string, group: RegisteredGroup): void {
         content = content.replace(/You are Andy/g, `You are ${ASSISTANT_NAME}`);
       }
       fs.writeFileSync(groupMdFile, content);
-      logger.info({ folder: group.folder }, 'Created CLAUDE.md from template');
+      logger.info({ folder: group.folder, source: templateFile }, 'Created CLAUDE.md from template');
     }
   }
 

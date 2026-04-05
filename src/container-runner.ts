@@ -101,25 +101,17 @@ function buildVolumeMounts(
       readonly: false,
     });
   } else {
-    // Other groups only get their own folder
+    // Non-main groups mount the main folder as read-only.
+    // Same CLAUDE.md, same business.db, same documents, same memory — identical context.
+    // The group's own folder is not mounted (untrusted groups can't write to shared data).
+    const mainDir = path.join(GROUPS_DIR, 'main');
     mounts.push({
-      hostPath: groupDir,
+      hostPath: mainDir,
       containerPath: '/workspace/group',
-      readonly: false,
+      readonly: true,
     });
 
-    // Mount main business.db as read-only (shared CRM, untrusted groups can query but not modify)
-    const mainBusinessDb = path.join(GROUPS_DIR, 'main', 'business.db');
-    if (fs.existsSync(mainBusinessDb)) {
-      mounts.push({
-        hostPath: mainBusinessDb,
-        containerPath: '/workspace/group/business.db',
-        readonly: true,
-      });
-    }
-
     // Global memory directory (read-only for non-main)
-    // Only directory mounts are supported, not file mounts
     const globalDir = path.join(GROUPS_DIR, 'global');
     if (fs.existsSync(globalDir)) {
       mounts.push({
