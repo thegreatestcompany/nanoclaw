@@ -108,6 +108,16 @@ function buildVolumeMounts(
       readonly: false,
     });
 
+    // Mount main business.db as read-only (shared CRM, untrusted groups can query but not modify)
+    const mainBusinessDb = path.join(GROUPS_DIR, 'main', 'business.db');
+    if (fs.existsSync(mainBusinessDb)) {
+      mounts.push({
+        hostPath: mainBusinessDb,
+        containerPath: '/workspace/group/business.db',
+        readonly: true,
+      });
+    }
+
     // Global memory directory (read-only for non-main)
     // Only directory mounts are supported, not file mounts
     const globalDir = path.join(GROUPS_DIR, 'global');

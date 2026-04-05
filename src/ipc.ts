@@ -580,15 +580,7 @@ export async function processTaskIpc(
       const groupDir = path.join(deps.groupsDir, data.folder as string);
       fs.mkdirSync(path.join(groupDir, 'documents'), { recursive: true });
       fs.mkdirSync(path.join(groupDir, 'memory'), { recursive: true });
-      // Symlink business.db from main group (shared CRM across all groups)
-      const mainDbPath = path.join(deps.groupsDir, 'main', 'business.db');
-      const groupDbPath = path.join(groupDir, 'business.db');
-      if (fs.existsSync(mainDbPath) && !fs.existsSync(groupDbPath)) {
-        try {
-          fs.symlinkSync(mainDbPath, groupDbPath);
-          logger.info({ folder: data.folder }, 'Symlinked business.db from main');
-        } catch { /* non-fatal */ }
-      }
+      // business.db is mounted read-only from main/ by container-runner (not symlinked)
       // Fix permissions for container access (root:1000)
       try {
         execSync(
