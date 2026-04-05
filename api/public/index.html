@@ -324,9 +324,17 @@
     }
     @media (max-width: 768px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 480px) { .features-grid { grid-template-columns: 1fr; } }
-    .feature-card { padding: 1.8rem; background: var(--bg2); }
-    .feature-card h3 { font-size: .95rem; font-weight: 600; margin-bottom: .5rem; }
-    .feature-card p { font-size: .85rem; color: var(--text2); line-height: 1.6; }
+    .feature-card {
+      padding: 2.2rem; background: var(--bg2); position: relative;
+      border-left: 3px solid transparent; transition: border-color .3s, background .3s;
+    }
+    .feature-card:hover { border-left-color: var(--accent); background: var(--bg3); }
+    .feature-card .feature-icon { font-size: 1.6rem; margin-bottom: .75rem; display: block; }
+    .feature-card h3 {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: 1.15rem; margin-bottom: .6rem;
+    }
+    .feature-card p { font-size: .88rem; color: var(--text2); line-height: 1.65; }
 
     /* ═══ FAQ ═══ */
     .faq { padding: 5rem 0; }
@@ -673,32 +681,41 @@
 
     <div class="divider"></div>
 
-    <div class="act reveal">Ce qui rend &ccedil;a possible</div>
+    <div class="reveal" style="text-align:center;margin-bottom:3rem">
+      <h2 style="font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(1.6rem,4vw,2.4rem);margin-bottom:1rem">Ce qui rend <em style="color:var(--accent);font-style:italic">&ccedil;a</em> possible</h2>
+      <p style="font-size:1rem;color:var(--text2);max-width:500px;margin:0 auto">Six piliers qui font d'Otto bien plus qu'un chatbot.</p>
+    </div>
 
     <div class="features-grid reveal">
       <div class="feature-card">
+        <span class="feature-icon">&#128202;</span>
         <h3>Il conna&icirc;t votre business</h3>
         <p>Clients, affaires, contrats, &eacute;quipe, factures &mdash; Otto a une m&eacute;moire compl&egrave;te de votre activit&eacute;, enrichie &agrave; chaque conversation.</p>
       </div>
       <div class="feature-card">
+        <span class="feature-icon">&#9889;</span>
         <h3>Il travaille sans vous</h3>
         <p>Briefing du matin, relances d&eacute;tect&eacute;es, &eacute;ch&eacute;ances anticip&eacute;es. Otto est proactif &mdash; il n'attend pas que vous demandiez.</p>
       </div>
       <div class="feature-card">
+        <span class="feature-icon">&#128196;</span>
         <h3>Il cr&eacute;e vos documents</h3>
         <p>Devis, pr&eacute;sentations, reportings, tableaux de bord &mdash; Word, Excel, PowerPoint, PDF. G&eacute;n&eacute;r&eacute;s et envoy&eacute;s en quelques secondes.</p>
       </div>
       <div class="feature-card">
+        <span class="feature-icon">&#128268;</span>
         <h3>Il se connecte &agrave; vos outils</h3>
         <p>Gmail, Calendar, Drive, et des centaines d'autres. Vous connectez un service en un clic depuis WhatsApp.</p>
       </div>
       <div class="feature-card">
+        <span class="feature-icon">&#128274;</span>
         <h3>Vous gardez le contr&ocirc;le</h3>
-        <p>Chaque action sensible est soumise &agrave; votre validation. L'agent propose, vous d&eacute;cidez &mdash; rien ne se fait dans votre dos.</p>
+        <p>Chaque action sensible est soumise &agrave; votre validation. Otto propose, vous d&eacute;cidez &mdash; rien ne se fait dans votre dos.</p>
       </div>
       <div class="feature-card">
+        <span class="feature-icon">&#128640;</span>
         <h3>Pr&ecirc;t en 3 minutes</h3>
-        <p>Pas d'installation, pas de formation, pas de consultant. Vous payez, vous scannez un QR code, Otto est actif.</p>
+        <p>Pas d'installation, pas de formation, pas de consultant. Vous scannez un QR code, Otto est actif.</p>
       </div>
     </div>
 
