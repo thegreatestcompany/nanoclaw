@@ -478,6 +478,51 @@ export function getUnprocessedMessages(
 }
 
 /**
+ * Get unprocessed messages from specific JIDs only (registered groups).
+ * Used to scan conversations in groups where Otto is activated.
+ */
+export function getUnprocessedMessagesFromJids(
+  includeJids: string[],
+  limit: number = 500,
+): UnprocessedBatch[] {
+  if (includeJids.length === 0) return [];
+  const placeholders = includeJids.map(() => '?').join(',');
+  const sql = `
+    SELECT chat_jid, sender_name, content, timestamp
+    FROM messages
+    WHERE passive_processed = 0
+      AND timestamp > datetime('now', '-1 day')
+      AND is_bot_message = 0
+      AND content != '' AND content IS NOT NULL
+      AND chat_jid IN (${placeholders})
+    ORDER BY chat_jid, timestamp
+    LIMIT ?
+  `;
+  const rows = db.prepare(sql).all(...includeJids, limit) as Array<{
+    chat_jid: string;
+    sender_name: string;
+    content: string;
+    timestamp: string;
+  }>;
+
+  const batches = new Map<string, UnprocessedBatch>();
+  for (const row of rows) {
+    let batch = batches.get(row.chat_jid);
+    if (!batch) {
+      batch = { chatJid: row.chat_jid, messages: [] };
+      batches.set(row.chat_jid, batch);
+    }
+    batch.messages.push({
+      sender_name: row.sender_name,
+      content: row.content,
+      timestamp: row.timestamp,
+    });
+  }
+
+  return Array.from(batches.values());
+}
+
+/**
  * Mark messages as processed by the passive scanner.
  */
 export function markMessagesProcessed(

@@ -9,7 +9,7 @@
  */
 
 import {
-  getUnprocessedMessages,
+  getUnprocessedMessagesFromJids,
   markMessagesProcessed,
   UnprocessedBatch,
 } from './db.js';
@@ -54,10 +54,19 @@ export async function runPassiveScan(
   deps: PassiveScanDependencies,
 ): Promise<number> {
   const groups = deps.registeredGroups();
-  const registeredJids = Object.keys(groups);
 
-  // Get unprocessed messages, excluding registered groups (already handled by direct agent)
-  const batches = getUnprocessedMessages(registeredJids, SCAN_BATCH_SIZE);
+  // Scan only registered non-main groups (groups where Otto is activated)
+  // Main group (self-chat) is handled by direct agent, no need to scan
+  const groupJidsToScan = Object.entries(groups)
+    .filter(([, g]) => !g.isMain)
+    .map(([jid]) => jid);
+
+  if (groupJidsToScan.length === 0) {
+    logger.debug('Passive scan: no registered groups to scan');
+    return 0;
+  }
+
+  const batches = getUnprocessedMessagesFromJids(groupJidsToScan, SCAN_BATCH_SIZE);
 
   if (batches.length === 0) {
     logger.debug('Passive scan: no unprocessed messages');
