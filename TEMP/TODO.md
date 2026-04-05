@@ -114,11 +114,15 @@ Après connexion WhatsApp, au lieu de juste "Bonjour" :
 - Demander les infos clés de l'entreprise (secteur, équipe, objectifs)
 
 ### Groupes WhatsApp — ajout de groupes
-Permettre au client d'ajouter Otto dans ses groupes d'équipe. Déjà supporté par l'architecture (registered_groups, requiresTrigger, trigger @otto). À faire :
-- Flow d'enregistrement de groupe (via le portail ou via WhatsApp)
-- Le client ajoute Otto dans un groupe → Otto détecte et demande confirmation
-- Otto écoute les conversations du groupe (passive scanner) et répond quand on l'interpelle avec @otto
-- Isolation : chaque groupe a son propre dossier et container
+Permettre au client d'activer Otto dans ses groupes d'équipe. Baileys voit déjà tous les groupes du client (même numéro). Il suffit d'enregistrer le JID du groupe. Flow UX :
+1. Client écrit dans le self-chat : "Active Otto dans le groupe Équipe commerciale"
+2. Otto liste les groupes WhatsApp visibles (Baileys les connaît)
+3. Client confirme
+4. Otto enregistre le groupe via IPC `register_group` (réactiver depuis main group uniquement, reste bloqué pour les autres groupes)
+5. Otto écoute le groupe et répond sur trigger `@otto`
+- Les réponses apparaissent avec le préfixe "Otto:" depuis le numéro du client
+- Chaque groupe a son propre dossier, container, et contexte isolé
+- Passive scanner applicable sur les groupes pour extraction auto
 
 ## À faire prochainement
 
