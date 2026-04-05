@@ -73,7 +73,7 @@
     }
     .reveal-scale.v { opacity: 1; transform: scale(1); }
 
-    .container { max-width: 860px; margin: 0 auto; padding: 0 2rem; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
     @media (max-width: 480px) { .container { padding: 0 1rem; } }
 
     .spacer { height: 5rem; }
@@ -89,7 +89,7 @@
       border-bottom: 1px solid rgba(255,255,255,0.04);
     }
     header .inner {
-      max-width: 860px; margin: 0 auto;
+      max-width: 1100px; margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between;
     }
     .logo-link {
@@ -131,7 +131,7 @@
       font-family: 'Instrument Serif', serif; font-weight: 400;
       font-size: clamp(2.4rem, 6vw, 4.2rem); line-height: 1.1;
       letter-spacing: -0.03em; margin-bottom: 1.5rem;
-      position: relative; max-width: 750px;
+      position: relative; max-width: 900px;
     }
     .hero h1 em { font-style: italic; color: var(--accent); }
     .hero .sub {
@@ -169,6 +169,9 @@
       margin-top: 1rem; font-size: .9rem; color: var(--text3);
       line-height: 1.8; font-style: italic;
     }
+    .needs-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+    @media (min-width: 768px) { .needs-grid { grid-template-columns: 1fr 1fr; } .needs-grid .need:first-child { grid-column: 1 / -1; } }
+    .need { margin-bottom: 0; }
     @media (max-width: 480px) { .need { padding: 1.5rem; } }
 
     /* ═══ REVEAL MOMENT ═══ */
@@ -205,7 +208,7 @@
 
     /* ═══ CHAT BUBBLES ═══ */
     .chat-demo {
-      max-width: 540px; margin: 0 auto 3.5rem;
+      max-width: 680px; margin: 0 auto 3.5rem;
       display: flex; flex-direction: column; gap: 10px;
     }
     .bubble {
@@ -264,7 +267,7 @@
 
     /* ═══ PORTAL MOCKUP ═══ */
     .portal-mock {
-      margin: 3rem auto; max-width: 720px; border-radius: 16px;
+      margin: 3rem auto; max-width: 900px; border-radius: 16px;
       overflow: hidden; border: 1px solid var(--border2); background: var(--bg2);
     }
     .portal-bar {
@@ -439,13 +442,15 @@
        ═══════════════════════════════════════ -->
 
   <section class="hero">
-    <h1 class="reveal">Aujourd'hui, pour g&eacute;rer votre bo&icirc;te, il vous faut <em>trois choses</em></h1>
-    <p class="sub reveal d1">Quelqu'un qui organise. Quelqu'un qui anticipe. Quelqu'un qui ex&eacute;cute. Aujourd'hui, ce quelqu'un, c'est vous.</p>
+    <h1 class="reveal">Aujourd'hui, pour diriger votre entreprise, il vous faut <em>trois choses</em></h1>
+    <p class="sub reveal d1">Quelqu'un qui organise. Quelqu'un qui anticipe. Quelqu'un qui ex&eacute;cute.<br>Aujourd'hui, ce quelqu'un, c'est vous.</p>
+    <p class="sub reveal d2" style="margin-top:1.5rem;font-size:.95rem;color:var(--text3)"><strong style="color:var(--accent)">Otto</strong> est un assistant IA qui fait tout cela depuis <strong style="color:var(--text)">WhatsApp</strong>.</p>
   </section>
 
   <div class="container">
     <div class="act reveal">Acte I &mdash; Le probl&egrave;me</div>
 
+    <div class="needs-grid">
     <div class="need reveal">
       <div class="num">1</div>
       <div class="eyebrow">Organiser</div>
@@ -468,6 +473,7 @@
       <h2>Quelqu'un qui fait, derri&egrave;re</h2>
       <p>R&eacute;diger le devis. Envoyer le mail de suivi. Mettre &agrave; jour le contrat. Pr&eacute;parer la pr&eacute;sentation client. Cr&eacute;er le tableau de bord. Chacune de ces t&acirc;ches prend 10 minutes &mdash; mais elles s'empilent. Et votre m&eacute;tier, ce n'est pas l'administratif. C'est de diriger.</p>
       <p class="pain">&laquo; Je sais que je devrais relancer Acme. &Ccedil;a fait une semaine. J'ai pas eu le temps. &raquo;</p>
+    </div>
     </div>
 
     <div class="spacer"></div>
@@ -528,7 +534,7 @@
         Pr&eacute;sentation g&eacute;n&eacute;r&eacute;e &mdash; 8 slides :<br>
         Rappel du contexte, avancement par lot, planning mis &agrave; jour, risques identifi&eacute;s, budget consomm&eacute; vs pr&eacute;visionnel, prochaines &eacute;tapes, annexes.<br><br>
         J'ai repris les donn&eacute;es du projet et les time entries de votre &eacute;quipe.<br>
-        <div class="file">COPIL_TechStart_Avril2026.pptx</div>
+        <div class="file"><span style="color:#d04423;font-size:1.1rem;margin-right:6px">&#9654;</span> COPIL_TechStart_Avril2026.pptx</div>
       </div>
     </div>
 
@@ -536,7 +542,7 @@
       <div class="bubble user"><div class="name">Vous</div>G&eacute;n&egrave;re aussi le reporting financier du trimestre en Excel</div>
       <div class="bubble otto"><div class="name">Otto</div>
         Fait. CA factur&eacute;, encaissements, charges, marge par projet, taux d'occupation par consultant.<br>
-        <div class="file">Reporting_Q1_2026.xlsx</div>
+        <div class="file"><span style="color:#1d6f42;font-size:1.1rem;margin-right:6px">&#9638;</span> Reporting_Q1_2026.xlsx</div>
       </div>
     </div>
 
