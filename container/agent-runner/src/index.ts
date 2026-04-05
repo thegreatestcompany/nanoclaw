@@ -290,7 +290,7 @@ function createPostCompactHook(): HookCallback {
 /**
  * PreToolUse hook: block destructive Bash commands and writes outside workspace.
  */
-function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean): HookCallback {
+function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean, isMain?: boolean): HookCallback {
   // Auto-send ⏳ feedback on first "slow" tool call per query
   let lastFeedbackTime = 0;
   const SLOW_TOOLS_EXACT = new Set(['Bash', 'Skill', 'mcp__nanoclaw__schedule_task']);
@@ -466,6 +466,18 @@ function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean): Hook
           };
         }
       }
+    }
+
+    // Block DB writes from non-main groups (read-only access)
+    if (!isMain && hookInput.tool_name === 'mcp__business-db__mutate_business_db') {
+      log('[SECURITY] Blocked DB mutation from non-main group');
+      return {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse' as const,
+          permissionDecision: 'deny' as const,
+          permissionDecisionReason: 'La base de données est en lecture seule dans ce groupe. Seul le dirigeant peut modifier les données depuis sa conversation principale.',
+        },
+      };
     }
 
     // Human-in-the-loop for DB mutations
@@ -925,7 +937,7 @@ async function runQuery(
       hooks: {
         PreCompact: [{ hooks: [createPreCompactHook(containerInput.assistantName)] }],
         PostCompact: [{ hooks: [createPostCompactHook()] }],
-        PreToolUse: [{ hooks: [createPreToolUseHook(containerInput.chatJid, containerInput.isScheduledTask)] }],
+        PreToolUse: [{ hooks: [createPreToolUseHook(containerInput.chatJid, containerInput.isScheduledTask, containerInput.isMain)] }],
         PostToolUse: [{ hooks: [createPostToolUseHook()] }],
       },
     }
