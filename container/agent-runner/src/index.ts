@@ -290,7 +290,7 @@ function createPostCompactHook(): HookCallback {
 /**
  * PreToolUse hook: block destructive Bash commands and writes outside workspace.
  */
-function createPreToolUseHook(chatJid?: string): HookCallback {
+function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean): HookCallback {
   // Auto-send ⏳ feedback on first "slow" tool call per query
   let lastFeedbackTime = 0;
   const SLOW_TOOLS_EXACT = new Set(['Bash', 'Skill', 'mcp__nanoclaw__schedule_task']);
@@ -482,8 +482,9 @@ function createPreToolUseHook(chatJid?: string): HookCallback {
 
       // Tables where INSERT is always allowed (low risk, auto-generated)
       const autoInsertTables = new Set(['audit_log', 'interactions', 'memories', 'activity_digests', 'relationship_summaries']);
+      // Scheduled tasks (passive scanner, cron jobs) bypass HITL for INSERT — they run autonomously
       const needsConfirmation = isDelete || isFinancial || isDealStage || isBulkUpdate
-        || (isInsert && !autoInsertTables.has(tableName));
+        || (isInsert && !autoInsertTables.has(tableName) && !isScheduledTask);
 
       if (needsConfirmation) {
         const pendingDir = '/workspace/group/.pending_mutations';
@@ -924,7 +925,7 @@ async function runQuery(
       hooks: {
         PreCompact: [{ hooks: [createPreCompactHook(containerInput.assistantName)] }],
         PostCompact: [{ hooks: [createPostCompactHook()] }],
-        PreToolUse: [{ hooks: [createPreToolUseHook(containerInput.chatJid)] }],
+        PreToolUse: [{ hooks: [createPreToolUseHook(containerInput.chatJid, containerInput.isScheduledTask)] }],
         PostToolUse: [{ hooks: [createPostToolUseHook()] }],
       },
     }
