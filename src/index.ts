@@ -163,7 +163,10 @@ function registerGroup(jid: string, group: RegisteredGroup): void {
         content = content.replace(/You are Andy/g, `You are ${ASSISTANT_NAME}`);
       }
       fs.writeFileSync(groupMdFile, content);
-      logger.info({ folder: group.folder, source: templateFile }, 'Created CLAUDE.md from template');
+      logger.info(
+        { folder: group.folder, source: templateFile },
+        'Created CLAUDE.md from template',
+      );
     }
   }
 
@@ -438,6 +441,15 @@ async function runAgent(
         { group: group.name, error: output.error },
         'Container agent error',
       );
+      // Auto-purge corrupted session and retry on next message
+      if (output.error?.includes('No conversation found with session ID')) {
+        logger.warn(
+          { group: group.name, folder: group.folder },
+          'Corrupted session detected — auto-purging for fresh start',
+        );
+        delete sessions[group.folder];
+        setSession(group.folder, '');
+      }
       return 'error';
     }
 
