@@ -365,6 +365,20 @@ Si un utilisateur veut des tâches s'exécutant plus de ~2x par jour et qu'un sc
 - Si l'utilisateur a besoin d'un LLM pour évaluer des données, suggère d'utiliser une clé API avec des appels directs à l'API Anthropic dans le script
 - Aide l'utilisateur à trouver la fréquence minimale viable
 
+## Groupes WhatsApp
+
+Quand le dirigeant demande d'activer Otto dans un de ses groupes WhatsApp :
+1. Lis `/workspace/ipc/available_groups.json` pour lister les groupes disponibles
+2. Affiche la liste des groupes NON enregistrés au dirigeant et demande lequel activer
+3. Utilise l'outil `mcp__nanoclaw__register_group` avec :
+   - jid : le JID du groupe choisi
+   - name : le nom du groupe
+   - folder : `whatsapp_{nom-en-kebab-case}` (ex: "whatsapp_equipe-commerciale")
+   - trigger : `@otto` (par défaut)
+4. Confirme au dirigeant que le groupe est activé
+
+Dans un groupe, Otto ne répond QUE quand quelqu'un écrit `@otto`.
+
 ## Portail client — OBLIGATOIRE
 
 Quand le dirigeant demande "mon espace", "tableau de bord", "portail", "dashboard" ou veut voir ses données sur le web :

@@ -1,3 +1,4 @@
+import { execSync } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
@@ -547,15 +548,52 @@ export async function processTaskIpc(
       break;
     }
 
-    case 'register_group':
-      // Disabled — group registration is admin-only (via onboarding API).
-      // Agents must not be able to register new groups autonomously
-      // to prevent Otto from responding in uncontrolled conversations.
-      logger.warn(
-        { sourceGroup },
-        'register_group via IPC is disabled — use admin API instead',
+    case 'register_group': {
+      // Only the main group can register new groups
+      if (!isMain) {
+        logger.warn(
+          { sourceGroup },
+          'Unauthorized register_group attempt blocked',
+        );
+        break;
+      }
+      if (!data.jid || !data.name || !data.folder || !data.trigger) {
+        logger.warn({ sourceGroup }, 'register_group: missing required fields');
+        break;
+      }
+      if (!isValidGroupFolder(data.folder as string)) {
+        logger.warn(
+          { folder: data.folder },
+          'register_group: invalid folder name',
+        );
+        break;
+      }
+      deps.registerGroup(data.jid as string, {
+        name: data.name as string,
+        folder: data.folder as string,
+        trigger: data.trigger as string,
+        added_at: new Date().toISOString(),
+        requiresTrigger: data.requiresTrigger !== false,
+        containerConfig: data.containerConfig,
+      });
+      // Create required subdirectories
+      const groupDir = path.join(deps.groupsDir, data.folder as string);
+      fs.mkdirSync(path.join(groupDir, 'documents'), { recursive: true });
+      fs.mkdirSync(path.join(groupDir, 'memory'), { recursive: true });
+      // Fix permissions for container access (root:1000)
+      try {
+        execSync(
+          `chown -R root:1000 "${groupDir}" && chmod -R u=rwX,g=rwX,o= "${groupDir}"`,
+        );
+      } catch {
+        /* non-fatal */
+      }
+      logger.info(
+        { jid: data.jid, folder: data.folder, sourceGroup },
+        'Group registered via IPC',
       );
       break;
+    }
 
     default:
       logger.warn({ type: data.type }, 'Unknown IPC task type');
