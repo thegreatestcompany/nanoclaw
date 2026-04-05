@@ -7,7 +7,7 @@
   <meta name="description" content="Otto est un assistant IA sur WhatsApp qui g&egrave;re votre entreprise : CRM, documents, finances, RH, juridique. Comme avoir une &eacute;quipe enti&egrave;re dans votre poche.">
   <meta name="keywords" content="assistant IA WhatsApp, gestion entreprise IA, CRM WhatsApp, automatisation PME, intelligence artificielle entreprise, chief of staff IA, assistant virtuel dirigeant">
   <meta property="og:title" content="Otto by HNTIC — L'IA qui pilote votre entreprise depuis WhatsApp">
-  <meta property="og:description" content="Un seul assistant WhatsApp qui remplace votre assistante admin, votre commercial, votre comptable. Sans rien installer.">
+  <meta property="og:description" content="Un seul assistant WhatsApp qui organise, anticipe et ex&eacute;cute. Sans rien installer.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://otto.hntic.fr">
   <meta name="twitter:card" content="summary_large_image">
@@ -30,523 +30,391 @@
   }
   </script>
 
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Satoshi:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=Sora:wght@800&display=swap');
-
-    :root {
-      --black: #050505;
-      --white: #ffffff;
-      --surface: #f2f2f2;
-      --gray-400: #8a8a8a;
-      --gray-500: #6b6b6b;
-      --green: #25D366;
-      --green-dark: #128C7E;
-      --green-bg: #f0fdf4;
-      --green-border: #bbf7d0;
-    }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
 
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-      color: var(--black);
-      background: var(--white);
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
+    :root {
+      --bg: #08090b;
+      --bg2: #0e1013;
+      --bg3: #151820;
+      --text: #f0eee9;
+      --text2: #a8a69e;
+      --text3: #6b6962;
+      --text4: #4a4843;
+      --border: #1c1f26;
+      --border2: #2a2e38;
+      --accent: #1fc07f;
+      --accent-dim: rgba(31,192,127,.08);
+      --accent-glow: rgba(31,192,127,.15);
     }
 
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ═══ SCROLL REVEAL ═══ */
     .reveal {
-      opacity: 0; transform: translateY(60px);
+      opacity: 0; transform: translateY(48px);
       transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .reveal.v { opacity: 1; transform: translateY(0); }
     .d1 { transition-delay: 0.1s; } .d2 { transition-delay: 0.2s; }
     .d3 { transition-delay: 0.3s; } .d4 { transition-delay: 0.4s; }
     .reveal-scale {
-      opacity: 0; transform: scale(0.92);
+      opacity: 0; transform: scale(0.94);
       transition: opacity 0.8s ease, transform 1s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .reveal-scale.v { opacity: 1; transform: scale(1); }
 
-    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-    @media (max-width: 480px) { .container { padding: 0 16px; } }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 2rem; }
+    @media (max-width: 480px) { .container { padding: 0 1rem; } }
+
+    .spacer { height: 5rem; }
+    .spacer-sm { height: 2.5rem; }
+    .divider { height: 1px; background: var(--border); margin: 5rem 0; }
 
     /* ═══ HEADER ═══ */
     header {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       padding: 14px 24px;
-      background: rgba(255,255,255,0.85);
+      background: rgba(8,9,11,0.85);
       backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(0,0,0,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
     }
     header .inner {
-      max-width: 1200px; margin: 0 auto;
+      max-width: 860px; margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between;
     }
     .logo-link {
       display: flex; align-items: center; gap: 10px;
-      text-decoration: none; color: var(--black);
+      text-decoration: none; color: var(--text);
     }
     .logo-link svg { width: 28px; height: 28px; }
     .logo-link .logo-text {
-      font-family: 'Sora', sans-serif;
-      font-weight: 800; font-size: 1.3rem; letter-spacing: -0.03em;
-      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      font-family: 'Satoshi', sans-serif;
+      font-weight: 700; font-size: 1.3rem; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--accent), #17a36a);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       background-clip: text;
     }
     .hdr-cta {
-      padding: 10px 24px; background: var(--black); color: var(--white);
+      padding: 10px 24px;
+      background: var(--accent); color: #08090b;
       border-radius: 100px; text-decoration: none; font-size: 0.85rem;
-      font-weight: 500; transition: all 0.2s;
+      font-weight: 600; transition: all 0.2s;
     }
-    .hdr-cta:hover { background: #333; transform: translateY(-1px); }
+    .hdr-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(31,192,127,.25); }
 
     /* ═══ HERO ═══ */
     .hero {
-      min-height: 100vh; display: flex; align-items: center; justify-content: center;
-      padding: 140px 24px 80px; text-align: center;
+      min-height: 100vh; display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      text-align: center; padding: 140px 2rem 80px; position: relative;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 1000px; height: 1000px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 55%);
+      pointer-events: none; opacity: .5;
     }
     @media (max-width: 480px) {
-      .hero { padding: 120px 16px 60px; min-height: auto; }
+      .hero { padding: 120px 1rem 60px; min-height: auto; }
     }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 8px 20px; border-radius: 100px;
-      background: var(--green-bg); border: 1px solid var(--green-border);
-      font-size: 0.85rem; color: #166534; font-weight: 500; margin-bottom: 32px;
-    }
-    .hero-badge .dot {
-      width: 8px; height: 8px; background: var(--green);
-      border-radius: 50%; animation: pulse 2s infinite;
-    }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
     .hero h1 {
-      font-size: clamp(2.8rem, 7vw, 5.5rem); font-weight: 500;
-      letter-spacing: -0.04em; line-height: 0.95; margin-bottom: 28px;
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: clamp(2.4rem, 6vw, 4.2rem); line-height: 1.1;
+      letter-spacing: -0.03em; margin-bottom: 1.5rem;
+      position: relative; max-width: 750px;
     }
-    .hero h1 em {
-      font-style: normal;
-      background: linear-gradient(135deg, var(--green), var(--green-dark));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
+    .hero h1 em { font-style: italic; color: var(--accent); }
     .hero .sub {
-      font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--gray-500);
-      font-weight: 300; line-height: 1.7; max-width: 580px; margin: 0 auto 48px;
-    }
-    .cta-group { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-    .cta {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 18px 40px; background: var(--black); color: var(--white);
-      border-radius: 100px; text-decoration: none; font-size: 1.05rem;
-      font-weight: 500; transition: all 0.3s;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    }
-    @media (max-width: 480px) {
-      .cta { padding: 16px 32px; font-size: 0.95rem; width: 100%; justify-content: center; }
-    }
-    .cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
-    .cta-light {
-      background: var(--white); color: var(--black);
-      box-shadow: 0 4px 20px rgba(255,255,255,0.15);
-    }
-    .cta-light:hover { box-shadow: 0 8px 30px rgba(255,255,255,0.25); }
-    .cta-note { font-size: 0.82rem; color: var(--gray-400); }
-
-    /* ═══ PHILOSOPHY (dark) ═══ */
-    .philo {
-      background: var(--black); color: var(--white);
-      padding: 120px 24px; text-align: center;
-    }
-    @media (max-width: 480px) { .philo { padding: 80px 16px; } }
-    .philo h2 {
-      font-size: clamp(1.8rem, 4.5vw, 3.2rem); font-weight: 500;
-      letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 28px;
-    }
-    .philo .sub {
-      font-size: 1.1rem; color: rgba(255,255,255,0.55);
-      font-weight: 300; line-height: 1.7; max-width: 640px; margin: 0 auto 56px;
-    }
-    .philo-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 20px; max-width: 960px; margin: 0 auto;
-    }
-    @media (max-width: 768px) { .philo-grid { grid-template-columns: 1fr; } }
-    .philo-card {
-      padding: 36px; border-radius: 20px;
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
-      text-align: left; transition: all 0.3s;
-    }
-    .philo-card:hover { background: rgba(255,255,255,0.07); transform: translateY(-2px); }
-    @media (max-width: 480px) { .philo-card { padding: 28px; } }
-    .philo-card .emoji { font-size: 1.8rem; margin-bottom: 16px; }
-    .philo-card h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 10px; }
-    .philo-card p { font-size: 0.88rem; color: rgba(255,255,255,0.5); line-height: 1.6; }
-
-    /* ═══ WHATSAPP DEMO ═══ */
-    .demo {
-      padding: 120px 24px; text-align: center;
-    }
-    @media (max-width: 480px) { .demo { padding: 80px 16px; } }
-    .demo h2 {
-      font-size: clamp(1.8rem, 4.5vw, 3.2rem); font-weight: 500;
-      letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 28px;
-    }
-    .demo .sub {
-      font-size: 1.1rem; color: var(--gray-500);
-      font-weight: 300; line-height: 1.7; max-width: 560px; margin: 0 auto 56px;
-    }
-    .chat-window {
-      max-width: 420px; margin: 0 auto; border-radius: 24px; overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.12); border: 1px solid rgba(0,0,0,0.06);
-    }
-    .chat-header {
-      background: #075E54; color: white; padding: 16px 20px;
-      display: flex; align-items: center; gap: 12px;
-    }
-    .chat-header .avatar {
-      width: 40px; height: 40px; background: rgba(255,255,255,0.2);
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 1rem;
-    }
-    .chat-header .name { font-weight: 600; font-size: 0.95rem; }
-    .chat-header .status { font-size: 0.75rem; opacity: 0.7; }
-    .chat-body {
-      background: #ECE5DD; padding: 20px 16px;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .msg {
-      padding: 10px 14px; border-radius: 10px; max-width: 85%;
-      font-size: 0.88rem; line-height: 1.5; position: relative;
-    }
-    .msg-user {
-      background: #DCF8C6; align-self: flex-end; border-bottom-right-radius: 2px;
-    }
-    .msg-bot {
-      background: white; align-self: flex-start; border-bottom-left-radius: 2px;
-    }
-    .msg-time {
-      font-size: 0.65rem; color: rgba(0,0,0,0.4); text-align: right; margin-top: 4px;
-    }
-    .msg-voice {
-      display: flex; align-items: center; gap: 10px;
-    }
-    .msg-voice .play {
-      width: 32px; height: 32px; background: #075E54; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .msg-voice .play::after {
-      content: ''; width: 0; height: 0;
-      border-left: 10px solid white; border-top: 6px solid transparent; border-bottom: 6px solid transparent;
-      margin-left: 2px;
-    }
-    .msg-voice .wave {
-      flex: 1; height: 20px;
-      background: repeating-linear-gradient(90deg, #075E54 0px, #075E54 2px, transparent 2px, transparent 5px);
-      opacity: 0.4; border-radius: 4px;
+      font-size: 1.15rem; color: var(--text2); max-width: 560px;
+      line-height: 1.7; position: relative;
     }
 
-    /* ═══ DASHBOARD PREVIEW ═══ */
-    .dash-preview {
-      padding: 120px 24px; text-align: center;
-      background: var(--black); color: var(--white);
-    }
-    @media (max-width: 480px) { .dash-preview { padding: 80px 16px; } }
-    .dash-preview h2 {
-      font-size: clamp(1.8rem, 4.5vw, 3.2rem); font-weight: 500;
-      letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 20px;
-    }
-    .dash-preview .sub {
-      font-size: 1.1rem; color: rgba(255,255,255,0.55);
-      font-weight: 300; line-height: 1.7; max-width: 560px; margin: 0 auto 48px;
-    }
-    .dash-mock {
-      max-width: 820px; margin: 0 auto; border-radius: 16px; overflow: hidden;
-      background: #fafafa; color: #1a1a1a; text-align: left;
-      box-shadow: 0 25px 80px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08);
-    }
-    .dm-header {
-      background: #fff; border-bottom: 1px solid #e5e7eb; padding: 12px 20px;
-    }
-    .dm-logo {
-      display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
-    }
-    .dm-logo svg { width: 18px; height: 18px; }
-    .dm-logo .dm-logo-text {
-      font-family: 'Sora', sans-serif; font-weight: 800; font-size: 0.9rem; letter-spacing: -0.03em;
-      background: linear-gradient(135deg, var(--green), var(--green-dark));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .dm-tabs { display: flex; gap: 0; border-bottom: 1px solid #e5e7eb; margin: 0 -20px; padding: 0 20px; }
-    .dm-tab {
-      padding: 8px 14px; font-size: 0.7rem; font-weight: 500; color: #9ca3af;
-      border-bottom: 2px solid transparent; white-space: nowrap;
-    }
-    .dm-tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
-    .dm-body { padding: 20px; }
-    .dm-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
-    @media (max-width: 580px) { .dm-kpis { grid-template-columns: repeat(2, 1fr); } }
-    .dm-kpi {
-      background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px;
-    }
-    .dm-kpi-label { font-size: 0.6rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-    .dm-kpi-val { font-size: 1.2rem; font-weight: 700; }
-    .dm-kpi-val.blue { color: #2563eb; }
-    .dm-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 580px) { .dm-cols { grid-template-columns: 1fr; } }
-    .dm-col {
-      background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;
-    }
-    .dm-section-title {
-      font-size: 0.68rem; font-weight: 600; color: #374151; padding: 10px 14px;
-      background: #f9fafb; border-bottom: 1px solid #e5e7eb; text-transform: uppercase; letter-spacing: 0.03em;
-    }
-    .dm-row {
-      display: flex; align-items: center; gap: 8px; padding: 9px 14px;
-      border-bottom: 1px solid #f3f4f6; font-size: 0.78rem; color: #374151;
-    }
-    .dm-row:last-child { border-bottom: none; }
-    .dm-row span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dm-badge {
-      display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 0.6rem; font-weight: 500; white-space: nowrap;
-    }
-    .dm-badge.blue { background: #eff6ff; color: #2563eb; }
-    .dm-badge.indigo { background: #eef2ff; color: #4f46e5; }
-    .dm-badge.green { background: #ecfdf5; color: #059669; }
-    .dm-amount { font-size: 0.75rem; font-weight: 600; color: #1a1a1a; white-space: nowrap; }
-    .dm-meta { font-size: 0.65rem; color: #9ca3af; white-space: nowrap; }
-
-    /* ═══ REPLACES ═══ */
-    .replaces {
-      padding: 100px 24px; text-align: center;
-      background: var(--surface);
-    }
-    .replaces h2 {
-      font-size: clamp(1.8rem, 4.5vw, 3rem); font-weight: 500;
-      letter-spacing: -0.03em; margin-bottom: 12px;
-    }
-    .replaces .sub {
-      font-size: 1.05rem; color: var(--gray-500); font-weight: 300; margin-bottom: 48px;
-    }
-    .replace-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px; max-width: 800px; margin: 0 auto 40px;
-    }
-    .replace-item {
-      padding: 20px; border-radius: 16px; background: white;
-      border: 1px solid rgba(0,0,0,0.05); text-align: center;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
-      transition: all 0.3s;
-    }
-    .replace-item:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06); transform: translateY(-2px); }
-    .replace-item .old {
-      font-size: 0.85rem; color: var(--gray-400);
-      text-decoration: line-through; text-decoration-color: #ef4444;
-      margin-bottom: 4px;
-    }
-    .replace-item .new {
-      font-size: 0.95rem; font-weight: 500; color: var(--black);
-    }
-    .replace-otto {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 14px 28px; border-radius: 100px;
-      background: var(--black); color: var(--white);
-      font-weight: 600; font-size: 1rem;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+    /* ═══ ACT LABEL ═══ */
+    .act {
+      font-size: .7rem; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--text4); font-weight: 600; margin-bottom: 2rem; padding-left: 2px;
     }
 
-    /* ═══ FEATURES ═══ */
-    .features {
-      padding: 120px 24px; text-align: center;
+    /* ═══ NEED CARDS ═══ */
+    .need {
+      padding: 2.5rem; border-radius: 20px; background: var(--bg2);
+      border: 1px solid var(--border); margin-bottom: 1.5rem;
+      position: relative; overflow: hidden; transition: border-color .3s;
     }
-    .features h2 {
-      font-size: clamp(1.8rem, 4.5vw, 3.2rem); font-weight: 500;
-      letter-spacing: -0.03em; margin-bottom: 12px;
+    .need:hover { border-color: var(--border2); }
+    .need .num {
+      font-family: 'Instrument Serif', serif; font-size: 4rem; color: var(--accent);
+      opacity: .12; position: absolute; top: 1.2rem; right: 2rem; line-height: 1;
     }
-    .features .sub {
-      font-size: 1.1rem; color: var(--gray-500);
-      font-weight: 300; max-width: 550px; margin: 0 auto 64px;
+    .need .eyebrow {
+      font-size: .7rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--text3); font-weight: 500; margin-bottom: .75rem;
     }
-    .feat-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 20px; max-width: 1000px; margin: 0 auto;
+    .need h2 {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: clamp(1.3rem, 3vw, 1.8rem); line-height: 1.25; margin-bottom: .75rem;
     }
-    @media (max-width: 960px) { .feat-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 580px) { .feat-grid { grid-template-columns: 1fr; } }
-    .feat {
-      padding: 36px 28px; border-radius: 20px;
-      background: var(--white); border: 1px solid rgba(0,0,0,0.06);
-      text-align: left; transition: all 0.4s;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+    .need p { font-size: 1rem; color: var(--text2); line-height: 1.7; max-width: 620px; }
+    .need .pain {
+      margin-top: 1rem; font-size: .9rem; color: var(--text3);
+      line-height: 1.8; font-style: italic;
     }
-    .feat:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.1); }
-    @media (max-width: 480px) { .feat { padding: 28px 24px; } }
-    .feat h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; }
-    .feat p { font-size: 0.88rem; color: var(--gray-500); line-height: 1.6; }
+    @media (max-width: 480px) { .need { padding: 1.5rem; } }
 
-    /* ═══ VOICE HIGHLIGHT ═══ */
-    .voice-section {
-      padding: 100px 24px; text-align: center;
-      background: var(--black); color: var(--white);
+    /* ═══ REVEAL MOMENT ═══ */
+    .reveal-moment {
+      text-align: center; padding: 5rem 2rem; position: relative;
     }
-    .voice-section h2 {
-      font-size: clamp(1.8rem, 4.5vw, 3rem); font-weight: 500;
-      letter-spacing: -0.03em; margin-bottom: 20px;
+    .reveal-moment::before {
+      content: ''; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 60%);
+      pointer-events: none;
     }
-    .voice-section .sub {
-      font-size: 1.1rem; color: rgba(255,255,255,0.55);
-      font-weight: 300; line-height: 1.7; max-width: 520px; margin: 0 auto 40px;
+    .reveal-moment h2 {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: clamp(1.8rem, 5vw, 3.2rem); line-height: 1.15;
+      margin-bottom: 1.5rem; position: relative;
     }
-    .voice-demo {
-      display: inline-flex; align-items: center; gap: 16px;
-      padding: 20px 32px; border-radius: 100px;
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-    }
-    @media (max-width: 640px) {
-      .voice-demo { flex-direction: column; border-radius: 20px; padding: 24px; gap: 12px; }
-    }
-    .voice-demo .mic { font-size: 1.5rem; }
-    .voice-demo span { font-size: 0.95rem; color: rgba(255,255,255,0.7); }
-    .voice-demo .arrow { font-size: 1.2rem; color: var(--green); }
-    .voice-demo .result { font-size: 0.95rem; font-weight: 500; }
-
-    /* ═══ AUTO-FILL ═══ */
-    .autofill {
-      padding: 120px 24px; text-align: center;
-    }
-    .autofill h2 {
-      font-size: clamp(1.8rem, 4.5vw, 3rem); font-weight: 500;
-      letter-spacing: -0.03em; margin-bottom: 20px;
-    }
-    .autofill .sub {
-      font-size: 1.1rem; color: var(--gray-500);
-      font-weight: 300; line-height: 1.7; max-width: 580px; margin: 0 auto 48px;
-    }
-    .autofill-visual {
-      max-width: 600px; margin: 0 auto;
-      display: flex; flex-direction: column; gap: 12px;
-    }
-    .af-row {
-      display: flex; align-items: center; gap: 16px;
-      padding: 16px 24px; border-radius: 16px; background: var(--white);
-      border: 1px solid rgba(0,0,0,0.06);
-      text-align: left;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
-      transition: all 0.3s;
-    }
-    .af-row:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06); transform: translateY(-1px); }
-    .af-row .af-icon { font-size: 1.3rem; width: 32px; text-align: center; flex-shrink: 0; }
-    .af-row .af-label { font-size: 0.85rem; color: var(--gray-400); min-width: 80px; flex-shrink: 0; }
-    .af-row .af-value { font-size: 0.95rem; font-weight: 500; flex: 1; min-width: 0; }
-    @media (max-width: 480px) {
-      .af-row { flex-wrap: wrap; padding: 14px 16px; gap: 8px; }
-      .af-row .af-label { min-width: auto; }
-      .af-row .af-value { width: 100%; }
-    }
-    .af-row .af-auto {
-      font-size: 0.7rem; padding: 3px 10px; border-radius: 100px;
-      background: var(--green-bg); color: #166534; font-weight: 600;
+    .reveal-moment h2 em { font-style: italic; color: var(--accent); }
+    .reveal-moment p {
+      font-size: 1.1rem; color: var(--text2); max-width: 520px;
+      margin: 0 auto; line-height: 1.7; position: relative;
     }
 
-    /* ═══ HOW ═══ */
-    .how {
-      padding: 120px 24px; text-align: center;
-      background: var(--surface);
+    /* ═══ SCENE LABEL ═══ */
+    .scene-label {
+      font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--text4); font-weight: 500; margin-bottom: 1rem;
+      padding-left: 2px; display: flex; align-items: center; gap: 8px;
     }
-    .how h2 {
-      font-size: clamp(1.8rem, 4.5vw, 3rem); font-weight: 500;
-      letter-spacing: -0.03em; margin-bottom: 64px;
+    .scene-label .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); opacity: .5;
     }
-    .steps {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 48px; max-width: 860px; margin: 0 auto;
-    }
-    @media (max-width: 768px) { .steps { grid-template-columns: 1fr; gap: 36px; } }
-    .step { text-align: center; }
-    .step .num {
-      width: 56px; height: 56px; border-radius: 50%;
-      background: var(--black); color: var(--white);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.3rem; font-weight: 600; margin: 0 auto 20px;
-    }
-    .step h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
-    .step p { font-size: 0.88rem; color: var(--gray-500); line-height: 1.5; }
 
+    /* ═══ CHAT BUBBLES ═══ */
+    .chat-demo {
+      max-width: 540px; margin: 0 auto 3.5rem;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .bubble {
+      max-width: 88%; padding: 14px 18px; border-radius: 16px;
+      font-size: .92rem; line-height: 1.55;
+    }
+    .bubble.user {
+      align-self: flex-end; background: var(--accent); color: #08090b;
+      font-weight: 500; border-bottom-right-radius: 4px;
+    }
+    .bubble.otto {
+      align-self: flex-start; background: var(--bg3); color: var(--text);
+      border: 1px solid var(--border2); border-bottom-left-radius: 4px;
+    }
+    .bubble .name {
+      font-size: .68rem; letter-spacing: .06em; text-transform: uppercase;
+      margin-bottom: 4px; font-weight: 600;
+    }
+    .bubble.otto .name { color: var(--accent); opacity: .7; }
+    .bubble.user .name { opacity: .6; }
+    .bubble .file {
+      margin-top: 8px; padding: 8px 12px; border-radius: 8px;
+      background: rgba(255,255,255,.06); font-size: .82rem;
+      display: inline-block; border: 1px solid rgba(255,255,255,.06);
+    }
+    .bubble .subtle { color: var(--text2); font-size: .85rem; }
+    .bubble .link {
+      color: var(--accent); text-decoration: underline;
+      text-underline-offset: 2px; font-size: .85rem;
+    }
+
+    /* ═══ AUTONOMOUS SECTION ═══ */
+    .auto-section {
+      margin: 2rem 0 3rem; padding: 2.5rem; border-radius: 20px;
+      background: var(--bg2); border: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .auto-section::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), transparent); opacity: .5;
+      border-radius: 20px 20px 0 0;
+    }
+    .auto-section .eyebrow {
+      font-size: .7rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent); font-weight: 500; margin-bottom: .75rem; opacity: .7;
+    }
+    .auto-section h3 {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: 1.5rem; margin-bottom: .75rem;
+    }
+    .auto-section p {
+      font-size: 1rem; color: var(--text2); line-height: 1.7;
+      max-width: 620px; margin-bottom: 1.5rem;
+    }
+    @media (max-width: 480px) { .auto-section { padding: 1.5rem; } }
+
+    /* ═══ PORTAL MOCKUP ═══ */
+    .portal-mock {
+      margin: 3rem auto; max-width: 720px; border-radius: 16px;
+      overflow: hidden; border: 1px solid var(--border2); background: var(--bg2);
+    }
+    .portal-bar {
+      padding: 10px 18px; background: var(--bg3);
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .portal-dot { width: 8px; height: 8px; border-radius: 50%; opacity: .3; }
+    .portal-url {
+      flex: 1; text-align: center; font-size: .75rem;
+      color: var(--text3); font-family: monospace;
+    }
+    .portal-body {
+      padding: 2rem; display: grid;
+      grid-template-columns: 140px 1fr; gap: 1.5rem;
+    }
+    @media (max-width: 600px) { .portal-body { grid-template-columns: 1fr; } }
+    .portal-sidebar { display: flex; flex-direction: column; gap: 4px; }
+    .portal-nav-item {
+      font-size: .8rem; padding: 8px 12px; border-radius: 6px;
+      color: var(--text3); cursor: default;
+    }
+    .portal-nav-item.active {
+      background: var(--accent-dim); color: var(--accent); font-weight: 500;
+    }
+    .portal-main { display: flex; flex-direction: column; gap: 1rem; }
+    .portal-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    @media (max-width: 480px) { .portal-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .portal-kpi {
+      padding: 12px; border-radius: 8px; background: var(--bg3);
+      border: 1px solid var(--border); text-align: center;
+    }
+    .portal-kpi .val { font-size: 1.3rem; font-weight: 600; color: var(--accent); }
+    .portal-kpi .lab { font-size: .7rem; color: var(--text3); margin-top: 2px; }
+    .portal-table { font-size: .8rem; line-height: 2; }
+    .portal-table .row {
+      display: flex; justify-content: space-between; padding: 0 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .portal-table .row:last-child { border-bottom: none; }
+    .portal-table .tname { color: var(--text); }
+    .portal-table .detail { color: var(--text3); font-size: .75rem; }
+    .portal-table .val { color: var(--accent); font-weight: 500; }
+    .portal-badge {
+      display: inline-block; font-size: .65rem; padding: 2px 8px;
+      border-radius: 4px; background: var(--accent-dim);
+      color: var(--accent); font-weight: 500; margin-top: 8px;
+    }
+
+    /* ═══ FEATURES GRID ═══ */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1px; border-radius: 16px; overflow: hidden; margin: 2rem 0;
+    }
+    .feature-card { padding: 1.8rem; background: var(--bg2); }
+    .feature-card h3 { font-size: .95rem; font-weight: 600; margin-bottom: .5rem; }
+    .feature-card p { font-size: .85rem; color: var(--text2); line-height: 1.6; }
 
     /* ═══ FAQ ═══ */
-    .faq { padding: 120px 24px; text-align: center; }
+    .faq { padding: 5rem 0; }
     .faq h2 {
-      font-size: clamp(1.8rem, 4.5vw, 3rem); font-weight: 500;
-      letter-spacing: -0.03em; margin-bottom: 56px;
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: clamp(1.6rem, 4vw, 2.4rem); text-align: center;
+      margin-bottom: 3rem;
     }
     .faq-list { max-width: 680px; margin: 0 auto; text-align: left; }
-    .faq-item { border-bottom: 1px solid rgba(0,0,0,0.07); padding: 22px 0; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 22px 0; }
     .faq-q {
       display: flex; justify-content: space-between; align-items: center;
       cursor: pointer; font-size: 1rem; font-weight: 500; user-select: none;
+      color: var(--text);
     }
-    .faq-q::after { content: '+'; font-size: 1.4rem; font-weight: 300; color: var(--gray-400); transition: transform 0.3s; }
+    .faq-q::after {
+      content: '+'; font-size: 1.4rem; font-weight: 300;
+      color: var(--text3); transition: transform 0.3s;
+    }
     .faq-item.open .faq-q::after { transform: rotate(45deg); }
     .faq-a { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
     .faq-item.open .faq-a { max-height: 300px; }
-    .faq-a p { padding-top: 14px; font-size: 0.92rem; color: var(--gray-500); line-height: 1.65; }
-
-    /* ═══ FINAL CTA ═══ */
-    .final {
-      padding: 120px 24px; text-align: center; background: var(--surface);
-    }
-    .final h2 {
-      font-size: clamp(1.8rem, 5vw, 3.5rem); font-weight: 500;
-      letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 20px;
-    }
-    .final .sub {
-      font-size: 1.1rem; color: var(--gray-500);
-      font-weight: 300; max-width: 480px; margin: 0 auto 40px;
+    .faq-a p {
+      padding-top: 14px; font-size: .92rem; color: var(--text2); line-height: 1.65;
     }
 
-    /* ═══ MOBILE SECTIONS ═══ */
-    @media (max-width: 480px) {
-      .replaces, .features, .autofill, .how, .faq, .final { padding: 80px 16px; }
-      .voice-section { padding: 80px 16px; }
-      .replace-grid { gap: 12px; }
+    /* ═══ FINALE / CTA ═══ */
+    .finale { text-align: center; padding: 5rem 2rem 3rem; }
+    .finale h2 {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: clamp(1.6rem, 4vw, 2.6rem); margin-bottom: 1rem;
+    }
+    .finale h2 em { font-style: italic; color: var(--accent); }
+    .finale p {
+      color: var(--text2); font-size: 1rem; max-width: 480px;
+      margin: 0 auto 2rem; line-height: 1.7;
     }
 
     /* ═══ CONTACT FORM ═══ */
+    .contact-section { padding: 0 2rem 6rem; }
     .contact-form {
       max-width: 420px; margin: 0 auto; text-align: left;
     }
     .contact-form input, .contact-form textarea {
-      width: 100%; padding: 14px 18px; border: 1px solid rgba(0,0,0,0.08);
-      border-radius: 12px; font-size: 0.92rem; font-family: inherit;
-      background: var(--white); color: var(--black); margin-bottom: 10px;
-      outline: none; transition: border-color 0.2s;
+      width: 100%; padding: 14px 18px;
+      border: 1px solid var(--border2); border-radius: 12px;
+      font-size: 0.92rem; font-family: inherit;
+      background: var(--bg2); color: var(--text);
+      margin-bottom: 10px; outline: none; transition: border-color 0.2s;
     }
-    .contact-form input:focus, .contact-form textarea:focus { border-color: var(--green); }
-    .contact-form input::placeholder, .contact-form textarea::placeholder { color: #aaa; }
+    .contact-form input:focus, .contact-form textarea:focus {
+      border-color: var(--accent);
+    }
+    .contact-form input::placeholder, .contact-form textarea::placeholder {
+      color: var(--text3);
+    }
     .contact-form textarea { resize: vertical; min-height: 80px; }
     .contact-form button {
-      width: 100%; padding: 16px; background: var(--black); color: var(--white);
-      border: none; border-radius: 100px; font-size: 1rem; font-weight: 500;
-      cursor: pointer; transition: all 0.2s;
+      width: 100%; padding: 16px;
+      background: var(--accent); color: #08090b;
+      border: none; border-radius: 100px;
+      font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; font-family: inherit;
     }
-    .contact-form button:hover { background: #333; }
-    .contact-form button:disabled { background: #999; cursor: not-allowed; }
+    .contact-form button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px rgba(31,192,127,.25);
+    }
+    .contact-form button:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
     .contact-msg { font-size: 0.85rem; text-align: center; margin-top: 12px; min-height: 20px; }
-    .contact-msg.success { color: #059669; }
-    .contact-msg.error { color: #dc2626; }
+    .contact-msg.success { color: var(--accent); }
+    .contact-msg.error { color: #ef4444; }
 
     /* ═══ FOOTER ═══ */
     footer {
       padding: 36px 24px; text-align: center;
-      border-top: 1px solid rgba(0,0,0,0.05);
+      border-top: 1px solid var(--border);
     }
-    footer p { font-size: 0.78rem; color: var(--gray-400); }
-    footer a { color: var(--gray-500); text-decoration: none; }
+    footer p { font-size: 0.78rem; color: var(--text3); }
+    footer a { color: var(--text2); text-decoration: none; }
+
+    /* ═══ MOBILE ═══ */
+    @media (max-width: 480px) {
+      .faq { padding: 3rem 0; }
+      .finale { padding: 3rem 1rem 2rem; }
+      .contact-section { padding: 0 1rem 4rem; }
+      .portal-kpis { grid-template-columns: 1fr 1fr; }
+    }
   </style>
 </head>
 <body>
 
+  <!-- ═══ HEADER ═══ -->
   <header>
     <div class="inner">
       <a href="/" class="logo-link">
@@ -566,267 +434,316 @@
     </div>
   </header>
 
-  <!-- ═══ HERO ═══ -->
+  <!-- ═══════════════════════════════════════
+       ACTE I — TROIS BESOINS
+       ═══════════════════════════════════════ -->
+
   <section class="hero">
-    <div class="container">
-      <div class="reveal"><div class="hero-badge"><span class="dot"></span> Disponible maintenant</div></div>
-      <h1 class="reveal d1">Votre entreprise<br>dans votre <em>poche</em>.</h1>
-      <p class="sub reveal d2">
-        Otto pilote votre business depuis WhatsApp. CRM, documents, finances, &eacute;quipe, relances &mdash; tout tourne depuis votre t&eacute;l&eacute;phone, m&ecirc;me quand vous n'&ecirc;tes pas au bureau.
-      </p>
-      <div class="cta-group reveal d3">
-        <a href="#contact" class="cta">Demander un acc&egrave;s &rarr;</a>
-        <span class="cta-note">D&eacute;mo personnalis&eacute;e en 15 minutes</span>
-      </div>
-    </div>
+    <h1 class="reveal">Aujourd'hui, pour g&eacute;rer votre bo&icirc;te, il vous faut <em>trois choses</em></h1>
+    <p class="sub reveal d1">Quelqu'un qui organise. Quelqu'un qui anticipe. Quelqu'un qui ex&eacute;cute. Aujourd'hui, ce quelqu'un, c'est vous.</p>
   </section>
 
-  <!-- ═══ PHILOSOPHY ═══ -->
-  <section class="philo">
-    <div class="container">
-      <h2 class="reveal">Z&eacute;ro logiciel. Z&eacute;ro saisie.<br>Juste votre t&eacute;l&eacute;phone.</h2>
-      <p class="sub reveal d1">
-        Plus besoin d'ouvrir un ordinateur, de remplir un CRM, ou de jongler entre 12 outils.
-        Otto g&egrave;re tout depuis WhatsApp &mdash; en voiture, sur un chantier, entre deux rendez-vous.
-      </p>
-      <div class="philo-grid">
-        <div class="philo-card reveal d1">
-          <div class="emoji">&#128241;</div>
-          <h3>Depuis n'importe o&ugrave;</h3>
-          <p>En d&eacute;placement, en r&eacute;union, dans les transports. Un vocal ou un message et c'est fait. Pas d'ordinateur n&eacute;cessaire.</p>
+  <div class="container">
+    <div class="act reveal">Acte I &mdash; Le probl&egrave;me</div>
+
+    <div class="need reveal">
+      <div class="num">1</div>
+      <div class="eyebrow">Organiser</div>
+      <h2>Un endroit o&ugrave; tout est &agrave; jour</h2>
+      <p>Vos clients, vos affaires en cours, vos contrats, votre &eacute;quipe, vos factures. Vous avez besoin d'une vue d'ensemble fiable. Mais les outils qui font &ccedil;a ne se remplissent pas tout seuls &mdash; c'est vous qui saisissez, vous qui mettez &agrave; jour, vous qui relancez quand c'est en retard.</p>
+      <p class="pain">&laquo; Mon CRM est &agrave; jour une semaine par trimestre &mdash; celle o&ugrave; je pr&eacute;pare le board. &raquo;</p>
+    </div>
+
+    <div class="need reveal d1">
+      <div class="num">2</div>
+      <div class="eyebrow">Anticiper</div>
+      <h2>Quelqu'un qui pr&eacute;pare en amont</h2>
+      <p>Avant un rendez-vous, un brief qui r&eacute;sume tout. Le matin, un point sur les urgences du jour. Une relance en retard d&eacute;tect&eacute;e avant que le client vous oublie. Aujourd'hui, c'est vous qui allez chercher ces infos &mdash; dans cinq onglets diff&eacute;rents. Ou vous improvisez.</p>
+      <p class="pain">&laquo; Je passe plus de temps &agrave; chercher l'info qu'&agrave; m'en servir. &raquo;</p>
+    </div>
+
+    <div class="need reveal d2">
+      <div class="num">3</div>
+      <div class="eyebrow">Ex&eacute;cuter</div>
+      <h2>Quelqu'un qui fait, derri&egrave;re</h2>
+      <p>R&eacute;diger le devis. Envoyer le mail de suivi. Mettre &agrave; jour le contrat. Pr&eacute;parer la pr&eacute;sentation client. Cr&eacute;er le tableau de bord. Chacune de ces t&acirc;ches prend 10 minutes &mdash; mais elles s'empilent. Et votre m&eacute;tier, ce n'est pas l'administratif. C'est de diriger.</p>
+      <p class="pain">&laquo; Je sais que je devrais relancer Acme. &Ccedil;a fait une semaine. J'ai pas eu le temps. &raquo;</p>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       ACTE II — LE REVEAL + DEMOS
+       ═══════════════════════════════════════ -->
+
+  <div class="reveal-moment reveal">
+    <h2>Et si ces trois choses &eacute;taient<br><em>une seule conversation ?</em></h2>
+    <p>Pas trois outils. Pas une formation. Une conversation WhatsApp. Vous parlez, Otto organise, anticipe, et ex&eacute;cute.</p>
+  </div>
+
+  <div class="container">
+    <div class="act reveal">Acte II &mdash; Otto en action</div>
+
+    <!-- AGENT AUTONOME : MORNING BRIEFING -->
+    <div class="auto-section reveal">
+      <div class="eyebrow">Agent autonome</div>
+      <h3>Otto n'attend pas que vous lui parliez</h3>
+      <p>Chaque matin, avant m&ecirc;me que vous ouvriez WhatsApp, Otto a d&eacute;j&agrave; travaill&eacute;. Il a analys&eacute; votre semaine, d&eacute;tect&eacute; les urgences, et pr&eacute;par&eacute; votre briefing.</p>
+
+      <div class="chat-demo" style="margin-bottom:0">
+        <div class="bubble otto"><div class="name">Otto &middot; 7h45</div>
+          <strong>Bonjour. Voici votre point du jour.</strong><br><br>
+          3 rendez-vous aujourd'hui (9h Dupont, 14h TechStart, 16h30 interne)<br>
+          2 relances en retard : Acme (+7j) et Veritas (+4j)<br>
+          1 contrat arrive &agrave; &eacute;ch&eacute;ance vendredi (Nexus, renouvellement tacite)<br>
+          1 facture impay&eacute;e depuis 45 jours (GreenTech, 12 800 &euro;)<br><br>
+          <span class="subtle">Vous voulez que je pr&eacute;pare le brief pour Dupont &agrave; 9h ?</span>
         </div>
-        <div class="philo-card reveal d2">
-          <div class="emoji">&#129504;</div>
-          <h3>Un ERP qui se remplit tout seul</h3>
-          <p>Otto m&eacute;morise chaque &eacute;change, extrait les contacts, deals et factures. Votre base se construit sans aucune saisie.</p>
-        </div>
-        <div class="philo-card reveal d3">
-          <div class="emoji">&#9889;</div>
-          <h3>Il travaille m&ecirc;me quand vous dormez</h3>
-          <p>Rappels, relances, briefings du matin, consolidation de m&eacute;moire. Otto est proactif &mdash; il ne se contente pas de r&eacute;pondre.</p>
-        </div>
+        <div class="bubble user"><div class="name">Vous</div>Oui, et relance Acme et Veritas par mail</div>
       </div>
     </div>
-  </section>
 
-  <!-- ═══ WHATSAPP DEMO ═══ -->
-  <section class="demo">
-    <div class="container">
-      <h2 class="reveal">Comme parler &agrave; un coll&egrave;gue<br>ultra-comp&eacute;tent</h2>
-      <p class="sub reveal d1">
-        Envoyez un message. Recevez le r&eacute;sultat. C'est tout.
-      </p>
-      <div class="chat-window reveal-scale">
-        <div class="chat-header">
-          <div class="avatar">O</div>
-          <div><div class="name">Otto</div><div class="status">en ligne</div></div>
-        </div>
-        <div class="chat-body">
-          <div class="msg msg-user">Pr&eacute;pare-moi un devis pour Acme, 3 jours de conseil strat&eacute;gique &agrave; 1500&euro;/jour<div class="msg-time">09:41</div></div>
-          <div class="msg msg-bot">&#9997;&#65039; Je pr&eacute;pare le devis...<div class="msg-time">09:41</div></div>
-          <div class="msg msg-bot" style="background:#f0f4ff;border:1px solid #e0e7ff">&#128196; <strong>Devis_Acme_Conseil.docx</strong><br><span style="font-size:0.78rem;color:#6b7280">3 pages &middot; 37 Ko</span><div class="msg-time">09:41</div></div>
-          <div class="msg msg-bot">Devis envoy&eacute; &#10003; Voulez-vous que je le transf&egrave;re &agrave; Alex Martin par email ?<div class="msg-time">09:41</div></div>
-          <div class="msg msg-user"><div class="msg-voice"><div class="play"></div><div class="wave"></div></div><div class="msg-time">09:42</div></div>
-          <div class="msg msg-bot">Email envoy&eacute; &#10003; &#128232;<br>&agrave; alex.martin@acme.com<div class="msg-time">09:42</div></div>
-          <div class="msg msg-user">Le deal Acme passe en n&eacute;go, 50K<div class="msg-time">09:43</div></div>
-          <div class="msg msg-bot">&#10003; Deal mis &agrave; jour :<br>&bull; &Eacute;tape : n&eacute;gociation<br>&bull; Montant : 50 000&euro;<div class="msg-time">09:43</div></div>
-        </div>
+    <div class="spacer-sm"></div>
+
+    <!-- COMMERCIAL -->
+    <div class="scene-label reveal"><span class="dot"></span>Commercial</div>
+    <div class="chat-demo reveal">
+      <div class="bubble user"><div class="name">Vous</div>Pr&eacute;pare un brief pour le call Dupont de 9h</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        <strong>Brief &mdash; Dupont SAS</strong><br><br>
+        Contact : Marie Duval, DAF<br>
+        Deal : Accompagnement transformation SI &mdash; 85 000 &euro;, en n&eacute;gociation<br>
+        Dernier &eacute;change : call du 12 mars, elle attendait votre proposition r&eacute;vis&eacute;e<br>
+        Relance en retard : +8 jours<br><br>
+        <span class="subtle">Points &agrave; aborder : confirmer le planning de d&eacute;marrage (board en avril), TJM senior ajust&eacute; &agrave; 1 200 &euro;/j, modalit&eacute;s de facturation mensuelle.</span>
       </div>
     </div>
-  </section>
 
-  <!-- ═══ AUTO-FILL ═══ -->
-  <section class="autofill">
-    <div class="container">
-      <h2 class="reveal">Otto remplit votre base<br>automatiquement</h2>
-      <p class="sub reveal d1">
-        Chaque conversation, chaque vocal, chaque document envoy&eacute; &mdash;
-        Otto extrait les infos et les classe. Vous retrouvez tout instantan&eacute;ment
-        sans avoir jamais rien saisi.
-      </p>
-      <div class="autofill-visual">
-        <div class="af-row reveal d1"><span class="af-icon">&#128100;</span><span class="af-label">Contact</span><span class="af-value">Alex Martin &mdash; DG, Acme Corp</span><span class="af-auto">auto</span></div>
-        <div class="af-row reveal d2"><span class="af-icon">&#128176;</span><span class="af-label">Deal</span><span class="af-value">Projet Acme &mdash; 50K&euro;, n&eacute;gociation</span><span class="af-auto">auto</span></div>
-        <div class="af-row reveal d3"><span class="af-icon">&#128196;</span><span class="af-label">Document</span><span class="af-value">Devis_Acme_Conseil.docx</span><span class="af-auto">auto</span></div>
-        <div class="af-row reveal d4"><span class="af-icon">&#128232;</span><span class="af-label">Email</span><span class="af-value">Envoy&eacute; &agrave; alex.martin@acme.com</span><span class="af-auto">auto</span></div>
+    <!-- DOCUMENTS -->
+    <div class="scene-label reveal"><span class="dot"></span>Documents</div>
+    <div class="chat-demo reveal">
+      <div class="bubble user"><div class="name">Vous</div>Fais-moi une pr&eacute;sentation pour le comit&eacute; de pilotage TechStart, avec l'avancement du projet et les prochaines &eacute;tapes</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        Pr&eacute;sentation g&eacute;n&eacute;r&eacute;e &mdash; 8 slides :<br>
+        Rappel du contexte, avancement par lot, planning mis &agrave; jour, risques identifi&eacute;s, budget consomm&eacute; vs pr&eacute;visionnel, prochaines &eacute;tapes, annexes.<br><br>
+        J'ai repris les donn&eacute;es du projet et les time entries de votre &eacute;quipe.<br>
+        <div class="file">COPIL_TechStart_Avril2026.pptx</div>
       </div>
     </div>
-  </section>
 
-  <!-- ═══ DASHBOARD PREVIEW ═══ -->
-  <section class="dash-preview">
-    <div class="container">
-      <h2 class="reveal">Votre entreprise.<br>En un coup d'oeil.</h2>
-      <p class="sub reveal d1">
-        Dites &laquo; Mon espace &raquo; &agrave; Otto. Il vous envoie un lien s&eacute;curis&eacute; vers votre portail web &mdash; un vrai ERP, accessible depuis n'importe quel appareil.
-      </p>
-      <div class="dash-mock reveal-scale">
-        <div class="dm-header">
-          <div class="dm-logo"><svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M24 4L42 14V34L24 44L6 34V14L24 4Z" stroke="#1a1a1a" stroke-width="2.5" fill="none"/><circle cx="24" cy="14" r="3" fill="#1a1a1a"/><circle cx="14" cy="24" r="3" fill="#1a1a1a"/><circle cx="34" cy="24" r="3" fill="#1a1a1a"/><circle cx="24" cy="34" r="3" fill="#1a1a1a"/><circle cx="24" cy="24" r="4" fill="#1a1a1a"/><line x1="24" y1="14" x2="24" y2="20" stroke="#1a1a1a" stroke-width="2"/><line x1="14" y1="24" x2="20" y2="24" stroke="#1a1a1a" stroke-width="2"/><line x1="28" y1="24" x2="34" y2="24" stroke="#1a1a1a" stroke-width="2"/><line x1="24" y1="28" x2="24" y2="34" stroke="#1a1a1a" stroke-width="2"/></svg><span class="dm-logo-text">Otto</span></div>
-          <div class="dm-tabs">
-            <span class="dm-tab active">Vue d'ensemble</span>
-            <span class="dm-tab">Commercial</span>
-            <span class="dm-tab">Finance</span>
-            <span class="dm-tab">&Eacute;quipe</span>
-            <span class="dm-tab">Documents</span>
+    <div class="chat-demo reveal">
+      <div class="bubble user"><div class="name">Vous</div>G&eacute;n&egrave;re aussi le reporting financier du trimestre en Excel</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        Fait. CA factur&eacute;, encaissements, charges, marge par projet, taux d'occupation par consultant.<br>
+        <div class="file">Reporting_Q1_2026.xlsx</div>
+      </div>
+    </div>
+
+    <!-- EQUIPE / RH -->
+    <div class="scene-label reveal"><span class="dot"></span>&Eacute;quipe</div>
+    <div class="chat-demo reveal">
+      <div class="bubble user"><div class="name">Vous</div>Qui est dispo pour une mission de 3 mois &agrave; partir de mai ?</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        2 consultants disponibles &agrave; partir du 5 mai :<br><br>
+        &mdash; Lucas Martin (Senior, Data/BI) &mdash; fin de mission Nexus le 30 avril<br>
+        &mdash; Sarah Chen (Confirm&eacute;e, PMO) &mdash; intercontrat depuis le 15 avril<br><br>
+        <span class="subtle">Thomas Petit termine chez GreenTech le 15 mai si vous voulez d&eacute;caler de 2 semaines. Vous voulez que je pr&eacute;pare les profils &agrave; envoyer au client ?</span>
+      </div>
+      <div class="bubble user"><div class="name">Vous</div>Oui envoie Lucas et Sarah &agrave; Dupont par mail</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        Mail envoy&eacute; &agrave; Marie Duval (Dupont) avec les deux profils en pi&egrave;ce jointe.<br>
+        <span class="subtle">J'ai not&eacute; l'interaction dans le suivi Dupont et mis les deux consultants en &laquo; propos&eacute; &raquo; sur cette mission.</span>
+      </div>
+    </div>
+
+    <!-- CONTRATS -->
+    <div class="scene-label reveal"><span class="dot"></span>Contrats</div>
+    <div class="chat-demo reveal">
+      <div class="bubble user"><div class="name">Vous</div>Le contrat Nexus arrive &agrave; &eacute;ch&eacute;ance quand ?</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        Contrat Nexus Digital &mdash; Prestation Data Engineering<br>
+        &Eacute;ch&eacute;ance : vendredi 11 avril (dans 3 jours)<br>
+        Renouvellement tacite, pr&eacute;avis 30 jours (d&eacute;j&agrave; pass&eacute;)<br>
+        Valeur : 4 200 &euro;/mois<br><br>
+        <span class="subtle">Le contrat se renouvelle automatiquement. Vous voulez ren&eacute;gocier les conditions ou laisser courir ?</span>
+      </div>
+    </div>
+
+    <!-- INTEGRATIONS -->
+    <div class="scene-label reveal"><span class="dot"></span>Int&eacute;grations</div>
+    <div class="chat-demo reveal">
+      <div class="bubble user"><div class="name">Vous</div>Connecte mon Google Drive pour que tu puisses retrouver mes documents</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        Pour connecter Google Drive, cliquez sur ce lien pour autoriser l'acc&egrave;s :<br><br>
+        <span class="link">Connecter Google Drive &rarr;</span><br><br>
+        <span class="subtle">L'autorisation est s&eacute;curis&eacute;e et vous pouvez la r&eacute;voquer &agrave; tout moment. Une fois connect&eacute;, je pourrai chercher et retrouver vos documents directement.</span>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       ACTE III — LE PORTAIL
+       ═══════════════════════════════════════ -->
+
+  <div class="reveal-moment reveal">
+    <h2>Ouvrez votre <em>espace client</em></h2>
+    <p>Tout ce que vous avez dit sur WhatsApp a organis&eacute; votre activit&eacute;. Contacts, affaires, &eacute;quipe, factures, documents &mdash; tout est &agrave; jour. Vous n'avez rien saisi.</p>
+  </div>
+
+  <div class="container">
+    <div class="act reveal">Acte III &mdash; Tout est d&eacute;j&agrave; l&agrave;</div>
+
+    <div class="portal-mock reveal-scale">
+      <div class="portal-bar">
+        <div class="portal-dot" style="background:#e8553c"></div>
+        <div class="portal-dot" style="background:#e8a73c"></div>
+        <div class="portal-dot" style="background:#5dca5a"></div>
+        <div class="portal-url">otto.hntic.fr/portal</div>
+      </div>
+      <div class="portal-body">
+        <div class="portal-sidebar">
+          <div class="portal-nav-item active">Vue d'ensemble</div>
+          <div class="portal-nav-item">Contacts</div>
+          <div class="portal-nav-item">Affaires</div>
+          <div class="portal-nav-item">&Eacute;quipe</div>
+          <div class="portal-nav-item">Factures</div>
+          <div class="portal-nav-item">Contrats</div>
+          <div class="portal-nav-item">Documents</div>
+          <div class="portal-nav-item">Journal</div>
+        </div>
+        <div class="portal-main">
+          <div class="portal-kpis">
+            <div class="portal-kpi"><div class="val">12</div><div class="lab">Affaires en cours</div></div>
+            <div class="portal-kpi"><div class="val">340K&euro;</div><div class="lab">Pr&eacute;visionnel</div></div>
+            <div class="portal-kpi"><div class="val">89%</div><div class="lab">Taux d'occupation</div></div>
           </div>
-        </div>
-        <div class="dm-body">
-          <div class="dm-kpis">
-            <div class="dm-kpi"><div class="dm-kpi-label">Pipeline commercial</div><div class="dm-kpi-val blue">107 092 &euro;</div></div>
-            <div class="dm-kpi"><div class="dm-kpi-label">Opportunit&eacute;s</div><div class="dm-kpi-val">4</div></div>
-            <div class="dm-kpi"><div class="dm-kpi-label">Contacts</div><div class="dm-kpi-val">12</div></div>
-            <div class="dm-kpi"><div class="dm-kpi-label">&Eacute;quipe</div><div class="dm-kpi-val">3</div></div>
+          <div class="portal-table">
+            <div style="font-size:.72rem;color:var(--text4);margin-bottom:4px;font-weight:500;letter-spacing:.05em">ACTIVIT&Eacute; R&Eacute;CENTE</div>
+            <div class="row"><span class="tname">Profils envoy&eacute;s &agrave; Dupont</span><span class="detail">via Gmail</span><span class="val">il y a 2h</span></div>
+            <div class="row"><span class="tname">Devis Acme g&eacute;n&eacute;r&eacute;</span><span class="detail">16 500 &euro;</span><span class="val">hier</span></div>
+            <div class="row"><span class="tname">COPIL TechStart</span><span class="detail">.pptx cr&eacute;&eacute;</span><span class="val">hier</span></div>
+            <div class="row"><span class="tname">Relance Veritas</span><span class="detail">mail envoy&eacute;</span><span class="val">ce matin</span></div>
           </div>
-          <div class="dm-cols">
-            <div class="dm-col">
-              <div class="dm-section-title">Deals r&eacute;cents</div>
-              <div class="dm-row"><span>Projet Acme</span><span class="dm-badge blue">N&eacute;gociation</span><span class="dm-amount">75 000 &euro;</span></div>
-              <div class="dm-row"><span>Otto &mdash; Lancement CI</span><span class="dm-badge indigo">Proposition</span><span class="dm-amount">16 092 &euro;</span></div>
-              <div class="dm-row"><span>Saleswatch</span><span class="dm-badge indigo">Proposition</span><span class="dm-amount">16 000 &euro;</span></div>
-            </div>
-            <div class="dm-col">
-              <div class="dm-section-title">Derni&egrave;res interactions</div>
-              <div class="dm-row"><span>&#128172; Appel avec Sophie Laurent</span><span class="dm-meta">Aujourd'hui</span></div>
-              <div class="dm-row"><span>&#128232; Email &agrave; Jean Dupont</span><span class="dm-meta">Hier</span></div>
-              <div class="dm-row"><span>&#129309; R&eacute;union Acme</span><span class="dm-meta">28 mars</span></div>
-            </div>
-          </div>
+          <div class="portal-badge">Mis &agrave; jour en continu depuis vos conversations WhatsApp</div>
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- ═══ REPLACES ═══ -->
-  <section class="replaces">
-    <div class="container">
-      <h2 class="reveal">Moins cher qu'un mi-temps.<br>Plus efficace qu'une &eacute;quipe.</h2>
-      <p class="sub reveal d1">Otto remplace vos logiciels, vos abonnements, <strong>et</strong> les gens qu'il faut pour les remplir.</p>
-      <div class="replace-grid reveal d2">
-        <div class="replace-item"><div class="old">Assistante admin (800-1500&euro;/mois)</div><div class="new">&#10003; Otto organise tout</div></div>
-        <div class="replace-item"><div class="old">CRM + saisie (Salesforce, HubSpot)</div><div class="new">&#10003; Se remplit tout seul</div></div>
-        <div class="replace-item"><div class="old">Comptable + logiciel (Pennylane)</div><div class="new">&#10003; Suivi auto</div></div>
-        <div class="replace-item"><div class="old">SDR / commercial junior</div><div class="new">&#10003; Relances automatiques</div></div>
-        <div class="replace-item"><div class="old">5 logiciels SaaS (Notion, Monday...)</div><div class="new">&#10003; Un seul WhatsApp</div></div>
-        <div class="replace-item"><div class="old">Avocat ponctuel (250&euro;/h)</div><div class="new">&#10003; Analyse de contrats incluse</div></div>
-      </div>
-      <div class="reveal d3"><div class="replace-otto">Otto &mdash; un seul assistant, tout inclus</div></div>
-    </div>
-  </section>
-
-  <!-- ═══ VOICE HIGHLIGHT ═══ -->
-  <section class="voice-section">
-    <div class="container">
-      <h2 class="reveal">Envoyez un vocal.<br>Otto comprend.</h2>
-      <p class="sub reveal d1">
-        Pas le temps de taper ? Envoyez un message vocal. Otto transcrit instantan&eacute;ment
-        et agit. Parfait en voiture, entre deux rendez-vous, ou depuis le canap&eacute;.
+    <div style="text-align:center;margin:2.5rem 0" class="reveal">
+      <p style="font-size:1.05rem;color:var(--text2);line-height:1.8;max-width:520px;margin:0 auto">
+        Vous n'avez ouvert aucun logiciel.<br>
+        Vous n'avez rempli aucun formulaire.<br>
+        Vous n'avez export&eacute; aucun fichier.<br><br>
+        <span style="color:var(--text);font-family:'Instrument Serif',serif;font-size:1.2rem">Vous avez juste parl&eacute; &agrave; Otto.</span>
       </p>
-      <div class="voice-demo reveal d2">
-        <span class="mic">&#127908;</span>
-        <span>&laquo; Rappelle-moi de relancer Martin vendredi &raquo;</span>
-        <span class="arrow">&rarr;</span>
-        <span class="result">&#10003; Rappel cr&eacute;&eacute;</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="act reveal">Ce qui rend &ccedil;a possible</div>
+
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <h3>Il conna&icirc;t votre business</h3>
+        <p>Clients, affaires, contrats, &eacute;quipe, factures &mdash; Otto a une m&eacute;moire compl&egrave;te de votre activit&eacute;, enrichie &agrave; chaque conversation.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Il travaille sans vous</h3>
+        <p>Briefing du matin, relances d&eacute;tect&eacute;es, &eacute;ch&eacute;ances anticip&eacute;es. Otto est proactif &mdash; il n'attend pas que vous demandiez.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Il cr&eacute;e vos documents</h3>
+        <p>Devis, pr&eacute;sentations, reportings, tableaux de bord &mdash; Word, Excel, PowerPoint, PDF. G&eacute;n&eacute;r&eacute;s et envoy&eacute;s en quelques secondes.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Il se connecte &agrave; vos outils</h3>
+        <p>Gmail, Calendar, Drive, et des centaines d'autres. Vous connectez un service en un clic depuis WhatsApp.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Vous gardez le contr&ocirc;le</h3>
+        <p>Chaque action sensible est soumise &agrave; votre validation. L'agent propose, vous d&eacute;cidez &mdash; rien ne se fait dans votre dos.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Pr&ecirc;t en 3 minutes</h3>
+        <p>Pas d'installation, pas de formation, pas de consultant. Vous payez, vous scannez un QR code, Otto est actif.</p>
       </div>
     </div>
-  </section>
 
-  <!-- ═══ FEATURES ═══ -->
-  <section class="features" id="features">
-    <div class="container">
-      <h2 class="reveal">Tout ce dont un dirigeant a besoin.<br>Rien de plus.</h2>
-      <p class="sub reveal d1">Otto couvre tous les m&eacute;tiers de votre entreprise.</p>
-      <div class="feat-grid">
-        <div class="feat reveal d1"><h3>Documents pro</h3><p>Word, PowerPoint, Excel, PDF. Devis, contrats, rapports, pr&eacute;sentations &mdash; g&eacute;n&eacute;r&eacute;s en quelques secondes.</p></div>
-        <div class="feat reveal d2"><h3>CRM &amp; pipeline</h3><p>Contacts, deals, relances, historique. Otto suit vos opportunit&eacute;s et vous rappelle quand agir.</p></div>
-        <div class="feat reveal d3"><h3>Finances</h3><p>Factures, d&eacute;penses, fournisseurs. Suivi de tr&eacute;sorerie et analyse financi&egrave;re sur demande.</p></div>
-        <div class="feat reveal d1"><h3>&Eacute;quipe &amp; RH</h3><p>Cong&eacute;s, &eacute;valuations, recrutement, organigramme. G&eacute;rez votre &eacute;quipe depuis votre t&eacute;l&eacute;phone.</p></div>
-        <div class="feat reveal d2"><h3>Juridique</h3><p>Analyse de contrats, risques, conformit&eacute;, &eacute;ch&eacute;ances. Votre juriste de poche.</p></div>
-        <div class="feat reveal d3"><h3>Email &amp; agenda</h3><p>Otto lit, r&eacute;pond et envoie vos emails depuis Gmail. Il g&egrave;re aussi votre agenda.</p></div>
-        <div class="feat reveal d1"><h3>Recherche web</h3><p>Veille concurrentielle, infos prospects, actualit&eacute;s sectorielles. Otto cherche pour toi.</p></div>
-        <div class="feat reveal d2"><h3>Rappels &amp; t&acirc;ches</h3><p>&laquo; Rappelez-moi lundi &raquo;, &laquo; Briefing chaque vendredi &raquo;. Otto planifie et ex&eacute;cute.</p></div>
-        <div class="feat reveal d3"><h3>Espace client web</h3><p>Un portail ERP complet accessible d'un lien magique. Pipeline, factures, &eacute;quipe, documents &mdash; tout en un coup d'oeil.</p></div>
-      </div>
-    </div>
-  </section>
+    <div class="divider"></div>
 
-  <!-- ═══ HOW ═══ -->
-  <section class="how">
-    <div class="container">
-      <h2 class="reveal">Op&eacute;rationnel en 2 minutes</h2>
-      <div class="steps">
-        <div class="step reveal d1"><div class="num">1</div><h3>Connectez WhatsApp</h3><p>Scannez un QR code en 30 secondes. Priv&eacute; et s&eacute;curis&eacute;.</p></div>
-        <div class="step reveal d2"><div class="num">2</div><h3>Parlez &agrave; Otto</h3><p>Envoyez &laquo; Bonjour &raquo;. Otto est pr&ecirc;t &agrave; travailler pour vous.</p></div>
-        <div class="step reveal d3"><div class="num">3</div><h3>Consultez votre espace</h3><p>Dites &laquo; Mon espace &raquo; pour acc&eacute;der &agrave; votre portail web avec tous vos KPIs.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══ PORTAL ═══ -->
-  <section class="autofill" id="portal">
-    <div class="container">
-      <h2 class="reveal">Votre espace client.<br>Votre ERP de poche.</h2>
-      <p class="sub reveal d1">
-        Acc&eacute;dez &agrave; toutes vos donn&eacute;es depuis un portail web s&eacute;curis&eacute;.
-        Pas de mot de passe &mdash; Otto vous envoie un lien magique sur WhatsApp.
-      </p>
-      <div class="autofill-visual">
-        <div class="af-row reveal d1"><span class="af-icon">&#128202;</span><span class="af-label">Vue d'ensemble</span><span class="af-value">Pipeline, KPIs, deals, &eacute;ch&eacute;ances, interactions</span></div>
-        <div class="af-row reveal d2"><span class="af-icon">&#128176;</span><span class="af-label">Commercial</span><span class="af-value">Funnel pipeline, contacts, opportunit&eacute;s</span></div>
-        <div class="af-row reveal d3"><span class="af-icon">&#128181;</span><span class="af-label">Finance</span><span class="af-value">Factures, contrats, fournisseurs, CA</span></div>
-        <div class="af-row reveal d4"><span class="af-icon">&#128101;</span><span class="af-label">&Eacute;quipe</span><span class="af-value">Membres, recrutement, objectifs</span></div>
-        <div class="af-row reveal d4"><span class="af-icon">&#128196;</span><span class="af-label">Documents</span><span class="af-value">T&eacute;l&eacute;chargement direct de vos fichiers</span></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ═══ FAQ ═══ -->
-  <section class="faq" id="faq">
-    <div class="container">
+    <!-- ═══ FAQ ═══ -->
+    <section class="faq" id="faq">
       <h2 class="reveal">Questions fr&eacute;quentes</h2>
       <div class="faq-list">
-        <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Comment Otto remplit-il ma base automatiquement ?</div><div class="faq-a"><p>Otto analyse chaque conversation, chaque vocal, chaque document que vous lui envoyez. Il extrait les contacts, deals, montants, dates et les classe dans votre base. Vous retrouvez tout sans avoir jamais rien saisi manuellement.</p></div></div>
-        <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Mes donn&eacute;es sont-elles s&eacute;curis&eacute;es ?</div><div class="faq-a"><p>Oui. Vos donn&eacute;es sont h&eacute;berg&eacute;es en Union Europ&eacute;enne dans un environnement isol&eacute; qui vous est enti&egrave;rement d&eacute;di&eacute;. Aucun autre client ne peut y acc&eacute;der. Vos messages WhatsApp restent chiffr&eacute;s de bout en bout.</p></div></div>
-        <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Est-ce qu'Otto peut vraiment remplacer mon CRM ?</div><div class="faq-a"><p>Oui. Otto g&egrave;re contacts, deals, pipeline et relances. La diff&eacute;rence : vous n'ouvrez jamais un logiciel. Dites-lui &laquo; Ajoute le deal Acme &agrave; 50K &raquo; et c'est fait. Il vous rappellera de relancer au bon moment.</p></div></div>
-        <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Otto envoie-t-il des emails &agrave; ma place ?</div><div class="faq-a"><p>Oui, Otto peut lire, r&eacute;diger et envoyer des emails depuis votre Gmail. Pour les actions sensibles, il vous demande confirmation avant d'agir.</p></div></div>
-        <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Comment fonctionne l'espace client web ?</div><div class="faq-a"><p>Dites &laquo; Mon espace &raquo; &agrave; Otto sur WhatsApp. Il vous envoie un lien s&eacute;curis&eacute; (magic link) vers votre portail web. Vous y retrouvez tous vos KPIs, deals, contacts, factures, documents &mdash; comme un ERP, sans rien installer.</p></div></div>
-        <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Combien de temps pour &ecirc;tre op&eacute;rationnel ?</div><div class="faq-a"><p>2 minutes. Scannez un QR code avec WhatsApp, et Otto est pr&ecirc;t. Pas d'installation, pas de configuration, pas de formation.</p></div></div>
-        <div class="faq-item reveal"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Est-ce que &ccedil;a marche avec les vocaux ?</div><div class="faq-a"><p>Oui. Envoyez un message vocal, Otto le transcrit instantan&eacute;ment et agit dessus. Parfait quand vous &ecirc;tes en d&eacute;placement ou entre deux rendez-vous.</p></div></div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Comment Otto remplit-il ma base automatiquement ?</div>
+          <div class="faq-a"><p>Otto analyse chaque conversation, chaque vocal, chaque document que vous lui envoyez. Il extrait les contacts, deals, montants, dates et les classe dans votre base. Vous retrouvez tout sans avoir jamais rien saisi manuellement.</p></div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Mes donn&eacute;es sont-elles s&eacute;curis&eacute;es ?</div>
+          <div class="faq-a"><p>Oui. Vos donn&eacute;es sont h&eacute;berg&eacute;es en Union Europ&eacute;enne dans un environnement isol&eacute; qui vous est enti&egrave;rement d&eacute;di&eacute;. Aucun autre client ne peut y acc&eacute;der. Vos messages WhatsApp restent chiffr&eacute;s de bout en bout.</p></div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Est-ce qu'Otto peut vraiment remplacer mon CRM ?</div>
+          <div class="faq-a"><p>Oui. Otto g&egrave;re contacts, deals, pipeline et relances. La diff&eacute;rence : vous n'ouvrez jamais un logiciel. Dites-lui &laquo; Ajoute le deal Acme &agrave; 50K &raquo; et c'est fait. Il vous rappellera de relancer au bon moment.</p></div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Otto envoie-t-il des emails &agrave; ma place ?</div>
+          <div class="faq-a"><p>Oui, Otto peut lire, r&eacute;diger et envoyer des emails depuis votre Gmail. Pour les actions sensibles, il vous demande confirmation avant d'agir.</p></div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Comment fonctionne l'espace client web ?</div>
+          <div class="faq-a"><p>Dites &laquo; Mon espace &raquo; &agrave; Otto sur WhatsApp. Il vous envoie un lien s&eacute;curis&eacute; (magic link) vers votre portail web. Vous y retrouvez tous vos KPIs, deals, contacts, factures, documents &mdash; comme un ERP, sans rien installer.</p></div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Combien de temps pour &ecirc;tre op&eacute;rationnel ?</div>
+          <div class="faq-a"><p>3 minutes. Scannez un QR code avec WhatsApp, et Otto est pr&ecirc;t. Pas d'installation, pas de configuration, pas de formation.</p></div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Est-ce que &ccedil;a marche avec les vocaux ?</div>
+          <div class="faq-a"><p>Oui. Envoyez un message vocal, Otto le transcrit instantan&eacute;ment et agit dessus. Parfait quand vous &ecirc;tes en d&eacute;placement ou entre deux rendez-vous.</p></div>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  </div>
 
-  <!-- ═══ FINAL CTA — Contact form ═══ -->
-  <section class="final" id="contact">
-    <div class="container">
-      <h2 class="reveal">Et si votre entreprise tenait<br>dans une seule conversation ?</h2>
-      <p class="sub reveal d1">Laissez-nous vos coordonn&eacute;es. On vous recontacte en moins de 24h.</p>
-      <div class="contact-form reveal d2">
-        <input type="text" id="contact-name" placeholder="Votre nom" autocomplete="name">
-        <input type="email" id="contact-email" placeholder="Votre email" autocomplete="email">
-        <input type="text" id="contact-company" placeholder="Entreprise (optionnel)" autocomplete="organization">
-        <textarea id="contact-message" placeholder="Un mot sur votre besoin (optionnel)" rows="3"></textarea>
-        <button id="contact-btn" onclick="submitContact()">Demander un acc&egrave;s &rarr;</button>
-        <div class="contact-msg" id="contact-msg"></div>
-      </div>
+  <!-- ═══ FINALE + CONTACT ═══ -->
+  <div class="finale" id="contact">
+    <h2 class="reveal">Vous n'avez pas cr&eacute;&eacute; votre entreprise<br>pour faire de l'admin.<br><em>Otto s'en occupe.</em></h2>
+    <p class="reveal d1">Laissez-nous vos coordonn&eacute;es. On vous recontacte en moins de 24h.</p>
+  </div>
+
+  <div class="contact-section">
+    <div class="contact-form reveal d2">
+      <input type="text" id="contact-name" placeholder="Votre nom" autocomplete="name">
+      <input type="email" id="contact-email" placeholder="Votre email" autocomplete="email">
+      <input type="text" id="contact-company" placeholder="Entreprise (optionnel)" autocomplete="organization">
+      <textarea id="contact-message" placeholder="Un mot sur votre besoin (optionnel)" rows="3"></textarea>
+      <button id="contact-btn" onclick="submitContact()">Demander un acc&egrave;s &rarr;</button>
+      <div class="contact-msg" id="contact-msg"></div>
     </div>
-  </section>
+  </div>
 
   <footer>
     <p style="margin-bottom:8px">
-      <a href="https://hntic.fr" target="_blank" rel="noopener" style="font-weight:500;color:var(--black);text-decoration:none">HNTIC</a>
+      <a href="https://hntic.fr" target="_blank" rel="noopener" style="font-weight:500;color:var(--text);text-decoration:none">HNTIC</a>
       &nbsp;&middot;&nbsp;
-      <a href="https://hntic.fr" target="_blank" rel="noopener" style="color:var(--gray-400);text-decoration:none">hntic.fr</a>
+      <a href="https://hntic.fr" target="_blank" rel="noopener" style="color:var(--text3);text-decoration:none">hntic.fr</a>
     </p>
     <p>&copy; 2026 HNTIC. Tous droits r&eacute;serv&eacute;s.</p>
   </footer>
 
   <script>
+    /* ═══ Scroll Reveal (IntersectionObserver) ═══ */
     const obs = new IntersectionObserver(entries => {
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('v'); });
     }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
     document.querySelectorAll('.reveal,.reveal-scale').forEach(el => obs.observe(el));
 
+    /* ═══ Contact Form ═══ */
     async function submitContact() {
       const name = document.getElementById('contact-name').value.trim();
       const email = document.getElementById('contact-email').value.trim();
