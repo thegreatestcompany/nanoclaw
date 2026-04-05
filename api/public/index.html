@@ -319,9 +319,11 @@
 
     /* ═══ FEATURES GRID ═══ */
     .features-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 1px; border-radius: 16px; overflow: hidden; margin: 2rem 0;
     }
+    @media (max-width: 768px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .features-grid { grid-template-columns: 1fr; } }
     .feature-card { padding: 1.8rem; background: var(--bg2); }
     .feature-card h3 { font-size: .95rem; font-weight: 600; margin-bottom: .5rem; }
     .feature-card p { font-size: .85rem; color: var(--text2); line-height: 1.6; }
@@ -442,13 +444,13 @@
        ═══════════════════════════════════════ -->
 
   <section class="hero">
-    <h1 class="reveal">Aujourd'hui, pour diriger votre entreprise, il vous faut <em>trois choses</em></h1>
-    <p class="sub reveal d1">Quelqu'un qui organise. Quelqu'un qui anticipe. Quelqu'un qui ex&eacute;cute.<br>Aujourd'hui, ce quelqu'un, c'est vous.</p>
-    <p class="sub reveal d2" style="margin-top:1.5rem;font-size:.95rem;color:var(--text3)"><strong style="color:var(--accent)">Otto</strong> est un assistant IA qui fait tout cela depuis <strong style="color:var(--text)">WhatsApp</strong>.</p>
+    <h1 class="reveal">Toute la connaissance de votre entreprise.<br>Toute l'intelligence de vos outils.<br>Toute la capacit&eacute; d'action d'une &eacute;quipe.<br><em>Dans une seule conversation.</em></h1>
+    <p class="sub reveal d1"><strong style="color:var(--accent)">Otto</strong> est le centre de commande de votre entreprise, accessible depuis <strong style="color:var(--text)">WhatsApp</strong>. Il organise, anticipe et ex&eacute;cute &mdash; de fa&ccedil;on autonome.</p>
   </section>
 
   <div class="container">
     <div class="act reveal">Acte I &mdash; Le probl&egrave;me</div>
+    <p class="reveal" style="font-size:1.1rem;color:var(--text2);margin-bottom:2.5rem;line-height:1.7">Aujourd'hui, pour diriger votre entreprise, il vous faut <strong style="color:var(--text)">trois choses</strong>. Et c'est vous qui les faites toutes.</p>
 
     <div class="needs-grid">
     <div class="need reveal">
