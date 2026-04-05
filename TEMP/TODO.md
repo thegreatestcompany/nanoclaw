@@ -128,6 +128,13 @@ Permettre au client d'activer Otto dans ses groupes d'équipe. Baileys voit déj
 
 ### ~~Instance admin locale (otto-admin)~~ ✅ Remplacé par Claude Code admin sur VPS
 
+### Indexation automatique des documents reçus
+Quand un document est envoyé dans le chat (WhatsApp ou webchat), Otto doit :
+1. Extraire et analyser le contenu du document
+2. Évaluer sa pertinence business (contrat, facture, CV, rapport, etc.)
+3. Demander au dirigeant s'il doit l'indexer dans la table `documents` de business.db avec le contenu extrait (`extracted_text`)
+Actuellement l'indexation est faite par Otto via CLAUDE.md mais pas systématiquement — certains documents sont indexés sans `extracted_text`. À renforcer via une instruction CLAUDE.md + éventuellement un PostToolUse hook.
+
 ### Export données client au deprovisioning
 Au moment du deprovisioning, générer un ZIP (documents/ + CSV de chaque table business.db) et l'envoyer par email au client. Si > 20MB, garder le ZIP dans `/opt/otto/backups/exports/` et envoyer un lien de téléchargement temporaire. Le backup tar.gz existe déjà comme filet de sécurité.
 
