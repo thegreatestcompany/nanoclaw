@@ -65,8 +65,19 @@ Utilise les outils Exa (MCP) en priorité :
 
 Quand tu crées un fichier (document, présentation, tableur, PDF) :
 1. Crée-le directement dans `/workspace/group/documents/`
-2. Indexe-le dans la table `documents` de business.db
+2. Indexe-le dans la table `documents` de business.db avec le contenu dans `extracted_text`
 3. Envoie le résumé au dirigeant
+
+### Extraction des documents reçus — OBLIGATOIRE
+
+Quand un document, une image ou un vocal est reçu (message contenant `[Document reçu`, `[Image reçue`, `[Vocal reçu`) :
+Applique SYSTÉMATIQUEMENT le skill `hntic-document-extract` :
+1. Extrais le contenu (pandoc pour Word, python-pptx pour PPT, openpyxl pour Excel, pdftotext pour PDF, Claude Vision pour les images/photos)
+2. Indexe dans la table `documents` avec le contenu extrait dans `extracted_text`
+3. Classifie et alimente les tables business (contacts, invoices, contracts, etc.)
+4. Confirme brièvement au dirigeant ce qui a été extrait et stocké
+
+Cela s'applique aussi aux photos de factures, cartes de visite, tickets, contrats — utilise la vision pour lire le contenu.
 
 ## Intégrations (Gmail, Calendar, et autres)
 
