@@ -67,6 +67,7 @@ import {
 } from './memory-consolidator.js';
 import { runPassiveScan } from './passive-scanner.js';
 import { isJidIgnored } from './scan-config.js';
+import { startSessionCleanup } from './session-cleanup.js';
 import { startSchedulerLoop } from './task-scheduler.js';
 import { Channel, NewMessage, RegisteredGroup } from './types.js';
 import { logger } from './logger.js';
@@ -803,6 +804,9 @@ async function main(): Promise<void> {
     );
     logger.info('Memory consolidation scheduled (daily + weekly AutoDream)');
   }
+
+  // Auto-prune stale session artifacts (every 24h)
+  startSessionCleanup();
 
   startIpcWatcher({
     sendMessage: (jid, text) => {

@@ -100,6 +100,16 @@ function buildVolumeMounts(
       containerPath: '/workspace/group',
       readonly: false,
     });
+
+    // Global memory directory — writable for main so it can update shared context
+    const globalDirMain = path.join(GROUPS_DIR, 'global');
+    if (fs.existsSync(globalDirMain)) {
+      mounts.push({
+        hostPath: globalDirMain,
+        containerPath: '/workspace/global',
+        readonly: false,
+      });
+    }
   } else {
     // Non-main groups mount the main folder as read-only.
     // Same CLAUDE.md, same business.db, same documents, same memory — identical context.
