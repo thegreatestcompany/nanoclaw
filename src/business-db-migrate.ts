@@ -20,7 +20,7 @@ import { GROUPS_DIR } from './config.js';
 import { logger } from './logger.js';
 
 // Current schema version — increment when adding migrations
-const CURRENT_VERSION = 0;
+const CURRENT_VERSION = 1;
 
 interface Migration {
   version: number;
@@ -30,12 +30,26 @@ interface Migration {
 
 // Migration list — append only, never modify existing entries
 const MIGRATIONS: Migration[] = [
-  // Example for future use:
-  // {
-  //   version: 1,
-  //   description: 'Add priority column to deals',
-  //   sql: `ALTER TABLE deals ADD COLUMN priority TEXT DEFAULT 'medium';`,
-  // },
+  {
+    version: 1,
+    description: 'Add pending_updates table for passive scanner',
+    sql: `
+      CREATE TABLE IF NOT EXISTS pending_updates (
+        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+        target_table TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        field_name TEXT NOT NULL,
+        old_value TEXT,
+        new_value TEXT NOT NULL,
+        source_chat_jid TEXT,
+        source_message TEXT,
+        confidence REAL DEFAULT 0.8,
+        status TEXT DEFAULT 'pending',
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_pending_updates_status ON pending_updates(status);
+    `,
+  },
 ];
 
 /**

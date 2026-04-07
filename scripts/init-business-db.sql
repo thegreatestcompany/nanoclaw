@@ -379,6 +379,24 @@ CREATE TABLE IF NOT EXISTS audit_log (
   created_at TEXT DEFAULT (datetime('now'))
 );
 
+-- PENDING UPDATES (mises à jour détectées par le scan passif, en attente de validation)
+
+CREATE TABLE IF NOT EXISTS pending_updates (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  target_table TEXT NOT NULL,  -- contacts, deals, invoices, etc.
+  target_id TEXT NOT NULL,     -- ID de l'enregistrement à modifier
+  field_name TEXT NOT NULL,    -- champ à modifier
+  old_value TEXT,              -- valeur actuelle (au moment de la détection)
+  new_value TEXT NOT NULL,     -- valeur proposée
+  source_chat_jid TEXT,        -- conversation d'où vient l'info
+  source_message TEXT,         -- extrait du message source
+  confidence REAL DEFAULT 0.8, -- score de confiance (0-1)
+  status TEXT DEFAULT 'pending', -- pending, applied, dismissed
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_pending_updates_status ON pending_updates(status);
+
 -- SCAN CONFIG (écoute passive)
 
 CREATE TABLE IF NOT EXISTS scan_config (

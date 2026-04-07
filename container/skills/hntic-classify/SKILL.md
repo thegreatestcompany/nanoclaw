@@ -46,7 +46,9 @@ AVANT de créer un nouvel enregistrement :
 2. *Entreprises* : `SELECT id, name FROM companies WHERE name LIKE '%nom%' AND deleted_at IS NULL`
 3. *Deals* : `SELECT id, title FROM deals WHERE title LIKE '%mot_clé%' AND stage NOT IN ('won','lost') AND deleted_at IS NULL`
 
-Si un enregistrement similaire existe → UPDATE plutôt que INSERT.
+Si un enregistrement similaire existe :
+- En **conversation directe** (self-chat) → UPDATE avec confirmation du dirigeant
+- En **scan passif** (prompt contient `[SCHEDULED TASK]`) → INSERT dans `pending_updates` au lieu de faire l'UPDATE (le dirigeant validera plus tard)
 
 ## Étape 4 — Stockage
 

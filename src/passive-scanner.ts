@@ -66,7 +66,10 @@ export async function runPassiveScan(
     return 0;
   }
 
-  const batches = getUnprocessedMessagesFromJids(groupJidsToScan, SCAN_BATCH_SIZE);
+  const batches = getUnprocessedMessagesFromJids(
+    groupJidsToScan,
+    SCAN_BATCH_SIZE,
+  );
 
   if (batches.length === 0) {
     logger.debug('Passive scan: no unprocessed messages');

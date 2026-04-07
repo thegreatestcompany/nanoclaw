@@ -101,14 +101,18 @@ SDK appelle Claude
 
 ### 4. La base de données métier (SQLite)
 
-Chaque client a sa propre base `business.db` avec 25 tables : contacts, companies, deals, candidates, invoices, contracts, contract_clauses, team_members, projects, meetings, etc. Claude la lit et la modifie via un serveur MCP (outil structuré) avec human-in-the-loop sur :
+Chaque client a sa propre base `business.db` avec 26 tables : contacts, companies, deals, candidates, invoices, contracts, contract_clauses, team_members, projects, meetings, pending_updates, etc. Claude la lit et la modifie via un serveur MCP (outil structuré) avec human-in-the-loop sur :
 - Tous les **INSERT** sur les tables business (anti-hallucination — empêche Otto d'inventer des données)
 - Les **DELETE** (soft delete obligatoire)
 - Les modifications **financières** (montants, salaires, budgets)
 - Les changements de **stage deal**
 - Les modifications **en masse** (UPDATE sans WHERE)
 
-Seules les tables auto-générées (audit_log, interactions, memories, activity_digests, relationship_summaries) sont exemptées du HITL INSERT.
+Seules les tables auto-générées (audit_log, interactions, memories, activity_digests, relationship_summaries, pending_updates) sont exemptées du HITL INSERT.
+
+**Passive scanner et pending_updates :**
+
+Le scan passif (toutes les 2h, Haiku) ne peut que créer (INSERT), jamais modifier (UPDATE/DELETE) les tables business. Quand il détecte qu'un enregistrement existant devrait changer (deal stage, montant, rôle contact…), il écrit dans `pending_updates` au lieu de modifier directement. Otto présente ces mises à jour au dirigeant au début de l'interaction suivante, avec confirmation partielle possible. Edge cases gérés : old_value périmé (vérifié avant apply), record supprimé, anti-doublon (incl. dismissed), supersede des anciens pending sur le même champ, nettoyage des entrées > 30 jours.
 
 ### 5. L'API d'onboarding
 
@@ -273,6 +277,7 @@ On désactive la sandbox SDK (`sandbox: { enabled: false }`) parce que Docker fo
 | **Credential proxy** | Clés API | Le container n'a jamais la vraie clé, elle est injectée au vol |
 | **Hooks PreToolUse** | Commandes destructrices | Bloque `rm -rf /`, `DROP TABLE`, écriture hors workspace, WebSearch (→ Exa) |
 | **HITL INSERT** | Hallucination de données | Tous les INSERT business nécessitent confirmation du dirigeant |
+| **pending_updates** | Modifications passives | Le scan passif ne modifie jamais la DB directement — écrit dans `pending_updates`, présenté au dirigeant |
 | **Auto ⏳** | Feedback utilisateur | PreToolUse envoie ⏳ automatiquement sur les outils lents (10s cooldown) |
 | **Skills blocklist** | Accès admin | 32 skills NanoClaw upstream bloqués (add-telegram, setup, debug, etc.) |
 | **Portail auth** | Accès données client | Code 6 chiffres (5min TTL, usage unique, rate limité), JWT cookie httpOnly |

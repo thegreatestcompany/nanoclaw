@@ -112,7 +112,14 @@ TRUNCATE              — destructive SQL
 **HITL INSERT (anti-hallucination):**
 - Tous les INSERT sur les tables business nécessitent une confirmation du dirigeant via la state machine pending_mutations
 - Empêche l'agent d'inventer des contacts, deals, factures, etc. sans instruction explicite
-- Tables exemptées (auto-générées) : audit_log, interactions, memories, activity_digests, relationship_summaries
+- Tables exemptées (auto-générées) : audit_log, interactions, memories, activity_digests, relationship_summaries, pending_updates
+- Scheduled tasks (passive scanner, cron) bypass HITL for INSERT only — UPDATE/DELETE toujours bloqués
+
+**Passive scanner — pending_updates flow:**
+- Le scan passif ne peut que INSERT dans les tables business, jamais UPDATE/DELETE
+- Quand une modification est détectée, elle est stockée dans `pending_updates` (table exemptée du HITL)
+- Otto présente les pending au dirigeant dans le self-chat pour validation (confirmation partielle possible)
+- Protections : vérification old_value avant apply, check record non-supprimé, anti-doublon (incl. dismissed), supersede des anciens pending, cleanup > 30 jours
 
 **Auto feedback ⏳:**
 - Le hook envoie automatiquement un ⏳ via IPC au premier appel d'outil lent (Bash, Skill, Exa, Composio, Gmail, Calendar)
@@ -174,6 +181,14 @@ Messages and task operations are verified against group identity:
 | Schedule task for others | ✓ | ✗ |
 | View all tasks | ✓ | Own only |
 | Manage other groups | ✓ | ✗ |
+| Register new group | ✓ (groups only) | ✗ |
+
+**register_group security:**
+- Double verification `isMain`: at MCP tool level (container) AND IPC handler level (host)
+- JID validation: only `@g.us` (group) JIDs accepted — individual conversations (`@s.whatsapp.net`) are blocked to prevent contacts from querying business data via `@otto`
+- Folder name validated via `isValidGroupFolder()` (prevents path traversal)
+- `requiresTrigger: true` by default — Otto only responds to `@otto` in groups, not all messages
+- User warning: CLAUDE.md instructs Otto to warn the user that group members will have access to business data before proceeding
 
 ## Admin API Security
 
@@ -189,10 +204,13 @@ The admin back-office (`api/src/admin.ts`) is protected by:
 |------------|------------|----------------|
 | Project root access | `/workspace/project` (ro) | None |
 | Group folder | `/workspace/group` (rw) | `/workspace/group` (rw) |
+| Main folder (business.db) | Own (rw) | `/workspace/main` (ro) |
 | Global memory | Implicit via project | `/workspace/global` (ro) |
 | Additional mounts | Configurable | Read-only unless allowed |
 | Network access | Via credential proxy | Via credential proxy |
 | MCP tools | All | All |
+| DB mutations | INSERT (HITL) + UPDATE/DELETE | Read-only (blocked by PreToolUse) |
+| Register groups | ✓ (groups only) | ✗ |
 
 ## Container Attack Surface Audit (30/03/2026)
 

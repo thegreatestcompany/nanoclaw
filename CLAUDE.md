@@ -16,7 +16,7 @@ Multi-tenant SaaS on a single Hetzner VPS. Each client gets their own PM2 proces
 | `src/channels/whatsapp.ts` | WhatsApp channel (Baileys) |
 | `src/transcription.ts` | Voice transcription (OpenAI Whisper API, fallback whisper.cpp) |
 | `src/memory-consolidator.ts` | Daily learnings + weekly AutoDream |
-| `src/passive-scanner.ts` | Scans unregistered conversations for business data |
+| `src/passive-scanner.ts` | Scans registered non-main groups for business data |
 | `src/ipc.ts` | IPC watcher and task processing (portal_link, messages, tasks) |
 | `src/db.ts` | SQLite operations (messages.db) |
 | `container/agent-runner/src/index.ts` | Code running inside the container |
@@ -24,7 +24,8 @@ Multi-tenant SaaS on a single Hetzner VPS. Each client gets their own PM2 proces
 | `container/agent-runner/src/ipc-mcp-stdio.ts` | MCP tools: send_message, send_document, portal_link, schedule_task |
 | `container/skills/` | 47 business skills + blocked admin skills |
 | `groups/global/CLAUDE.md` | Global agent instructions (shared across clients) |
-| `scripts/init-business-db.sql` | Business DB schema (25 tables) |
+| `scripts/init-business-db.sql` | Business DB schema (26 tables, incl. pending_updates) |
+| `src/business-db-migrate.ts` | Auto-migration system for business.db (PRAGMA user_version) |
 | `api/src/stripe.ts` | Stripe webhook → provisioning/deprovisioning + WhatsApp notifications |
 | `api/src/onboard.ts` | WhatsApp QR code/pairing + reconnection flow |
 | `api/src/mailer.ts` | Transactional emails (Gmail SMTP) |
@@ -86,13 +87,13 @@ pm2 restart otto-test  # or the client process
 
 ## Key Decisions
 
-- **register_group via IPC is disabled** — agents cannot add themselves to new WhatsApp groups (security)
+- **register_group via IPC is main-only + groups-only** — only the main group can register new groups, and only group JIDs (@g.us) are accepted (individual conversations blocked to prevent contacts from accessing business data)
 - **scan_config is read-only for agents** — passive scan configuration is admin-only (privacy)
 - **Session resume is enabled** — sessions persist across container restarts via mounted .claude/
 - **maxTurns: 30, maxBudgetUsd: 0.50** — guardrails against infinite loops
 - **Whisper: OpenAI API** when OPENAI_API_KEY is set, local whisper.cpp (ggml-small) as fallback
 - **WebSearch blocked when Exa available** — PreToolUse hook forces Exa for web search (better results)
-- **HITL on all INSERT** — business tables require user confirmation before creating data (anti-hallucination)
+- **HITL on all INSERT** — business tables require user confirmation before creating data (anti-hallucination). Scheduled tasks (passive scanner, cron) bypass HITL for INSERT but can never UPDATE/DELETE business data — they write to `pending_updates` instead, which Otto presents to the user for validation
 - **Auto ⏳ feedback** — PreToolUse hook sends hourglass on first slow tool call (code-level, not prompting)
 - **Portal auth by 6-digit code** — no JWT in URL, code sent via WhatsApp, 5min TTL, single-use
 - **PM2 exponential backoff** — `--exp-backoff-restart-delay=1000` prevents crash restart loops

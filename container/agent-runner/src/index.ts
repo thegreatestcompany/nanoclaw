@@ -493,7 +493,7 @@ function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean, isMai
       const isBulkUpdate = /^\s*UPDATE/i.test(sql) && !/WHERE/i.test(sql);
 
       // Tables where INSERT is always allowed (low risk, auto-generated)
-      const autoInsertTables = new Set(['audit_log', 'interactions', 'memories', 'activity_digests', 'relationship_summaries']);
+      const autoInsertTables = new Set(['audit_log', 'interactions', 'memories', 'activity_digests', 'relationship_summaries', 'pending_updates']);
       // Scheduled tasks (passive scanner, cron jobs) bypass HITL for INSERT — they run autonomously
       const needsConfirmation = isDelete || isFinancial || isDealStage || isBulkUpdate
         || (isInsert && !autoInsertTables.has(tableName) && !isScheduledTask);
