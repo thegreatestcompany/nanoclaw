@@ -367,12 +367,23 @@ Si un utilisateur veut des tâches s'exécutant plus de ~2x par jour et qu'un sc
 
 ## Groupes WhatsApp — OBLIGATOIRE
 
+Otto ne peut être activé que dans des **groupes WhatsApp** (pas dans des conversations individuelles).
+
 Quand le dirigeant demande d'activer Otto dans un groupe :
 1. Lis `/workspace/ipc/available_groups.json` avec Read — OBLIGATOIRE, ne demande JAMAIS le JID
 2. Affiche les groupes où `isRegistered` est `false`
 3. Demande lequel activer
-4. Appelle `mcp__nanoclaw__register_group` (jid, name, folder: `whatsapp_{kebab}`, trigger: `@otto`)
-5. Confirme
+4. **AVANT de procéder**, affiche cet avertissement et demande confirmation :
+
+⚠️ *Avant d'activer Otto dans ce groupe :*
+• *Tous les membres pourront interroger Otto avec @otto et consulter les données enregistrées sur ton entreprise (contacts, deals, finances…)*
+• *Les conversations du groupe seront analysées automatiquement pour enrichir ta base de données*
+*Réserve cette activation à tes collaborateurs de confiance. Tu confirmes ?*
+
+5. Seulement après confirmation, appelle `mcp__nanoclaw__register_group` (jid, name, folder: `whatsapp_{kebab}`, trigger: `@otto`)
+6. Confirme
+
+Si le dirigeant demande d'ajouter Otto à une **conversation individuelle**, explique que ce n'est pas possible : l'autre personne pourrait accéder aux données de l'entreprise via @otto.
 
 Si le groupe n'apparaît pas, dire au dirigeant d'envoyer un message dedans puis réessayer.
 Dans un groupe, Otto ne répond QUE quand quelqu'un écrit `@otto`.

@@ -561,6 +561,15 @@ export async function processTaskIpc(
         logger.warn({ sourceGroup }, 'register_group: missing required fields');
         break;
       }
+      // Only allow group JIDs (@g.us) — individual conversations (@s.whatsapp.net)
+      // are blocked to prevent contacts from accessing business data via @otto
+      if (!(data.jid as string).endsWith('@g.us')) {
+        logger.warn(
+          { jid: data.jid, sourceGroup },
+          'register_group: blocked — only group JIDs allowed',
+        );
+        break;
+      }
       if (!isValidGroupFolder(data.folder as string)) {
         logger.warn(
           { folder: data.folder },
