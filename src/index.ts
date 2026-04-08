@@ -545,6 +545,17 @@ async function startMessageLoop(): Promise<void> {
             lastAgentTimestamp[chatJid] =
               messagesToSend[messagesToSend.length - 1].timestamp;
             saveState();
+            // Refresh groups snapshot for main container (lightweight, no WhatsApp API call)
+            // so newly created groups are visible without restarting the container
+            if (group.isMain) {
+              const freshGroups = getAvailableGroups();
+              writeGroupsSnapshot(
+                group.folder,
+                true,
+                freshGroups,
+                new Set(Object.keys(registeredGroups)),
+              );
+            }
             // Show typing indicator while the container processes the piped message
             channel
               .setTyping?.(chatJid, true)
