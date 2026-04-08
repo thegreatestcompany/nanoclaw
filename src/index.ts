@@ -384,7 +384,7 @@ async function runAgent(
     await Promise.all(
       channels
         .filter((c) => c.syncGroups)
-        .map((c) => c.syncGroups!(false).catch(() => {})),
+        .map((c) => c.syncGroups!(true).catch(() => {})),
     );
   }
 
