@@ -933,6 +933,65 @@ async function main(): Promise<void> {
         writeTasksSnapshot(group.folder, group.isMain === true, taskRows);
       }
     },
+    handleComposioEvent: async (event) => {
+      // Route Composio trigger events to the main group as scheduled tasks
+      // (same mechanism as passive scanner — Otto wakes with Haiku, analyzes,
+      // and decides whether to notify the dirigeant).
+      const mainGroup = Object.values(registeredGroups).find(
+        (g) => g.isMain === true,
+      );
+      if (!mainGroup) {
+        logger.warn(
+          { trigger: event.trigger_slug },
+          'No main group registered — composio event dropped',
+        );
+        return;
+      }
+      const mainJid = Object.keys(registeredGroups).find(
+        (jid) => registeredGroups[jid].isMain === true,
+      );
+      if (!mainJid) return;
+
+      const eventSummary = JSON.stringify(event.data).slice(0, 2000);
+      const prompt =
+        `[COMPOSIO EVENT - ${event.trigger_slug}]\n\n` +
+        `Un événement vient d'être détecté via une de tes intégrations :\n` +
+        `Type: ${event.trigger_slug}\n` +
+        `Reçu à: ${event.received_at}\n\n` +
+        `Données:\n${eventSummary}\n\n` +
+        `Analyse cet événement. Décide s'il est important pour le dirigeant et si oui, ` +
+        `envoie-lui une notification concise via send_message avec un résumé actionnable. ` +
+        `Si ce n'est pas urgent/important (spam, notification système, etc.), ignore-le silencieusement ` +
+        `(termine ta réponse avec <internal>ignored</internal>).`;
+
+      try {
+        await runContainerAgent(
+          mainGroup,
+          {
+            prompt,
+            groupFolder: mainGroup.folder,
+            chatJid: mainJid,
+            isMain: true,
+            isScheduledTask: true,
+            assistantName: ASSISTANT_NAME,
+            model: 'haiku',
+            maxTurns: 10,
+            maxBudgetUsd: 0.25,
+          },
+          (proc, containerName) =>
+            queue.registerProcess(mainJid, proc, containerName, mainGroup.folder),
+        );
+        logger.info(
+          { trigger: event.trigger_slug },
+          'Composio event handled by agent',
+        );
+      } catch (err) {
+        logger.error(
+          { err, trigger: event.trigger_slug },
+          'Failed to handle composio event',
+        );
+      }
+    },
   });
   queue.setProcessMessagesFn(processGroupMessages);
   recoverPendingMessages();

@@ -12,6 +12,16 @@ import { isValidGroupFolder } from './group-folder.js';
 import { logger } from './logger.js';
 import { RegisteredGroup } from './types.js';
 
+export interface ComposioEvent {
+  source: 'composio';
+  event_id: string;
+  trigger_slug: string;
+  trigger_id: string;
+  connected_account_id: string;
+  data: Record<string, unknown>;
+  received_at: string;
+}
+
 export interface IpcDeps {
   sendMessage: (jid: string, text: string) => Promise<void>;
   sendDocument?: (
@@ -32,6 +42,7 @@ export interface IpcDeps {
     registeredJids: Set<string>,
   ) => void;
   onTasksChanged: () => void;
+  handleComposioEvent?: (event: ComposioEvent) => Promise<void>;
 }
 
 let ipcWatcherRunning = false;
@@ -52,12 +63,45 @@ export function startIpcWatcher(deps: IpcDeps): void {
     try {
       groupFolders = fs.readdirSync(ipcBaseDir).filter((f) => {
         const stat = fs.statSync(path.join(ipcBaseDir, f));
-        return stat.isDirectory() && f !== 'errors';
+        return stat.isDirectory() && f !== 'errors' && f !== 'events';
       });
     } catch (err) {
       logger.error({ err }, 'Error reading IPC base directory');
       setTimeout(processIpcFiles, IPC_POLL_INTERVAL);
       return;
+    }
+
+    // Process Composio trigger events (written by api/src/composio-webhooks.ts)
+    // Routed to the main group's agent with a [COMPOSIO EVENT] marker.
+    const eventsDir = path.join(ipcBaseDir, 'events');
+    if (fs.existsSync(eventsDir) && deps.handleComposioEvent) {
+      try {
+        const eventFiles = fs
+          .readdirSync(eventsDir)
+          .filter((f) => f.endsWith('.json'));
+        for (const file of eventFiles) {
+          const filePath = path.join(eventsDir, file);
+          try {
+            const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            if (data.source === 'composio' && data.trigger_slug) {
+              await deps.handleComposioEvent(data);
+              logger.info(
+                { trigger: data.trigger_slug, eventId: data.event_id },
+                'Composio event processed',
+              );
+            }
+          } catch (err) {
+            logger.error({ err, file }, 'Failed to process composio event');
+          }
+          try {
+            fs.unlinkSync(filePath);
+          } catch {
+            /* ok */
+          }
+        }
+      } catch (err) {
+        logger.error({ err }, 'Error reading events directory');
+      }
     }
 
     const registeredGroups = deps.registeredGroups();

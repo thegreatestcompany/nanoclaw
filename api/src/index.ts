@@ -23,6 +23,7 @@ import { setupPortalRoutes } from './client-portal.js';
 import { setupOnboardRoutes } from './onboard.js';
 import { sendReconnectionEmail, sendContactNotification } from './mailer.js';
 import { setupWebchat } from './webchat.js';
+import { setupComposioWebhookRoutes } from './composio-webhooks.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.API_PORT || '3000', 10);
@@ -76,6 +77,7 @@ setupStripeRoutes(app);
 setupOnboardRoutes(app, server);
 setupAdminRoutes(app);
 setupPortalRoutes(app);
+setupComposioWebhookRoutes(app);
 
 /**
  * Listen for IPC messages from client PM2 processes.
