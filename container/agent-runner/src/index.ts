@@ -396,24 +396,9 @@ function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean, isMai
     // Human-in-the-loop for legacy Gmail MCP
     if (hookInput.tool_name === 'mcp__gmail__send_email') {
       const pendingDir = '/workspace/group/.pending_emails';
-      const userMsgTsFile = '/workspace/group/.last_user_message_ts';
       const pendingFiles = fs.existsSync(pendingDir) ? fs.readdirSync(pendingDir).filter(f => f.endsWith('.json')) : [];
-
-      // Only auto-approve if a user message has arrived since the pending was created
-      let approvedFile: string | null = null;
-      if (pendingFiles.length > 0 && fs.existsSync(userMsgTsFile)) {
-        const lastUserMsgTs = fs.statSync(userMsgTsFile).mtimeMs;
-        for (const f of pendingFiles) {
-          const pendingPath = path.join(pendingDir, f);
-          if (fs.statSync(pendingPath).mtimeMs < lastUserMsgTs) {
-            approvedFile = pendingPath;
-            break;
-          }
-        }
-      }
-
-      if (approvedFile) {
-        try { fs.unlinkSync(approvedFile); } catch {}
+      if (pendingFiles.length > 0) {
+        try { fs.unlinkSync(path.join(pendingDir, pendingFiles[0])); } catch {}
       } else {
         fs.mkdirSync(pendingDir, { recursive: true });
         const emailData = toolInput as { to?: string | string[]; subject?: string };
@@ -421,7 +406,7 @@ function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean, isMai
         const subject = emailData.subject || '(sans objet)';
         fs.writeFileSync(path.join(pendingDir, `email-${Date.now()}.json`), JSON.stringify({ to, subject, created: new Date().toISOString() }));
         log(`[HITL] Blocked legacy send_email`);
-        return { hookSpecificOutput: { hookEventName: 'PreToolUse' as const, permissionDecision: 'deny' as const, permissionDecisionReason: `Email en attente de confirmation du dirigeant. ARRÊTE TOUT et envoie ce résumé via send_message :\n\nDestinataire : ${to}\nObjet : ${subject}\n\nNe rappelle PAS l'outil dans ce tour. Termine ta réponse en demandant confirmation. Quand le dirigeant répondra dans un message suivant, rappelle alors l'outil.` } };
+        return { hookSpecificOutput: { hookEventName: 'PreToolUse' as const, permissionDecision: 'deny' as const, permissionDecisionReason: `Email en attente de confirmation. Envoie ce résumé au dirigeant via send_message :\n\nDestinataire : ${to}\nObjet : ${subject}\n\nQuand le dirigeant confirme, rappelle l'outil.` } };
       }
     }
 
@@ -456,26 +441,12 @@ function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean, isMai
 
       if (hasSensitiveAction && slugs.length > 0) {
         const pendingDir = '/workspace/group/.pending_composio';
-        const userMsgTsFile = '/workspace/group/.last_user_message_ts';
         const pendingFiles = fs.existsSync(pendingDir) ? fs.readdirSync(pendingDir).filter(f => f.endsWith('.json')) : [];
 
-        // Only auto-approve if a user message has arrived since the pending was created
-        let approvedFile: string | null = null;
-        if (pendingFiles.length > 0 && fs.existsSync(userMsgTsFile)) {
-          const lastUserMsgTs = fs.statSync(userMsgTsFile).mtimeMs;
-          for (const f of pendingFiles) {
-            const pendingPath = path.join(pendingDir, f);
-            const pendingTs = fs.statSync(pendingPath).mtimeMs;
-            if (lastUserMsgTs > pendingTs) {
-              approvedFile = pendingPath;
-              break;
-            }
-          }
-        }
-
-        if (approvedFile) {
-          try { fs.unlinkSync(approvedFile); } catch {}
-          log(`[HITL] Composio action approved (user confirmed): ${slugs.join(', ')}`);
+        if (pendingFiles.length > 0) {
+          // Pending exists → user confirmed → ALLOW
+          try { fs.unlinkSync(path.join(pendingDir, pendingFiles[0])); } catch {}
+          log(`[HITL] Composio action approved: ${slugs.join(', ')}`);
         } else {
           // BLOCK and ask for confirmation
           fs.mkdirSync(pendingDir, { recursive: true });
@@ -490,7 +461,7 @@ function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean, isMai
             hookSpecificOutput: {
               hookEventName: 'PreToolUse' as const,
               permissionDecision: 'deny' as const,
-              permissionDecisionReason: `Action en attente de confirmation du dirigeant. ARRÊTE TOUT et envoie un résumé via send_message.\n\nAction : ${actionList}\n\nNe rappelle PAS l'outil dans ce tour. Termine ta réponse en demandant confirmation. Quand le dirigeant répondra "oui" dans un message suivant, rappelle alors l'outil.`,
+              permissionDecisionReason: `Action en attente de confirmation. Envoie un résumé de ce que tu vas faire au dirigeant via send_message et demande sa confirmation.\n\nAction : ${actionList}\n\nQuand le dirigeant confirme ("oui", "go", etc.), rappelle l'outil avec les mêmes paramètres.`,
             },
           };
         }
@@ -529,29 +500,12 @@ function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean, isMai
 
       if (needsConfirmation) {
         const pendingDir = '/workspace/group/.pending_mutations';
-        const userMsgTsFile = '/workspace/group/.last_user_message_ts';
         const pendingFiles = fs.existsSync(pendingDir) ? fs.readdirSync(pendingDir).filter(f => f.endsWith('.json')) : [];
 
-        // Find a pending file whose creation timestamp is OLDER than the last
-        // user message — meaning the user has had a chance to confirm since.
-        // This prevents Otto from auto-approving its own pending by retrying
-        // immediately within the same agent turn.
-        let approvedFile: string | null = null;
-        if (pendingFiles.length > 0 && fs.existsSync(userMsgTsFile)) {
-          const lastUserMsgTs = fs.statSync(userMsgTsFile).mtimeMs;
-          for (const f of pendingFiles) {
-            const pendingPath = path.join(pendingDir, f);
-            const pendingTs = fs.statSync(pendingPath).mtimeMs;
-            if (lastUserMsgTs > pendingTs) {
-              approvedFile = pendingPath;
-              break;
-            }
-          }
-        }
-
-        if (approvedFile) {
-          log(`[DB] Executing approved mutation (user confirmed): ${path.basename(approvedFile)}`);
-          try { fs.unlinkSync(approvedFile); } catch { /* ok */ }
+        if (pendingFiles.length > 0) {
+          const pendingFile = path.join(pendingDir, pendingFiles[0]);
+          log(`[DB] Executing approved mutation (pending: ${pendingFiles[0]})`);
+          try { fs.unlinkSync(pendingFile); } catch { /* ok */ }
           // Fall through — allow
         } else {
           fs.mkdirSync(pendingDir, { recursive: true });
@@ -566,7 +520,7 @@ function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean, isMai
             hookSpecificOutput: {
               hookEventName: 'PreToolUse' as const,
               permissionDecision: 'deny' as const,
-              permissionDecisionReason: `Opération sensible en attente de confirmation du dirigeant. ARRÊTE TOUT et envoie ce résumé via send_message :\n\n${opType} sur ${tableName}\nRequête : ${sql.slice(0, 150)}\n\nNe rappelle PAS mutate_business_db dans ce tour. Termine ta réponse en demandant confirmation. Quand le dirigeant répondra "oui" dans un message suivant, rappelle alors mutate_business_db.`,
+              permissionDecisionReason: `Opération sensible en attente de confirmation. Envoie ce résumé au dirigeant via send_message et demande sa confirmation :\n\n${opType} sur ${tableName}\nRequête : ${sql.slice(0, 150)}\n\nQuand le dirigeant confirme, rappelle mutate_business_db avec les mêmes paramètres.`,
             },
           };
         }
@@ -886,10 +840,11 @@ async function runQuery(
   let messageCount = 0;
   let resultCount = 0;
 
-  // Load global CLAUDE.md as additional system context (shared across all groups, incl. main)
+  // Load global CLAUDE.md as additional system context (only for non-main groups;
+  // the main group reads its own main/CLAUDE.md natively via Claude Code).
   const globalClaudeMdPath = '/workspace/global/CLAUDE.md';
   let globalClaudeMd: string | undefined;
-  if (fs.existsSync(globalClaudeMdPath)) {
+  if (!containerInput.isMain && fs.existsSync(globalClaudeMdPath)) {
     globalClaudeMd = fs.readFileSync(globalClaudeMdPath, 'utf-8');
   }
 
