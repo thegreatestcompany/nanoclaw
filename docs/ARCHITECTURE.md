@@ -131,18 +131,27 @@ Lookup client par whatsapp_jid (Composio user_id = JID, PAS client slug)
   ↓
 otto-{client} IPC watcher récupère, appelle handleComposioEvent
   ↓
-Spawn container Haiku (main group, isScheduledTask)
-  ↓
-Otto analyse et décide : notifier via send_message ou ignorer
-  ↓
-closeStdin après 45s — container exit propre, queue libérée
+handleComposioEventDeterministic (src/composio-handlers.ts)
+  ├─ Known trigger_slug → format message + channel.sendMessage (100% reliable, $0)
+  └─ Unknown trigger → fallback LLM (spawn Haiku container)
 ```
+
+**Architecture déterministe (par design) :**
+
+Les webhooks doivent être **automatiques et déterministes** — pas de LLM dans le chemin critique. Chaque trigger connu a une fonction pure dans `src/composio-handlers.ts` qui formate un message WhatsApp depuis le payload et l'envoie via `channel.sendMessage`. Zéro coût, ~200ms de latence, 100% fiable.
+
+Le LLM n'est invoqué qu'en fallback pour les trigger_slugs **inconnus** — utile pour expérimenter de nouveaux triggers sans écrire immédiatement un handler dédié.
+
+**Handlers déterministes actuels :**
+- `GOOGLECALENDAR_EVENT_STARTING_SOON_TRIGGER` → `⏰ RDV dans N min (HHhMM) — {summary}` + participants + location + lien Meet
+- `GOOGLECALENDAR_EVENT_CANCELED_DELETED_TRIGGER` → `❌ RDV annulé — {summary}` (fallback générique si summary manquant)
 
 **Points importants :**
 - La webhook subscription est au niveau **projet Composio** (une seule par env, créée via `api/scripts/setup-composio-webhook.ts`)
 - Les triggers sont **par client** (créés via `POST /api/admin/clients/:id/triggers/provision` ou par le job périodique auto)
 - **Composio user_id = WhatsApp JID** du client (c'est ce que le container agent-runner passe au Composio MCP à l'init)
-- **Trigger par défaut** : uniquement `GOOGLECALENDAR_EVENT_STARTING_SOON_TRIGGER` (15 min avant, polling 2 min). Gmail exclu volontairement — trop de bruit, coûts non maîtrisables
+- **Triggers par défaut** : uniquement Calendar (`EVENT_STARTING_SOON` + `EVENT_CANCELED_DELETED`). Gmail exclu volontairement — trop de bruit, coûts non maîtrisables. Slack/CRM exclus pour garder Otto aligné avec son positioning "stack tech légère"
+- **Deux processus impliqués** : `otto-api` reçoit le HTTP webhook, `otto-{client}` envoie le WhatsApp (seul lui détient la connexion Baileys). Communication via file-based IPC (`clients/{id}/data/ipc/events/`)
 - **Idempotent** : `runPeriodicTriggerProvisioning` (toutes les heures) liste les triggers existants et ne crée que ceux qui manquent, skip si toolkit non connecté
 - **Cleanup auto** : `deprovisionClient` appelle `deleteAllClientTriggers` pour stopper le webhook spam
 
