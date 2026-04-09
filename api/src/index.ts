@@ -157,8 +157,11 @@ server.listen(PORT, () => {
   const provisionActiveTriggers = () => {
     runPeriodicTriggerProvisioning(() =>
       getAllClients()
-        .filter((c) => c.status === 'active' || c.status === 'trial')
-        .map((c) => c.id),
+        .filter(
+          (c) =>
+            (c.status === 'active' || c.status === 'trial') && c.whatsapp_jid,
+        )
+        .map((c) => ({ clientId: c.id, composioUserId: c.whatsapp_jid })),
     ).catch((err) =>
       console.error('Periodic trigger provisioning failed:', err),
     );

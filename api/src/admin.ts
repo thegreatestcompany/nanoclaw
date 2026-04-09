@@ -13,7 +13,7 @@ import path from 'path';
 import os from 'os';
 import Database from 'better-sqlite3';
 
-import { getAllClients } from './db.js';
+import { getAllClients, getClientById } from './db.js';
 import {
   provisionDefaultTriggers,
   listClientTriggers,
@@ -253,7 +253,12 @@ export function setupAdminRoutes(app: Express): void {
   // List all active Composio triggers for a client
   app.get('/api/admin/clients/:id/triggers', async (req, res) => {
     try {
-      const triggers = await listClientTriggers(req.params.id);
+      const client = getClientById(req.params.id);
+      if (!client?.whatsapp_jid) {
+        res.json({ triggers: [], error: 'Client has no WhatsApp JID' });
+        return;
+      }
+      const triggers = await listClientTriggers(client.whatsapp_jid);
       res.json({ triggers });
     } catch (err) {
       res.status(500).json({
@@ -262,10 +267,15 @@ export function setupAdminRoutes(app: Express): void {
     }
   });
 
-  // Provision default Composio triggers for a client (Gmail, Calendar, Slack)
+  // Provision default Composio triggers for a client (Calendar reminders)
   app.post('/api/admin/clients/:id/triggers/provision', async (req, res) => {
     try {
-      const result = await provisionDefaultTriggers(req.params.id);
+      const client = getClientById(req.params.id);
+      if (!client?.whatsapp_jid) {
+        res.status(400).json({ error: 'Client has no WhatsApp JID (not onboarded yet)' });
+        return;
+      }
+      const result = await provisionDefaultTriggers(client.whatsapp_jid);
       res.json(result);
     } catch (err) {
       res.status(500).json({
@@ -277,7 +287,12 @@ export function setupAdminRoutes(app: Express): void {
   // Delete all Composio triggers for a client (called at deprovisioning)
   app.delete('/api/admin/clients/:id/triggers', async (req, res) => {
     try {
-      const deleted = await deleteAllClientTriggers(req.params.id);
+      const client = getClientById(req.params.id);
+      if (!client?.whatsapp_jid) {
+        res.json({ deleted: 0 });
+        return;
+      }
+      const deleted = await deleteAllClientTriggers(client.whatsapp_jid);
       res.json({ deleted });
     } catch (err) {
       res.status(500).json({

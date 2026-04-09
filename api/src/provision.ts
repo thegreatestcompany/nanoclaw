@@ -279,12 +279,14 @@ export async function deprovisionClient(clientId: string): Promise<void> {
   }
 
   // Delete all Composio triggers for this client (stop webhook spam)
-  try {
-    const { deleteAllClientTriggers } = await import('./composio-triggers.js');
-    const deleted = await deleteAllClientTriggers(clientId);
-    if (deleted > 0) console.log(`Deleted ${deleted} Composio triggers for ${clientId}`);
-  } catch (err) {
-    console.error('Failed to delete Composio triggers:', err);
+  if (client?.whatsapp_jid) {
+    try {
+      const { deleteAllClientTriggers } = await import('./composio-triggers.js');
+      const deleted = await deleteAllClientTriggers(client.whatsapp_jid);
+      if (deleted > 0) console.log(`Deleted ${deleted} Composio triggers for ${clientId}`);
+    } catch (err) {
+      console.error('Failed to delete Composio triggers:', err);
+    }
   }
 
   // Archive client data

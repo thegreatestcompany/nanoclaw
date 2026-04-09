@@ -101,21 +101,54 @@ export async function createWebhookSubscription(
   return { subscriptionId, secret };
 }
 
+interface ConnectedAccountRaw {
+  id?: string;
+  status?: string;
+  toolkit?: { slug?: string };
+}
+
+/**
+ * List connected accounts for a given user_id (Composio user_id = WhatsApp JID).
+ * Used to find the connected_account_id needed to create a trigger.
+ */
+async function listConnectedAccountsForUser(
+  userId: string,
+  toolkitSlug?: string,
+): Promise<ConnectedAccountRaw[]> {
+  const params = new URLSearchParams({ user_ids: userId });
+  if (toolkitSlug) params.set('toolkit_slugs', toolkitSlug);
+  const data = (await composioFetch(
+    `/connected_accounts?${params.toString()}`,
+  )) as { items?: ConnectedAccountRaw[] };
+  return data.items || [];
+}
+
 /**
  * Create (upsert) a single trigger instance bound to a user_id + connected account.
  * Endpoint: POST /api/v3/trigger_instances/{slug}/upsert
+ *
+ * Composio requires connected_account_id explicitly — we look it up for the
+ * given user/toolkit before creating.
  */
 export async function createTrigger(
   userId: string,
   slug: string,
+  toolkitSlug: string,
   triggerConfig: Record<string, unknown>,
 ): Promise<{ triggerId: string }> {
+  const accounts = await listConnectedAccountsForUser(userId, toolkitSlug);
+  const active = accounts.find((a) => a.status === 'ACTIVE') || accounts[0];
+  if (!active?.id) {
+    throw new Error(`No connected account for toolkit ${toolkitSlug} (user ${userId})`);
+  }
+
   const data = (await composioFetch(
     `/trigger_instances/${encodeURIComponent(slug)}/upsert`,
     {
       method: 'POST',
       body: JSON.stringify({
         user_id: userId,
+        connected_account_id: active.id,
         trigger_config: triggerConfig,
       }),
     },
@@ -126,9 +159,13 @@ export async function createTrigger(
 
 /**
  * Provision the default set of triggers for a given client.
+ * The composioUserId is the WhatsApp JID used by the agent-runner when
+ * initializing the Composio MCP (see container/agent-runner/src/index.ts).
  * Skips triggers where the toolkit isn't connected yet.
  */
-export async function provisionDefaultTriggers(clientId: string): Promise<{
+export async function provisionDefaultTriggers(
+  composioUserId: string,
+): Promise<{
   created: string[];
   skipped: string[];
   failed: Array<{ slug: string; error: string }>;
@@ -140,12 +177,13 @@ export async function provisionDefaultTriggers(clientId: string): Promise<{
   for (const trigger of DEFAULT_TRIGGERS) {
     try {
       const result = await createTrigger(
-        clientId,
+        composioUserId,
         trigger.slug,
+        trigger.toolkit,
         trigger.triggerConfig,
       );
       console.log(
-        `[composio-triggers] Created ${trigger.slug} for ${clientId}: ${result.triggerId}`,
+        `[composio-triggers] Created ${trigger.slug} for ${composioUserId}: ${result.triggerId}`,
       );
       created.push(trigger.slug);
     } catch (err) {
@@ -157,12 +195,12 @@ export async function provisionDefaultTriggers(clientId: string): Promise<{
         msg.toLowerCase().includes('no connection')
       ) {
         console.log(
-          `[composio-triggers] Skipped ${trigger.slug} for ${clientId} (toolkit not connected)`,
+          `[composio-triggers] Skipped ${trigger.slug} for ${composioUserId} (toolkit not connected)`,
         );
         skipped.push(trigger.slug);
       } else {
         console.error(
-          `[composio-triggers] Failed ${trigger.slug} for ${clientId}: ${msg}`,
+          `[composio-triggers] Failed ${trigger.slug} for ${composioUserId}: ${msg}`,
         );
         failed.push({ slug: trigger.slug, error: msg });
       }
@@ -183,10 +221,10 @@ interface ActiveTriggerRaw {
 }
 
 /**
- * List all active triggers for a client.
+ * List all active triggers for a client (composioUserId = WhatsApp JID).
  * Endpoint: GET /api/v3/trigger_instances/active
  */
-export async function listClientTriggers(clientId: string): Promise<
+export async function listClientTriggers(composioUserId: string): Promise<
   Array<{
     triggerId: string;
     triggerSlug: string;
@@ -195,13 +233,13 @@ export async function listClientTriggers(clientId: string): Promise<
   }>
 > {
   const data = (await composioFetch(
-    `/trigger_instances/active?user_id=${encodeURIComponent(clientId)}`,
+    `/trigger_instances/active?user_id=${encodeURIComponent(composioUserId)}`,
   )) as { items?: ActiveTriggerRaw[] } | ActiveTriggerRaw[];
 
   const items = Array.isArray(data) ? data : data.items || [];
 
   return items
-    .filter((t) => !t.user_id || t.user_id === clientId)
+    .filter((t) => !t.user_id || t.user_id === composioUserId)
     .map((t) => ({
       triggerId: t.id || t.trigger_id || '',
       triggerSlug: t.slug || t.trigger_slug || '',
@@ -214,18 +252,22 @@ export async function listClientTriggers(clientId: string): Promise<
  * Periodic job: try to provision default triggers for all active clients.
  * Idempotent — clients without connected Calendar are skipped silently,
  * clients with triggers already created get no-ops.
+ *
+ * The caller provides pairs of (clientId, composioUserId=whatsappJid).
+ * Clients without a JID (not yet linked) are skipped.
  */
 export async function runPeriodicTriggerProvisioning(
-  getActiveClientIds: () => string[],
+  getActiveClients: () => Array<{ clientId: string; composioUserId: string | null }>,
 ): Promise<void> {
   if (!process.env.COMPOSIO_API_KEY) {
     return; // Composio not configured — skip silently
   }
-  const clientIds = getActiveClientIds();
-  for (const clientId of clientIds) {
+  const clients = getActiveClients().filter((c) => c.composioUserId);
+  for (const { clientId, composioUserId } of clients) {
+    if (!composioUserId) continue;
     try {
       // Check what's already provisioned to avoid duplicates
-      const existing = await listClientTriggers(clientId);
+      const existing = await listClientTriggers(composioUserId);
       const existingSlugs = new Set(existing.map((t) => t.triggerSlug));
       const missing = DEFAULT_TRIGGERS.filter(
         (t) => !existingSlugs.has(t.slug),
@@ -235,8 +277,9 @@ export async function runPeriodicTriggerProvisioning(
       for (const trigger of missing) {
         try {
           const result = await createTrigger(
-            clientId,
+            composioUserId,
             trigger.slug,
+            trigger.toolkit,
             trigger.triggerConfig,
           );
           console.log(
@@ -257,7 +300,6 @@ export async function runPeriodicTriggerProvisioning(
         }
       }
     } catch (err) {
-      // Ignore listing errors for individual clients — may just not have any
       const msg = err instanceof Error ? err.message : String(err);
       if (!msg.toLowerCase().includes('not found')) {
         console.error(
@@ -273,9 +315,9 @@ export async function runPeriodicTriggerProvisioning(
  * Endpoint: DELETE /api/v3/trigger_instances/manage/{triggerId}
  */
 export async function deleteAllClientTriggers(
-  clientId: string,
+  composioUserId: string,
 ): Promise<number> {
-  const triggers = await listClientTriggers(clientId);
+  const triggers = await listClientTriggers(composioUserId);
   let deleted = 0;
   for (const t of triggers) {
     try {

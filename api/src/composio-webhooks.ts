@@ -32,7 +32,7 @@ import express, { Application, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 
-import { getClientById } from './db.js';
+import { getClientById, getClientByJid } from './db.js';
 
 const CLIENTS_DIR =
   process.env.CLIENTS_DIR || path.join(process.cwd(), '..', 'clients');
@@ -215,14 +215,18 @@ export function setupComposioWebhookRoutes(app: Application): void {
         return;
       }
 
-      // Our convention: Composio user_id == client_id in onboarding.db
-      const clientId = payload.metadata.user_id;
-      const client = getClientById(clientId);
+      // Composio user_id is the WhatsApp JID (set by agent-runner at MCP init).
+      // Look up the client by that JID in onboarding.db.
+      const composioUserId = payload.metadata.user_id;
+      const client = composioUserId.includes('@')
+        ? getClientByJid(composioUserId)
+        : getClientById(composioUserId);
       if (!client) {
-        console.warn(`[composio-webhook] Unknown client: ${clientId}`);
+        console.warn(`[composio-webhook] Unknown client for user_id: ${composioUserId}`);
         res.status(404).json({ error: 'Unknown client' });
         return;
       }
+      const clientId = client.id;
 
       if (client.status !== 'active' && client.status !== 'trial') {
         console.log(

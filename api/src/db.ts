@@ -126,6 +126,10 @@ export function getClientByEmail(email: string): Client | undefined {
   return db.prepare('SELECT * FROM clients WHERE email = ?').get(email) as Client | undefined;
 }
 
+export function getClientByJid(jid: string): Client | undefined {
+  return db.prepare('SELECT * FROM clients WHERE whatsapp_jid = ?').get(jid) as Client | undefined;
+}
+
 export function renewOnboardToken(clientId: string): { token: string; expiresAt: string } {
   const token = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
