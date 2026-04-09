@@ -14,6 +14,11 @@ import os from 'os';
 import Database from 'better-sqlite3';
 
 import { getAllClients } from './db.js';
+import {
+  provisionDefaultTriggers,
+  listClientTriggers,
+  deleteAllClientTriggers,
+} from './composio-triggers.js';
 
 const IS_LINUX = os.platform() === 'linux';
 const CLIENTS_DIR = process.env.CLIENTS_DIR || path.join(process.cwd(), '..', 'clients');
@@ -242,6 +247,42 @@ export function setupAdminRoutes(app: Express): void {
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  // List all active Composio triggers for a client
+  app.get('/api/admin/clients/:id/triggers', async (req, res) => {
+    try {
+      const triggers = await listClientTriggers(req.params.id);
+      res.json({ triggers });
+    } catch (err) {
+      res.status(500).json({
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
+
+  // Provision default Composio triggers for a client (Gmail, Calendar, Slack)
+  app.post('/api/admin/clients/:id/triggers/provision', async (req, res) => {
+    try {
+      const result = await provisionDefaultTriggers(req.params.id);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
+
+  // Delete all Composio triggers for a client (called at deprovisioning)
+  app.delete('/api/admin/clients/:id/triggers', async (req, res) => {
+    try {
+      const deleted = await deleteAllClientTriggers(req.params.id);
+      res.json({ deleted });
+    } catch (err) {
+      res.status(500).json({
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   });
 
