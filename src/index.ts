@@ -964,33 +964,56 @@ async function main(): Promise<void> {
         `Si ce n'est pas urgent/important (spam, notification système, etc.), ignore-le silencieusement ` +
         `(termine ta réponse avec <internal>ignored</internal>).`;
 
-      try {
-        await runContainerAgent(
-          mainGroup,
-          {
-            prompt,
-            groupFolder: mainGroup.folder,
-            chatJid: mainJid,
-            isMain: true,
-            isScheduledTask: true,
-            assistantName: ASSISTANT_NAME,
-            model: 'haiku',
-            maxTurns: 10,
-            maxBudgetUsd: 0.25,
-          },
-          (proc, containerName) =>
-            queue.registerProcess(mainJid, proc, containerName, mainGroup.folder),
-        );
-        logger.info(
-          { trigger: event.trigger_slug },
-          'Composio event handled by agent',
-        );
-      } catch (err) {
-        logger.error(
-          { err, trigger: event.trigger_slug },
-          'Failed to handle composio event',
-        );
-      }
+      // Fire-and-forget: run the agent in the background so the IPC watcher
+      // isn't blocked waiting for the container to idle-timeout. We trigger
+      // closeStdin after 45s so the container exits cleanly once the first
+      // query is done.
+      (async () => {
+        try {
+          await runContainerAgent(
+            mainGroup,
+            {
+              prompt,
+              groupFolder: mainGroup.folder,
+              chatJid: mainJid,
+              isMain: true,
+              isScheduledTask: true,
+              assistantName: ASSISTANT_NAME,
+              model: 'haiku',
+              maxTurns: 10,
+              maxBudgetUsd: 0.25,
+            },
+            (proc, containerName) => {
+              queue.registerProcess(
+                mainJid,
+                proc,
+                containerName,
+                mainGroup.folder,
+              );
+              // Close the container's stdin after 45s grace — enough for one
+              // query + cleanup, then the container exits and releases the queue.
+              setTimeout(() => {
+                try {
+                  queue.closeStdin(mainJid);
+                } catch {
+                  /* ignore */
+                }
+              }, 45_000);
+            },
+          );
+          logger.info(
+            { trigger: event.trigger_slug },
+            'Composio event handled by agent',
+          );
+        } catch (err) {
+          logger.error(
+            { err, trigger: event.trigger_slug },
+            'Failed to handle composio event',
+          );
+        }
+      })().catch((err) =>
+        logger.error({ err }, 'Background composio event handler crashed'),
+      );
     },
   });
   queue.setProcessMessagesFn(processGroupMessages);
