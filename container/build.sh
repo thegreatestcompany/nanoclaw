@@ -15,6 +15,14 @@ echo "Image: ${IMAGE_NAME}:${TAG}"
 
 ${CONTAINER_RUNTIME} build -t "${IMAGE_NAME}:${TAG}" .
 
+# Prune dangling build cache layers superseded by this build.
+# Keeps the current image's active cache for incremental rebuilds,
+# removes orphaned layers from previous builds. Prevents the 40+ GB
+# accumulation observed in the 2026-04-08 incident.
+${CONTAINER_RUNTIME} builder prune -f --filter "until=24h" >/dev/null 2>&1 || true
+# Remove dangling images (old layers not referenced by any tag).
+${CONTAINER_RUNTIME} image prune -f >/dev/null 2>&1 || true
+
 echo ""
 echo "Build complete!"
 echo "Image: ${IMAGE_NAME}:${TAG}"
