@@ -25,6 +25,7 @@ import {
   writeGroupsSnapshot,
   writeTasksSnapshot,
 } from './container-runner.js';
+import { handleComposioEventDeterministic } from './composio-handlers.js';
 import {
   cleanupOrphans,
   ensureContainerRuntimeRunning,
@@ -934,66 +935,53 @@ async function main(): Promise<void> {
       }
     },
     handleComposioEvent: async (event) => {
-      // Route Composio trigger events to the main group as scheduled tasks
-      // (same mechanism as passive scanner — Otto wakes with Haiku, analyzes,
-      // and decides whether to notify the dirigeant).
+      // Find the main group and its JID (all Composio events target the self-chat).
       const mainGroup = Object.values(registeredGroups).find(
         (g) => g.isMain === true,
       );
-      if (!mainGroup) {
+      const mainJid = Object.keys(registeredGroups).find(
+        (jid) => registeredGroups[jid].isMain === true,
+      );
+      if (!mainGroup || !mainJid) {
         logger.warn(
           { trigger: event.trigger_slug },
           'No main group registered — composio event dropped',
         );
         return;
       }
-      const mainJid = Object.keys(registeredGroups).find(
-        (jid) => registeredGroups[jid].isMain === true,
+
+      // Step 1: try deterministic handling (fast, free, reliable).
+      // Most known triggers are handled here — no LLM invocation needed.
+      const sendMessage = async (jid: string, text: string) => {
+        const channel = findChannel(channels, jid);
+        if (!channel) throw new Error(`No channel for JID: ${jid}`);
+        await channel.sendMessage(jid, text);
+        logger.info(
+          { jid, length: text.length, trigger: event.trigger_slug },
+          'Composio event notification sent',
+        );
+      };
+
+      const handled = await handleComposioEventDeterministic(
+        event,
+        mainJid,
+        sendMessage,
       );
-      if (!mainJid) return;
+      if (handled) return;
 
+      // Step 2: fallback to LLM for unknown trigger types. This lets us add
+      // new triggers without immediately writing deterministic handlers —
+      // Otto (Haiku) will try to do something useful.
       const eventSummary = JSON.stringify(event.data).slice(0, 2000);
-
-      // Per-trigger instructions — more specific than a generic "analyze and decide"
-      let triggerInstructions = '';
-      if (event.trigger_slug === 'GOOGLECALENDAR_EVENT_STARTING_SOON_TRIGGER') {
-        triggerInstructions =
-          `Le dirigeant a un RDV qui commence bientôt. Prépare-lui un brief concis et envoie-le via send_message :\n` +
-          `- Rappel de l'heure et du sujet\n` +
-          `- Participants (noms depuis le payload)\n` +
-          `- Contexte rapide depuis business.db si tu trouves des infos sur les participants (dernier deal, dernier échange)\n` +
-          `- Lien Google Meet si présent\n\n` +
-          `Sois bref (4-6 lignes max) — le dirigeant doit pouvoir lire en 10 secondes.`;
-      } else if (
-        event.trigger_slug === 'GOOGLECALENDAR_EVENT_CANCELED_DELETED_TRIGGER'
-      ) {
-        triggerInstructions =
-          `Un RDV vient d'être annulé ou supprimé. Le payload contient juste l'event_id et éventuellement le summary.\n` +
-          `Utilise le tool Composio Calendar (GOOGLECALENDAR_GET_EVENT ou équivalent) pour récupérer les détails si nécessaire.\n` +
-          `Puis envoie une notification brève via send_message au dirigeant :\n` +
-          `"❌ RDV annulé : [titre] — [heure prévue]"\n\n` +
-          `Si l'event était dans le passé ou si tu ne trouves aucune info dessus, ignore-le silencieusement ` +
-          `(termine avec <internal>ignored</internal>).`;
-      } else {
-        triggerInstructions =
-          `Analyse cet événement. Décide s'il est important pour le dirigeant et si oui, ` +
-          `envoie-lui une notification concise via send_message avec un résumé actionnable. ` +
-          `Si ce n'est pas urgent/important, ignore-le silencieusement ` +
-          `(termine ta réponse avec <internal>ignored</internal>).`;
-      }
-
       const prompt =
         `[COMPOSIO EVENT - ${event.trigger_slug}]\n\n` +
-        `Un événement vient d'être détecté via une de tes intégrations :\n` +
+        `Un événement inconnu est arrivé. Analyse et décide si c'est important.\n` +
         `Type: ${event.trigger_slug}\n` +
         `Reçu à: ${event.received_at}\n\n` +
         `Données:\n${eventSummary}\n\n` +
-        triggerInstructions;
+        `Si pertinent, notifie le dirigeant via send_message. Sinon termine avec <internal>ignored</internal>.`;
 
-      // Fire-and-forget: run the agent in the background so the IPC watcher
-      // isn't blocked waiting for the container to idle-timeout. We trigger
-      // closeStdin after 45s so the container exits cleanly once the first
-      // query is done.
+      // Fire-and-forget so the IPC watcher isn't blocked.
       (async () => {
         try {
           await runContainerAgent(
@@ -1016,8 +1004,6 @@ async function main(): Promise<void> {
                 containerName,
                 mainGroup.folder,
               );
-              // Close the container's stdin after 45s grace — enough for one
-              // query + cleanup, then the container exits and releases the queue.
               setTimeout(() => {
                 try {
                   queue.closeStdin(mainJid);
@@ -1029,7 +1015,7 @@ async function main(): Promise<void> {
           );
           logger.info(
             { trigger: event.trigger_slug },
-            'Composio event handled by agent',
+            'Composio event handled by LLM fallback',
           );
         } catch (err) {
           logger.error(
