@@ -278,6 +278,15 @@ export async function deprovisionClient(clientId: string): Promise<void> {
     await revokeAnthropicApiKey(client.anthropic_api_key_id);
   }
 
+  // Delete all Composio triggers for this client (stop webhook spam)
+  try {
+    const { deleteAllClientTriggers } = await import('./composio-triggers.js');
+    const deleted = await deleteAllClientTriggers(clientId);
+    if (deleted > 0) console.log(`Deleted ${deleted} Composio triggers for ${clientId}`);
+  } catch (err) {
+    console.error('Failed to delete Composio triggers:', err);
+  }
+
   // Archive client data
   const backupDir = path.join(CLIENTS_DIR, '..', 'backups');
   fs.mkdirSync(backupDir, { recursive: true });

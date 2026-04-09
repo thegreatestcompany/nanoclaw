@@ -30,18 +30,20 @@ const DEFAULT_TRIGGERS: Array<{
   description: string;
 }> = [
   {
-    slug: 'GMAIL_NEW_GMAIL_MESSAGE',
-    toolkit: 'gmail',
+    slug: 'GOOGLECALENDAR_EVENT_STARTING_SOON_TRIGGER',
+    toolkit: 'googlecalendar',
     triggerConfig: {
-      interval: 15, // minutes — min is 15 for Gmail polling
-      userId: 'me',
-      labelIds: 'INBOX',
+      calendarId: 'primary',
+      minutes_before_start: 15, // fire 15 min before an event starts
+      countdown_window_minutes: 60, // look 60 min ahead
+      interval: 2, // poll every 2 min (Composio default)
+      include_all_day: false, // skip all-day events
     },
-    description: 'New Gmail message in inbox (polled every 15 min)',
+    description: 'Calendar event starting soon (15 min before)',
   },
-  // Add more as we validate slugs against the API:
-  // - GOOGLECALENDAR_EVENT_STARTING_SOON
-  // - SLACK_RECEIVE_MESSAGE
+  // Gmail is intentionally NOT here — most emails are noise, Otto would
+  // burn budget analyzing each one with no real value (client can check
+  // their own inbox). Calendar reminders are high-signal, low-volume.
 ];
 
 function getApiKey(): string {
@@ -206,6 +208,64 @@ export async function listClientTriggers(clientId: string): Promise<
       connectedAccountId: t.connected_account_id || '',
       disabled: t.disabled === true,
     }));
+}
+
+/**
+ * Periodic job: try to provision default triggers for all active clients.
+ * Idempotent — clients without connected Calendar are skipped silently,
+ * clients with triggers already created get no-ops.
+ */
+export async function runPeriodicTriggerProvisioning(
+  getActiveClientIds: () => string[],
+): Promise<void> {
+  if (!process.env.COMPOSIO_API_KEY) {
+    return; // Composio not configured — skip silently
+  }
+  const clientIds = getActiveClientIds();
+  for (const clientId of clientIds) {
+    try {
+      // Check what's already provisioned to avoid duplicates
+      const existing = await listClientTriggers(clientId);
+      const existingSlugs = new Set(existing.map((t) => t.triggerSlug));
+      const missing = DEFAULT_TRIGGERS.filter(
+        (t) => !existingSlugs.has(t.slug),
+      );
+      if (missing.length === 0) continue;
+
+      for (const trigger of missing) {
+        try {
+          const result = await createTrigger(
+            clientId,
+            trigger.slug,
+            trigger.triggerConfig,
+          );
+          console.log(
+            `[composio-triggers] Auto-provisioned ${trigger.slug} for ${clientId}: ${result.triggerId}`,
+          );
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          // Skip silently if toolkit not connected yet
+          if (
+            !msg.toLowerCase().includes('connected account') &&
+            !msg.toLowerCase().includes('not found') &&
+            !msg.toLowerCase().includes('no connection')
+          ) {
+            console.error(
+              `[composio-triggers] Auto-provision ${trigger.slug} for ${clientId} failed: ${msg}`,
+            );
+          }
+        }
+      }
+    } catch (err) {
+      // Ignore listing errors for individual clients — may just not have any
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.toLowerCase().includes('not found')) {
+        console.error(
+          `[composio-triggers] Periodic provisioning error for ${clientId}: ${msg}`,
+        );
+      }
+    }
+  }
 }
 
 /**

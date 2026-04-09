@@ -16,7 +16,13 @@ import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { initDb, getDb, getClientById, renewOnboardToken } from './db.js';
+import {
+  initDb,
+  getDb,
+  getClientById,
+  getAllClients,
+  renewOnboardToken,
+} from './db.js';
 import { setupStripeRoutes, runPeriodicChecks } from './stripe.js';
 import { setupAdminRoutes } from './admin.js';
 import { setupPortalRoutes } from './client-portal.js';
@@ -24,6 +30,7 @@ import { setupOnboardRoutes } from './onboard.js';
 import { sendReconnectionEmail, sendContactNotification } from './mailer.js';
 import { setupWebchat } from './webchat.js';
 import { setupComposioWebhookRoutes } from './composio-webhooks.js';
+import { runPeriodicTriggerProvisioning } from './composio-triggers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.API_PORT || '3000', 10);
@@ -143,6 +150,22 @@ server.listen(PORT, () => {
       console.error('Periodic checks failed:', err),
     );
   }, 60 * 60 * 1000);
+
+  // Periodic Composio trigger provisioning: ensures active clients get their
+  // default triggers (Calendar reminders) even if they connected after onboarding.
+  // Idempotent — no-ops if triggers already exist or toolkit not connected.
+  const provisionActiveTriggers = () => {
+    runPeriodicTriggerProvisioning(() =>
+      getAllClients()
+        .filter((c) => c.status === 'active' || c.status === 'trial')
+        .map((c) => c.id),
+    ).catch((err) =>
+      console.error('Periodic trigger provisioning failed:', err),
+    );
+  };
+  // Run once 2 min after startup, then every hour
+  setTimeout(provisionActiveTriggers, 2 * 60 * 1000);
+  setInterval(provisionActiveTriggers, 60 * 60 * 1000);
 
   // Listen for PM2 IPC messages from client processes (disconnection alerts)
   setupPm2IpcListener();
