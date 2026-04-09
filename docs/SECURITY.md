@@ -121,6 +121,17 @@ TRUNCATE              — destructive SQL
 - Otto présente les pending au dirigeant dans le self-chat pour validation (confirmation partielle possible)
 - Protections : vérification old_value avant apply, check record non-supprimé, anti-doublon (incl. dismissed), supersede des anciens pending, cleanup > 30 jours
 
+**Composio webhook verification (triggers):**
+- Endpoint: `POST /api/webhook/composio` (must be under `/api/` for nginx routing)
+- Signature algorithm: HMAC-SHA256 on `{webhook-id}.{webhook-timestamp}.{body}`, base64 encoded
+- Required headers: `webhook-id`, `webhook-timestamp`, `webhook-signature` (format: `v1,{sig}`)
+- Replay protection: reject timestamps older than 5 minutes (window absolu, pas drift)
+- Secret stored in `api/.env` as `COMPOSIO_WEBHOOK_SECRET` — returned only once at subscription creation, rotate via dashboard if lost
+- `timingSafeEqual` used to prevent timing attacks on signature comparison
+- Client identification: Composio `user_id` is the WhatsApp JID → looked up in `onboarding.db` via `getClientByJid()`
+- Events for inactive clients (not `active` or `trial`) are dropped with 200 OK
+- Event dispatch via file-based IPC at `clients/{id}/data/ipc/events/` — isolated per client, no cross-tenant risk
+
 **Auto feedback ⏳:**
 - Le hook envoie automatiquement un ⏳ via IPC au premier appel d'outil lent (Bash, Skill, Exa, Composio, Gmail, Calendar)
 - Cooldown de 10s entre chaque feedback

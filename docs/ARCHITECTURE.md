@@ -114,18 +114,52 @@ Seules les tables auto-générées (audit_log, interactions, memories, activity_
 
 Le scan passif (toutes les 2h, Haiku) ne peut que créer (INSERT), jamais modifier (UPDATE/DELETE) les tables business. Quand il détecte qu'un enregistrement existant devrait changer (deal stage, montant, rôle contact…), il écrit dans `pending_updates` au lieu de modifier directement. Otto présente ces mises à jour au dirigeant au début de l'interaction suivante, avec confirmation partielle possible. Edge cases gérés : old_value périmé (vérifié avant apply), record supprimé, anti-doublon (incl. dismissed), supersede des anciens pending sur le même champ, nettoyage des entrées > 30 jours.
 
+**Composio triggers — proactivité événementielle :**
+
+Otto peut réagir à des événements externes (Calendar, Slack, CRM…) via les triggers Composio. Le flow :
+
+```
+Composio (polling/webhook des apps connectées)
+  ↓
+Event détecté → POST https://otto.hntic.fr/api/webhook/composio
+  ↓
+otto-api vérifie signature HMAC-SHA256 (COMPOSIO_WEBHOOK_SECRET)
+  ↓
+Lookup client par whatsapp_jid (Composio user_id = JID, PAS client slug)
+  ↓
+Écrit event JSON dans clients/{id}/data/ipc/events/
+  ↓
+otto-{client} IPC watcher récupère, appelle handleComposioEvent
+  ↓
+Spawn container Haiku (main group, isScheduledTask)
+  ↓
+Otto analyse et décide : notifier via send_message ou ignorer
+  ↓
+closeStdin après 45s — container exit propre, queue libérée
+```
+
+**Points importants :**
+- La webhook subscription est au niveau **projet Composio** (une seule par env, créée via `api/scripts/setup-composio-webhook.ts`)
+- Les triggers sont **par client** (créés via `POST /api/admin/clients/:id/triggers/provision` ou par le job périodique auto)
+- **Composio user_id = WhatsApp JID** du client (c'est ce que le container agent-runner passe au Composio MCP à l'init)
+- **Trigger par défaut** : uniquement `GOOGLECALENDAR_EVENT_STARTING_SOON_TRIGGER` (15 min avant, polling 2 min). Gmail exclu volontairement — trop de bruit, coûts non maîtrisables
+- **Idempotent** : `runPeriodicTriggerProvisioning` (toutes les heures) liste les triggers existants et ne crée que ceux qui manquent, skip si toolkit non connecté
+- **Cleanup auto** : `deprovisionClient` appelle `deleteAllClientTriggers` pour stopper le webhook spam
+
 ### 5. L'API d'onboarding
 
 Serveur Express séparé (`api/`) qui gère :
 - **Stripe webhooks** — paiement → provisioning, désabonnement → deprovisioning, échec paiement → notification WhatsApp
+- **Composio webhooks** — `POST /api/webhook/composio` reçoit les événements des triggers (Calendar, etc.) avec signature HMAC-SHA256
 - **Onboarding WhatsApp** — page QR code / pairing code pour lier WhatsApp
 - **Reconnexion** — `/reconnect` pour relancer la liaison si déconnexion (email auto envoyé par PM2 IPC)
 - **Portail client** — `/portal` avec auth par code 6 chiffres, dashboard ERP, webchat
 - **Webchat** — WebSocket `/ws/chat` bridge vers le même pipeline que WhatsApp
 - **Emails transactionnels** — onboarding, bienvenue, reconnexion, farewell, trial reminder, portal link (via Gmail SMTP)
 - **Formulaire de contact** — `POST /api/contact` depuis la landing page
-- **Admin back-office** — API REST pour gérer les clients
+- **Admin back-office** — API REST pour gérer les clients (incl. gestion triggers Composio par client)
 - **Base HNTIC** — `onboarding.db` stocke toutes les infos clients Stripe (email, nom, entreprise, téléphone, adresse, TVA)
+- **Jobs périodiques** — trial reminders (horaire), grace period expirations, **provisioning auto des triggers Composio** pour les clients actifs
 
 **Flow d'onboarding complet :**
 ```

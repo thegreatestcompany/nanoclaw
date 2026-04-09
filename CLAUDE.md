@@ -32,6 +32,9 @@ Multi-tenant SaaS on a single Hetzner VPS. Each client gets their own PM2 proces
 | `api/src/admin.ts` | Admin back-office API |
 | `api/src/client-portal.ts` | Client portal routes (JWT auth, business data, documents) |
 | `api/src/webchat.ts` | WebSocket bridge for portal chat |
+| `api/src/composio-webhooks.ts` | POST /api/webhook/composio handler — HMAC verify + route to client |
+| `api/src/composio-triggers.ts` | Composio triggers management (create, list, delete, periodic provision) |
+| `api/scripts/setup-composio-webhook.ts` | One-shot script to create webhook subscription (run once per env) |
 | `api/public/portal.html` | Client portal SPA (6 tabs + chat) |
 | `api/public/index.html` | Landing page (otto.hntic.fr) |
 | `api/src/db.ts` | Onboarding DB (clients table — HNTIC CRM data) |
@@ -94,6 +97,7 @@ pm2 restart otto-test  # or the client process
 - **Whisper: OpenAI API** when OPENAI_API_KEY is set, local whisper.cpp (ggml-small) as fallback
 - **WebSearch blocked when Exa available** — PreToolUse hook forces Exa for web search (better results)
 - **HITL on all INSERT** — business tables require user confirmation before creating data (anti-hallucination). Scheduled tasks (passive scanner, cron) bypass HITL for INSERT but can never UPDATE/DELETE business data — they write to `pending_updates` instead, which Otto presents to the user for validation
+- **Composio triggers via webhook** — proactive Otto via Composio events. Webhook URL: `https://otto.hntic.fr/api/webhook/composio` (must be under `/api/` for nginx routing). HMAC-SHA256 signature verification with secret stored in `api/.env` as `COMPOSIO_WEBHOOK_SECRET`. Composio user_id = WhatsApp JID (not client slug). Default triggers: Calendar only (Gmail intentionally excluded — too much noise/cost). Auto-provisioning via hourly periodic job in otto-api, cleanup on deprovisioning
 - **Auto ⏳ feedback** — PreToolUse hook sends hourglass on first slow tool call (code-level, not prompting)
 - **Portal auth by 6-digit code** — no JWT in URL, code sent via WhatsApp, 5min TTL, single-use
 - **PM2 exponential backoff** — `--exp-backoff-restart-delay=1000` prevents crash restart loops
