@@ -738,6 +738,11 @@ export function getAllSessions(): Record<string, string> {
   return result;
 }
 
+export function clearAllSessions(): number {
+  const result = db.prepare('DELETE FROM sessions').run();
+  return result.changes;
+}
+
 // --- Registered group accessors ---
 
 export function getRegisteredGroup(

@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
@@ -30,6 +31,7 @@ import {
   PROXY_BIND_HOST,
 } from './container-runtime.js';
 import {
+  clearAllSessions,
   getAllChats,
   getAllRegisteredGroups,
   getAllSessions,
@@ -84,6 +86,24 @@ let messageLoopRunning = false;
 const channels: Channel[] = [];
 const queue = new GroupQueue();
 
+/**
+ * Compute a hash of the global CLAUDE.md and main CLAUDE.md.
+ * Used to detect changes that require purging existing Claude sessions
+ * (since the system prompt is locked in when a session starts).
+ */
+function computeInstructionsHash(): string {
+  const hash = createHash('sha256');
+  for (const file of [
+    path.join(GROUPS_DIR, 'global', 'CLAUDE.md'),
+    path.join(GROUPS_DIR, 'main', 'CLAUDE.md'),
+  ]) {
+    if (fs.existsSync(file)) {
+      hash.update(fs.readFileSync(file));
+    }
+  }
+  return hash.digest('hex');
+}
+
 function loadState(): void {
   lastTimestamp = getRouterState('last_timestamp') || '';
   const agentTs = getRouterState('last_agent_timestamp');
@@ -93,6 +113,21 @@ function loadState(): void {
     logger.warn('Corrupted last_agent_timestamp in DB, resetting');
     lastAgentTimestamp = {};
   }
+
+  // Auto-purge sessions if CLAUDE.md instructions changed since last startup.
+  // Claude SDK locks the system prompt at session creation, so existing sessions
+  // would never see the new instructions otherwise.
+  const currentHash = computeInstructionsHash();
+  const storedHash = getRouterState('instructions_hash');
+  if (storedHash && storedHash !== currentHash) {
+    const purged = clearAllSessions();
+    logger.info(
+      { purged, oldHash: storedHash.slice(0, 8), newHash: currentHash.slice(0, 8) },
+      'CLAUDE.md instructions changed — purged sessions to apply updates',
+    );
+  }
+  setRouterState('instructions_hash', currentHash);
+
   sessions = getAllSessions();
   registeredGroups = getAllRegisteredGroups();
   logger.info(
@@ -245,11 +280,9 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
   const contextMessages = recentConvo.filter(
     (m) => !missedMessages.some((mm) => mm.id === m.id),
   );
-  let prompt = '';
-
-  // First-run detection: if this is the first interaction in this group,
-  // prefix the prompt with a marker that triggers the welcome + warning flow.
-  // The marker file is created immediately so this only happens once.
+  // First-run detection for non-main groups: send a welcome message directly
+  // from the host (deterministic, no LLM involved) before any agent invocation.
+  // The marker file ensures this only happens once per group.
   if (!group.isMain) {
     const welcomedMarker = path.join(
       resolveGroupFolderPath(group.folder),
@@ -257,23 +290,30 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
       '.welcomed',
     );
     if (!fs.existsSync(welcomedMarker)) {
-      prompt +=
-        "[PREMIÈRE INTERACTION DANS CE GROUPE — Avant de répondre au message, envoie d'abord un message d'accueil qui inclut OBLIGATOIREMENT cet avertissement :\n\n" +
-        "👋 *Bonjour à tous, je suis Otto, l'assistant IA de " +
-        "{DIRIGEANT}. Quelques points importants :*\n\n" +
-        "• *En m'écrivant @otto, vous pouvez m'interroger sur l'activité de son entreprise (contacts, deals, finances…)*\n" +
-        "• *Les conversations de ce groupe sont analysées automatiquement pour enrichir sa base de données business*\n" +
-        "• *Je ne réponds qu'aux messages qui me mentionnent directement avec @otto*\n\n" +
-        "Remplace {DIRIGEANT} par le nom du dirigeant (cherche-le dans business.db ou CLAUDE.md). " +
-        "Envoie ce message via send_message AVANT de traiter la suite.]\n\n";
+      const welcomeText =
+        `👋 *Bonjour à tous, je suis ${ASSISTANT_NAME}, l'assistant IA personnel du dirigeant. Quelques points importants à savoir :*\n\n` +
+        `• *Vous pouvez m'interroger en m'écrivant ${group.trigger} suivi de votre question — je peux donner des informations sur l'activité de l'entreprise (contacts, deals, projets…)*\n` +
+        `• *Les conversations de ce groupe sont analysées automatiquement pour enrichir la base de données business du dirigeant*\n` +
+        `• *Je ne réponds qu'aux messages qui me mentionnent directement avec ${group.trigger}*\n\n` +
+        `_Si tu n'es pas à l'aise avec ces points, signale-le au dirigeant._`;
       try {
+        await channel.sendMessage(chatJid, welcomeText);
         fs.mkdirSync(path.dirname(welcomedMarker), { recursive: true });
         fs.writeFileSync(welcomedMarker, new Date().toISOString());
+        logger.info(
+          { folder: group.folder, chatJid },
+          'Welcome message sent to new group',
+        );
       } catch (err) {
-        logger.warn({ err, folder: group.folder }, 'Failed to write welcomed marker');
+        logger.warn(
+          { err, folder: group.folder },
+          'Failed to send welcome message',
+        );
       }
     }
   }
+
+  let prompt = '';
 
   if (contextMessages.length > 0) {
     prompt += '[Conversation récente pour contexte]\n';
