@@ -246,6 +246,35 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
     (m) => !missedMessages.some((mm) => mm.id === m.id),
   );
   let prompt = '';
+
+  // First-run detection: if this is the first interaction in this group,
+  // prefix the prompt with a marker that triggers the welcome + warning flow.
+  // The marker file is created immediately so this only happens once.
+  if (!group.isMain) {
+    const welcomedMarker = path.join(
+      resolveGroupFolderPath(group.folder),
+      'memory',
+      '.welcomed',
+    );
+    if (!fs.existsSync(welcomedMarker)) {
+      prompt +=
+        "[PREMIÈRE INTERACTION DANS CE GROUPE — Avant de répondre au message, envoie d'abord un message d'accueil qui inclut OBLIGATOIREMENT cet avertissement :\n\n" +
+        "👋 *Bonjour à tous, je suis Otto, l'assistant IA de " +
+        "{DIRIGEANT}. Quelques points importants :*\n\n" +
+        "• *En m'écrivant @otto, vous pouvez m'interroger sur l'activité de son entreprise (contacts, deals, finances…)*\n" +
+        "• *Les conversations de ce groupe sont analysées automatiquement pour enrichir sa base de données business*\n" +
+        "• *Je ne réponds qu'aux messages qui me mentionnent directement avec @otto*\n\n" +
+        "Remplace {DIRIGEANT} par le nom du dirigeant (cherche-le dans business.db ou CLAUDE.md). " +
+        "Envoie ce message via send_message AVANT de traiter la suite.]\n\n";
+      try {
+        fs.mkdirSync(path.dirname(welcomedMarker), { recursive: true });
+        fs.writeFileSync(welcomedMarker, new Date().toISOString());
+      } catch (err) {
+        logger.warn({ err, folder: group.folder }, 'Failed to write welcomed marker');
+      }
+    }
+  }
+
   if (contextMessages.length > 0) {
     prompt += '[Conversation récente pour contexte]\n';
     prompt += formatMessages(contextMessages, TIMEZONE);
