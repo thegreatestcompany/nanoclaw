@@ -137,8 +137,9 @@ function dispatchEventToClient(
 
 export function setupComposioWebhookRoutes(app: Application): void {
   // Use raw body parser for this route (signature verification needs raw bytes)
+  // Route lives under /api/ so it matches the existing nginx proxy rule.
   app.post(
-    '/webhook/composio',
+    '/api/webhook/composio',
     express.raw({ type: 'application/json', limit: '1mb' }),
     (req: Request, res: Response) => {
       const secret = process.env.COMPOSIO_WEBHOOK_SECRET;

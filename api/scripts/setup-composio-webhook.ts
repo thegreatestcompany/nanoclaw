@@ -16,7 +16,7 @@ import { createWebhookSubscription } from '../src/composio-triggers.js';
 async function main(): Promise<void> {
   const webhookUrl =
     process.env.COMPOSIO_WEBHOOK_URL ||
-    'https://otto.hntic.fr/webhook/composio';
+    'https://otto.hntic.fr/api/webhook/composio';
 
   console.log(`Creating Composio webhook subscription for: ${webhookUrl}`);
 
