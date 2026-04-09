@@ -41,9 +41,20 @@ const DEFAULT_TRIGGERS: Array<{
     },
     description: 'Calendar event starting soon (15 min before)',
   },
+  {
+    slug: 'GOOGLECALENDAR_EVENT_CANCELED_DELETED_TRIGGER',
+    toolkit: 'googlecalendar',
+    triggerConfig: {
+      calendarId: 'primary',
+      interval: 2, // poll every 2 min
+    },
+    description: 'Calendar event canceled or deleted',
+  },
   // Gmail is intentionally NOT here — most emails are noise, Otto would
   // burn budget analyzing each one with no real value (client can check
   // their own inbox). Calendar reminders are high-signal, low-volume.
+  // Slack/Stripe/CRM triggers deliberately omitted to keep Otto's target
+  // audience (light-tech-stack SMBs) aligned with the product positioning.
 ];
 
 function getApiKey(): string {
