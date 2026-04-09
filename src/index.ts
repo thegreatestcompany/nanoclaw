@@ -122,7 +122,11 @@ function loadState(): void {
   if (storedHash && storedHash !== currentHash) {
     const purged = clearAllSessions();
     logger.info(
-      { purged, oldHash: storedHash.slice(0, 8), newHash: currentHash.slice(0, 8) },
+      {
+        purged,
+        oldHash: storedHash.slice(0, 8),
+        newHash: currentHash.slice(0, 8),
+      },
       'CLAUDE.md instructions changed — purged sessions to apply updates',
     );
   }
@@ -311,6 +315,20 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
         );
       }
     }
+  }
+
+  // Mark that a fresh user message has been received for this group.
+  // The container's HITL hook checks this timestamp to ensure that pending
+  // mutations are only auto-approved after a real user confirmation, not
+  // immediately retried within the same agent turn.
+  try {
+    const userMsgFile = path.join(
+      resolveGroupFolderPath(group.folder),
+      '.last_user_message_ts',
+    );
+    fs.writeFileSync(userMsgFile, new Date().toISOString());
+  } catch {
+    /* non-fatal */
   }
 
   let prompt = '';
@@ -614,6 +632,16 @@ async function startMessageLoop(): Promise<void> {
             lastAgentTimestamp[chatJid] =
               messagesToSend[messagesToSend.length - 1].timestamp;
             saveState();
+            // Mark fresh user message timestamp for HITL pending mutation flow
+            try {
+              const userMsgFile = path.join(
+                resolveGroupFolderPath(group.folder),
+                '.last_user_message_ts',
+              );
+              fs.writeFileSync(userMsgFile, new Date().toISOString());
+            } catch {
+              /* non-fatal */
+            }
             // Refresh groups snapshot for main container (lightweight, no WhatsApp API call)
             // so newly created groups are visible without restarting the container
             if (group.isMain) {
