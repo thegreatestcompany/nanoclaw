@@ -58,6 +58,17 @@ app.get('/portal', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'portal.html'));
 });
 
+// Legal pages
+app.get('/cgv', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'cgv.html'));
+});
+app.get('/privacy', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'privacy.html'));
+});
+app.get('/legal', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'legal.html'));
+});
+
 // Contact form
 app.post('/api/contact', express.json(), (req, res) => {
   const { name, email, company, message } = req.body;

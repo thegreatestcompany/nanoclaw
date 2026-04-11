@@ -126,51 +126,94 @@ export async function sendWelcomeEmail(to: string, name?: string | null): Promis
 
   const greeting = name ? `${name.split(' ')[0]}, ton` : 'Ton';
 
+  const s = (t: string) =>
+    `<tr><td style="padding:6px 0;color:#555;font-size:0.9rem">${t}</td></tr>`;
+
   await transporter.sendMail({
     from: FROM,
     to,
-    subject: 'Otto est actif — ton assistant IA est prêt',
+    subject: 'Otto est actif — voici comment l\'utiliser 🚀',
     html: `
-      <div style="font-family:'Inter',system-ui,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px">
+      <div style="font-family:'Inter',system-ui,sans-serif;max-width:520px;margin:0 auto;padding:40px 20px;color:#333">
         <div style="text-align:center;margin-bottom:32px">
           <h1 style="font-size:1.6rem;font-weight:800;letter-spacing:-0.03em;color:#128C7E;margin-bottom:4px">Otto</h1>
           <p style="color:#999;font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase">by HNTIC</p>
         </div>
 
-        <p style="color:#333;font-size:1rem;line-height:1.6;margin-bottom:24px">
-          ${greeting} assistant IA est connect&eacute; et pr&ecirc;t &agrave; t'aider. Envoie-lui un message sur WhatsApp pour commencer.
+        <p style="font-size:1rem;line-height:1.6;margin-bottom:24px">
+          ${greeting} assistant business IA est connect&eacute; et pr&ecirc;t &agrave; t'aider.
         </p>
 
-        <div style="background:#f9f9f9;border-radius:12px;padding:24px;margin-bottom:24px">
-          <p style="color:#333;font-weight:500;margin-bottom:16px">Ce qu'Otto peut faire pour toi :</p>
+        <!-- OÙ LE TROUVER -->
+        <h2 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.08em;color:#128C7E;margin-bottom:12px">&#128241; O&ugrave; le trouver</h2>
+        <p style="font-size:0.95rem;line-height:1.6;margin-bottom:24px">
+          Otto est dans ton <strong>"self-chat" WhatsApp</strong> &mdash; la conversation avec toi-m&ecirc;me.
+          Ouvre WhatsApp et cherche ton propre nom ou "Otto" dans tes conversations.
+        </p>
+
+        <!-- CE QU'OTTO SAIT FAIRE -->
+        <h2 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.08em;color:#128C7E;margin-bottom:12px">&#128172; Ce qu'Otto sait faire</h2>
+        <div style="background:#f9f9f9;border-radius:12px;padding:20px;margin-bottom:24px">
           <table style="width:100%;border-collapse:collapse">
-            <tr><td style="padding:6px 0;color:#555;font-size:0.9rem">&#128196; Cr&eacute;er des documents (Word, PowerPoint, Excel, PDF)</td></tr>
-            <tr><td style="padding:6px 0;color:#555;font-size:0.9rem">&#128197; G&eacute;rer ton agenda et tes rappels</td></tr>
-            <tr><td style="padding:6px 0;color:#555;font-size:0.9rem">&#128188; Suivre tes deals, contacts et pipeline</td></tr>
-            <tr><td style="padding:6px 0;color:#555;font-size:0.9rem">&#128176; Analyser tes finances et factures</td></tr>
-            <tr><td style="padding:6px 0;color:#555;font-size:0.9rem">&#128269; Rechercher des infos sur le web</td></tr>
-            <tr><td style="padding:6px 0;color:#555;font-size:0.9rem">&#127908; Comprendre tes messages vocaux</td></tr>
+            ${s('&#128188; G&eacute;rer tes contacts, deals, t&acirc;ches et projets')}
+            ${s('&#128231; Lire et envoyer des emails (Gmail)')}
+            ${s('&#128197; Consulter et g&eacute;rer ton agenda (Calendar)')}
+            ${s('&#9200; Te rappeler tes RDV 15 min avant avec un brief')}
+            ${s('&#10060; Te pr&eacute;venir si un RDV est annul&eacute;')}
+            ${s('&#128196; Cr&eacute;er des documents (Word, Excel, PowerPoint, PDF)')}
+            ${s('&#128247; Extraire les infos de photos, PDF, Word, Excel, vocaux')}
+            ${s('&#128269; Faire des recherches web')}
+            ${s('&#128200; Te faire un brief quotidien de ta journ&eacute;e')}
           </table>
         </div>
 
-        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;margin-bottom:24px;text-align:center">
-          <p style="color:#166534;font-size:0.95rem;margin:0">
-            Envoie <strong>"Bonjour"</strong> sur WhatsApp pour d&eacute;marrer.
+        <!-- PREMIERS PAS -->
+        <h2 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.08em;color:#128C7E;margin-bottom:12px">&#128640; Premiers pas (5 min)</h2>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;margin-bottom:24px">
+          <ol style="margin:0;padding-left:20px;line-height:2">
+            <li>Envoie-lui <strong>"Bonjour, mon entreprise s'appelle [nom]"</strong> &mdash; il te posera quelques questions pour se configurer</li>
+            <li>Connecte tes apps : <strong>"Connecte mon Gmail"</strong> ou <strong>"Connecte mon Calendar"</strong> &mdash; il t'enverra un lien d'autorisation</li>
+            <li>Programme ton brief matinal : <strong>"Programme un brief tous les matins &agrave; 9h"</strong></li>
+          </ol>
+        </div>
+
+        <!-- GROUPES -->
+        <h2 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.08em;color:#128C7E;margin-bottom:12px">&#128101; Dans tes groupes WhatsApp</h2>
+        <p style="font-size:0.95rem;line-height:1.6;margin-bottom:12px">
+          Tu peux aussi activer Otto dans tes groupes WhatsApp d'&eacute;quipe.
+          Dis-lui <strong>"ajoute Otto au groupe [nom]"</strong> depuis ton self-chat.
+        </p>
+        <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:12px;padding:16px;margin-bottom:24px">
+          <p style="font-size:0.85rem;line-height:1.5;margin:0;color:#92400e">
+            &#9888;&#65039; <strong>Important :</strong> dans un groupe activ&eacute;, tous les membres peuvent interroger Otto
+            en &eacute;crivant <strong>@otto</strong> suivi de leur question. Ils auront acc&egrave;s aux donn&eacute;es
+            enregistr&eacute;es sur ton entreprise. Les conversations du groupe seront aussi analys&eacute;es pour
+            enrichir ta base de donn&eacute;es. R&eacute;serve cette activation &agrave; tes collaborateurs de confiance.
+          </p>
+          <p style="font-size:0.85rem;line-height:1.5;margin:8px 0 0;color:#92400e">
+            Dans un groupe, Otto ne r&eacute;pond <strong>qu'aux messages qui le mentionnent avec @otto</strong>.
           </p>
         </div>
 
-        <p style="color:#999;font-size:0.85rem;line-height:1.5;margin-bottom:8px">
-          <strong>Bon &agrave; savoir :</strong>
+        <!-- PORTAIL -->
+        <h2 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.08em;color:#128C7E;margin-bottom:12px">&#127760; Ton espace client</h2>
+        <p style="font-size:0.95rem;line-height:1.6;margin-bottom:24px">
+          Tu as aussi un tableau de bord web avec toutes tes donn&eacute;es.
+          Dis <strong>"mon portail"</strong> &agrave; Otto, il t'enverra un code d'acc&egrave;s.
         </p>
+
+        <!-- AIDE -->
+        <p style="color:#999;font-size:0.85rem;line-height:1.5;margin-bottom:8px"><strong>Besoin d'aide ?</strong></p>
         <ul style="color:#999;font-size:0.85rem;line-height:1.8;padding-left:20px;margin-bottom:24px">
-          <li>Otto apprend de tes conversations et s'am&eacute;liore avec le temps</li>
-          <li>Tes donn&eacute;es sont priv&eacute;es et s&eacute;curis&eacute;es</li>
-          <li>Tu peux lui envoyer des documents, des vocaux ou du texte</li>
+          <li>Parle directement &agrave; Otto &mdash; il est l&agrave; pour &ccedil;a !</li>
+          <li>Tu peux aussi nous &eacute;crire &agrave; <a href="mailto:otto@hntic.fr" style="color:#128C7E">otto@hntic.fr</a></li>
           <li>En cas de probl&egrave;me de connexion : <a href="https://otto.hntic.fr/reconnect" style="color:#666">otto.hntic.fr/reconnect</a></li>
         </ul>
 
         <hr style="border:none;border-top:1px solid #eee;margin:32px 0">
         <p style="color:#bbb;font-size:0.75rem;text-align:center">
+          <a href="https://otto.hntic.fr/cgv" style="color:#999;text-decoration:none;margin-right:12px">CGV</a>
+          <a href="https://otto.hntic.fr/privacy" style="color:#999;text-decoration:none;margin-right:12px">Confidentialit&eacute;</a>
           <a href="https://hntic.fr" style="color:#999;text-decoration:none">HNTIC</a>
         </p>
       </div>
