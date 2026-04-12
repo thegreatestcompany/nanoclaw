@@ -584,6 +584,309 @@ export function setupPortalRoutes(app: Express): void {
     },
   );
 
+  // ─── OTTO TAB ─────────────────────────────────────────────────────────────
+
+  // Activated WhatsApp groups + per-group stats and Otto-extracted data
+  app.get(
+    '/api/portal/otto/groups',
+    verifyPortalToken,
+    (req: PortalRequest, res) => {
+      const clientId = req.clientId!;
+      const msgDbPath = path.join(CLIENTS_DIR, clientId, 'store', 'messages.db');
+      const businessDbPath = getClientDbPath(clientId);
+
+      if (!fs.existsSync(msgDbPath)) {
+        res.json({ groups: [] });
+        return;
+      }
+
+      const msgDb = new Database(msgDbPath, { readonly: true });
+      let businessDb: Database.Database | null = null;
+      if (fs.existsSync(businessDbPath)) {
+        businessDb = new Database(businessDbPath, { readonly: true });
+      }
+
+      try {
+        const rows = msgDb
+          .prepare(
+            'SELECT jid, name, folder, is_main, added_at FROM registered_groups ORDER BY is_main DESC, added_at DESC',
+          )
+          .all() as Array<{
+          jid: string;
+          name: string;
+          folder: string;
+          is_main: number;
+          added_at: string;
+        }>;
+
+        const groups = rows.map((row) => {
+          // Message stats from messages.db
+          const stats = msgDb
+            .prepare(
+              'SELECT count(*) as msg_count, MAX(timestamp) as last_msg FROM messages WHERE chat_jid = ?',
+            )
+            .get(row.jid) as { msg_count: number; last_msg: string | null };
+
+          // Otto-extracted data from business.db (where source mentions this jid)
+          let extractedContacts = 0;
+          let extractedDeals = 0;
+          let pendingUpdates = 0;
+          if (businessDb) {
+            try {
+              extractedContacts = (
+                businessDb
+                  .prepare(
+                    "SELECT count(*) as n FROM contacts WHERE deleted_at IS NULL AND source = 'whatsapp'",
+                  )
+                  .get() as { n: number }
+              ).n;
+              pendingUpdates = (
+                businessDb
+                  .prepare(
+                    "SELECT count(*) as n FROM pending_updates WHERE status = 'pending' AND source_chat_jid = ?",
+                  )
+                  .get(row.jid) as { n: number }
+              ).n;
+            } catch {
+              /* tables may not exist on older DBs */
+            }
+          }
+
+          return {
+            jid: row.jid,
+            name: row.name,
+            folder: row.folder,
+            isMain: row.is_main === 1,
+            addedAt: row.added_at,
+            messageCount: stats.msg_count,
+            lastActivity: stats.last_msg,
+            extractedContacts,
+            extractedDeals,
+            pendingUpdates,
+            // wa.me URL works for individual chats but not group jids; we leave it
+            // null for groups since there's no public way to deep-link to a group.
+            whatsappUrl: row.jid.endsWith('@s.whatsapp.net')
+              ? `https://wa.me/${row.jid.split('@')[0]}`
+              : null,
+          };
+        });
+
+        msgDb.close();
+        if (businessDb) businessDb.close();
+        res.json({ groups });
+      } catch (err) {
+        msgDb.close();
+        if (businessDb) businessDb.close();
+        res
+          .status(500)
+          .json({ error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  );
+
+  // Deactivate a group from the portal (calls the host via IPC events dir,
+  // same mechanism the agent's unregister_group MCP tool uses).
+  app.post(
+    '/api/portal/otto/groups/:jid/deactivate',
+    verifyPortalToken,
+    express.json(),
+    (req: PortalRequest, res) => {
+      const clientId = req.clientId!;
+      const jid = String(req.params.jid);
+
+      // Refuse main JIDs (would lock the user out of his own self-chat)
+      if (jid.endsWith('@s.whatsapp.net')) {
+        res
+          .status(400)
+          .json({ error: "Le self-chat ne peut pas être désactivé" });
+        return;
+      }
+      if (!jid.endsWith('@g.us')) {
+        res.status(400).json({ error: 'JID invalide' });
+        return;
+      }
+
+      const msgDbPath = path.join(CLIENTS_DIR, clientId, 'store', 'messages.db');
+      if (!fs.existsSync(msgDbPath)) {
+        res.status(404).json({ error: 'Client introuvable' });
+        return;
+      }
+
+      // Direct DB delete + remove the group folder marker so the host picks
+      // up the change at next reload. The host's in-memory map will catch up
+      // on next message processing.
+      const db = new Database(msgDbPath);
+      try {
+        const result = db
+          .prepare('DELETE FROM registered_groups WHERE jid = ? AND is_main = 0')
+          .run(jid);
+        db.close();
+        if (result.changes === 0) {
+          res
+            .status(404)
+            .json({ error: 'Groupe non trouvé ou main group protégé' });
+          return;
+        }
+        // Touch a reload marker so the host process picks up the change
+        try {
+          const ipcDir = path.join(CLIENTS_DIR, clientId, 'data', 'ipc');
+          fs.mkdirSync(ipcDir, { recursive: true });
+          fs.writeFileSync(
+            path.join(ipcDir, '.reload_groups'),
+            new Date().toISOString(),
+          );
+        } catch {
+          /* non-fatal */
+        }
+        res.json({ ok: true });
+      } catch (err) {
+        db.close();
+        res
+          .status(500)
+          .json({ error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  );
+
+  // Composio integrations connected for this client
+  app.get(
+    '/api/portal/otto/integrations',
+    verifyPortalToken,
+    async (req: PortalRequest, res) => {
+      const clientId = req.clientId!;
+      const client = getClientById(clientId);
+      if (!client?.whatsapp_jid) {
+        res.json({ integrations: [], error: 'WhatsApp not linked yet' });
+        return;
+      }
+      if (!process.env.COMPOSIO_API_KEY) {
+        res.json({ integrations: [] });
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `https://backend.composio.dev/api/v3/connected_accounts?user_ids=${encodeURIComponent(client.whatsapp_jid)}`,
+          {
+            headers: { 'x-api-key': process.env.COMPOSIO_API_KEY },
+          },
+        );
+        if (!response.ok) {
+          res.json({ integrations: [] });
+          return;
+        }
+        const data = (await response.json()) as {
+          items?: Array<{
+            id?: string;
+            status?: string;
+            toolkit?: { slug?: string; name?: string; logo?: string };
+            created_at?: string;
+            updated_at?: string;
+          }>;
+        };
+        const integrations = (data.items || []).map((a) => ({
+          id: a.id || '',
+          toolkit: a.toolkit?.slug || '?',
+          name: a.toolkit?.name || a.toolkit?.slug || '?',
+          logo: a.toolkit?.logo || null,
+          status: a.status || 'unknown',
+          createdAt: a.created_at || null,
+          updatedAt: a.updated_at || null,
+        }));
+        res.json({ integrations });
+      } catch (err) {
+        res.json({
+          integrations: [],
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    },
+  );
+
+  // Subscription / billing summary
+  app.get(
+    '/api/portal/otto/subscription',
+    verifyPortalToken,
+    (req: PortalRequest, res) => {
+      const clientId = req.clientId!;
+      const client = getClientById(clientId);
+      if (!client) {
+        res.status(404).json({ error: 'Client introuvable' });
+        return;
+      }
+      res.json({
+        status: client.status,
+        trialEndsAt: client.trial_ends_at,
+        cancelAt: client.cancel_at,
+        cancelReason: client.cancel_reason,
+        memberSince: client.created_at,
+        hasStripeCustomer: !!client.stripe_customer_id,
+      });
+    },
+  );
+
+  // Generate Stripe Customer Portal session
+  app.post(
+    '/api/portal/otto/billing-portal',
+    verifyPortalToken,
+    async (req: PortalRequest, res) => {
+      const clientId = req.clientId!;
+      const client = getClientById(clientId);
+      if (!client?.stripe_customer_id) {
+        res.status(400).json({ error: 'Aucun compte Stripe associé' });
+        return;
+      }
+      if (!process.env.STRIPE_SECRET_KEY) {
+        res.status(503).json({ error: 'Stripe not configured' });
+        return;
+      }
+      try {
+        const Stripe = (await import('stripe')).default;
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        const baseUrl = process.env.BASE_URL || 'https://otto.hntic.fr';
+        const session = await stripe.billingPortal.sessions.create({
+          customer: client.stripe_customer_id,
+          return_url: `${baseUrl}/portal#otto`,
+        });
+        res.json({ url: session.url });
+      } catch (err) {
+        res
+          .status(500)
+          .json({ error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+  );
+
+  // Account info (read-only for now; future: editable via PUT)
+  app.get(
+    '/api/portal/otto/account',
+    verifyPortalToken,
+    (req: PortalRequest, res) => {
+      const clientId = req.clientId!;
+      const client = getClientById(clientId);
+      if (!client) {
+        res.status(404).json({ error: 'Client introuvable' });
+        return;
+      }
+      res.json({
+        id: client.id,
+        email: client.email,
+        name: client.name,
+        company: client.company,
+        phone: client.phone,
+        addressLine1: client.address_line1,
+        addressLine2: client.address_line2,
+        city: client.address_city,
+        postalCode: client.address_postal_code,
+        country: client.address_country,
+        taxId: client.tax_id,
+        whatsappJid: client.whatsapp_jid,
+      });
+    },
+  );
+
+  // ─── END OTTO TAB ─────────────────────────────────────────────────────────
+
   // Usage stats
   app.get(
     '/api/portal/usage',

@@ -759,6 +759,89 @@
       .landing-card h2 { font-size: 1.1rem; }
       .doc-grid { grid-template-columns: 1fr; }
     }
+
+    /* ─── OTTO TAB ─── */
+    .otto-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .otto-section-header { margin-bottom: 16px; }
+    .otto-section-header h3 {
+      font-size: 1rem; font-weight: 600;
+      color: var(--text); margin: 0 0 4px;
+    }
+    .otto-section-sub {
+      font-size: 0.82rem; color: var(--text-muted);
+      margin: 0; line-height: 1.5;
+    }
+    .otto-card {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 16px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 10px;
+      margin-bottom: 10px; transition: var(--transition);
+    }
+    .otto-card:hover { border-color: var(--text-muted); }
+    .otto-card-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--accent-soft); color: var(--accent);
+      font-size: 1.1rem; flex-shrink: 0;
+    }
+    .otto-card-icon img { width: 24px; height: 24px; border-radius: 6px; }
+    .otto-card-body { flex: 1; min-width: 0; }
+    .otto-card-title {
+      font-size: 0.9rem; font-weight: 600;
+      color: var(--text); margin-bottom: 2px;
+    }
+    .otto-card-meta {
+      font-size: 0.75rem; color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .otto-card-actions {
+      display: flex; gap: 8px; flex-shrink: 0;
+    }
+    .otto-btn {
+      padding: 7px 14px; border-radius: 8px;
+      font-size: 0.78rem; font-weight: 500;
+      border: 1px solid var(--border); background: var(--card-bg);
+      color: var(--text); cursor: pointer; transition: var(--transition);
+      text-decoration: none; white-space: nowrap;
+    }
+    .otto-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .otto-btn-danger { color: #e54545; border-color: rgba(229,69,69,0.2); }
+    .otto-btn-danger:hover { border-color: #e54545; background: rgba(229,69,69,0.05); color: #e54545; }
+    .otto-btn-primary {
+      background: var(--accent); color: #fff !important; border-color: var(--accent);
+    }
+    .otto-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff !important; }
+    .otto-stats {
+      display: flex; gap: 16px; margin-top: 6px;
+      font-size: 0.7rem; color: var(--text-muted);
+    }
+    .otto-stat strong { color: var(--text); font-weight: 600; }
+    .otto-empty {
+      padding: 24px; text-align: center;
+      color: var(--text-muted); font-size: 0.85rem;
+    }
+    .otto-status-badge {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 100px; font-size: 0.7rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .otto-status-active { background: rgba(0,168,132,0.1); color: #00a884; }
+    .otto-status-trial { background: rgba(255,159,28,0.1); color: #ff9f1c; }
+    .otto-status-cancelled { background: rgba(229,69,69,0.1); color: #e54545; }
+    .otto-info-row {
+      display: flex; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .otto-info-row:last-child { border-bottom: none; }
+    .otto-info-label { color: var(--text-muted); }
+    .otto-info-value { color: var(--text); font-weight: 500; text-align: right; }
   </style>
 </head>
 <body>
@@ -836,6 +919,10 @@
         <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
         <span class="nav-label">Chat</span>
       </button>
+      <button class="nav-item" data-tab="otto" onclick="switchTab('otto')">
+        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg></span>
+        <span class="nav-label">Otto</span>
+      </button>
     </nav>
     <div class="sidebar-footer">
       <div class="sidebar-company" id="sidebar-company"></div>
@@ -862,6 +949,9 @@
       </button>
       <button class="mobile-nav-item" data-tab="chat" onclick="switchTab('chat')">
         <span class="mobile-nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+      </button>
+      <button class="mobile-nav-item" data-tab="otto" onclick="switchTab('otto')">
+        <span class="mobile-nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg></span>
       </button>
     </div>
   </nav>
@@ -942,6 +1032,48 @@
           </div>
         </div>
       </div>
+
+      <!-- Otto (settings + control) -->
+      <div class="tab-pane" id="tab-otto">
+        <div class="spinner" id="otto-loader"><span class="spinner-text">Chargement...</span></div>
+        <div id="otto-content" style="display:none">
+          <!-- ─── Groupes WhatsApp ─── -->
+          <div class="otto-section">
+            <div class="otto-section-header">
+              <h3>Groupes WhatsApp activ&eacute;s</h3>
+              <p class="otto-section-sub">Otto est actif dans ces groupes. Il analyse les conversations et r&eacute;pond aux messages mentionnant <code>@otto</code>.</p>
+            </div>
+            <div id="otto-groups-list"></div>
+          </div>
+
+          <!-- ─── Intégrations ─── -->
+          <div class="otto-section">
+            <div class="otto-section-header">
+              <h3>Int&eacute;grations connect&eacute;es</h3>
+              <p class="otto-section-sub">Apps tierces qu'Otto peut utiliser en votre nom (Gmail, Calendar, etc.).</p>
+            </div>
+            <div id="otto-integrations-list"></div>
+          </div>
+
+          <!-- ─── Abonnement ─── -->
+          <div class="otto-section">
+            <div class="otto-section-header">
+              <h3>Abonnement</h3>
+              <p class="otto-section-sub">G&eacute;rez votre abonnement, votre moyen de paiement et votre facturation.</p>
+            </div>
+            <div id="otto-subscription"></div>
+          </div>
+
+          <!-- ─── Mon compte ─── -->
+          <div class="otto-section">
+            <div class="otto-section-header">
+              <h3>Mon compte</h3>
+              <p class="otto-section-sub">Vos informations personnelles et coordonn&eacute;es.</p>
+            </div>
+            <div id="otto-account"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="portal-footer">
@@ -953,7 +1085,7 @@
 
 <script>
 const PARIS_TZ = 'Europe/Paris';
-const VALID_TABS = ['dashboard', 'commercial', 'finance', 'equipe', 'documents', 'chat'];
+const VALID_TABS = ['dashboard', 'commercial', 'finance', 'equipe', 'documents', 'chat', 'otto'];
 const TAB_TITLES = {
   dashboard: "Vue d'ensemble",
   commercial: 'Commercial',
@@ -961,6 +1093,7 @@ const TAB_TITLES = {
   equipe: '\u00C9quipe',
   documents: 'Mes documents',
   chat: 'Chat',
+  otto: 'Otto',
 };
 let currentTab = 'dashboard';
 let companyName = '';
@@ -1251,6 +1384,7 @@ function switchTab(tabId) {
   const titleEl = document.getElementById('topbar-title');
   if (titleEl) titleEl.textContent = TAB_TITLES[tabId] || tabId;
   if (tabId === 'chat') { initChat(); return; }
+  if (tabId === 'otto') { loadOtto(); return; }
   const loaders = { dashboard: loadDashboard, commercial: loadCommercial, finance: loadFinance, equipe: loadEquipe, documents: loadDocuments };
   if (!cache[tabId]) loaders[tabId]();
   else {
@@ -1710,6 +1844,180 @@ setInterval(() => {
   const el = document.getElementById('header-time');
   if (el) el.textContent = nowParis();
 }, 60000);
+
+/* ─── Otto tab ─── */
+
+async function loadOtto() {
+  const loader = document.getElementById('otto-loader');
+  const content = document.getElementById('otto-content');
+  if (loader) loader.style.display = 'flex';
+  if (content) content.style.display = 'none';
+
+  try {
+    const [groupsRes, integrationsRes, subRes, accountRes] = await Promise.all([
+      fetch('/api/portal/otto/groups').then(r => r.json()),
+      fetch('/api/portal/otto/integrations').then(r => r.json()),
+      fetch('/api/portal/otto/subscription').then(r => r.json()),
+      fetch('/api/portal/otto/account').then(r => r.json()),
+    ]);
+
+    renderOttoGroups(groupsRes.groups || []);
+    renderOttoIntegrations(integrationsRes.integrations || []);
+    renderOttoSubscription(subRes);
+    renderOttoAccount(accountRes);
+
+    if (loader) loader.style.display = 'none';
+    if (content) content.style.display = 'block';
+  } catch (err) {
+    if (loader) loader.innerHTML = '<span class="spinner-text">Erreur de chargement</span>';
+  }
+}
+
+function renderOttoGroups(groups) {
+  const el = document.getElementById('otto-groups-list');
+  if (!el) return;
+  const nonMain = groups.filter(g => !g.isMain);
+  if (nonMain.length === 0) {
+    el.innerHTML = '<div class="otto-empty">Aucun groupe activé. Demande à Otto sur WhatsApp d\'ajouter Otto à un groupe d\'équipe.</div>';
+    return;
+  }
+  el.innerHTML = nonMain.map(g => {
+    const lastActivity = g.lastActivity ? formatRelative(g.lastActivity) : '—';
+    return `
+      <div class="otto-card">
+        <div class="otto-card-icon">👥</div>
+        <div class="otto-card-body">
+          <div class="otto-card-title">${escapeHtml(g.name)}</div>
+          <div class="otto-card-meta">Activé ${formatRelative(g.addedAt)} · Dernière activité ${lastActivity}</div>
+          <div class="otto-stats">
+            <span class="otto-stat"><strong>${g.messageCount}</strong> messages analysés</span>
+            ${g.pendingUpdates > 0 ? `<span class="otto-stat"><strong>${g.pendingUpdates}</strong> mises à jour en attente</span>` : ''}
+          </div>
+        </div>
+        <div class="otto-card-actions">
+          <button class="otto-btn otto-btn-danger" onclick="deactivateGroup('${g.jid}', '${escapeHtml(g.name).replace(/'/g, "\\'")}')">Désactiver</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function deactivateGroup(jid, name) {
+  if (!confirm(`Désactiver Otto du groupe "${name}" ? Les données business sont conservées au cas où tu veux le réactiver plus tard.`)) return;
+  try {
+    const r = await fetch('/api/portal/otto/groups/' + encodeURIComponent(jid) + '/deactivate', { method: 'POST' });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      alert('Erreur : ' + (err.error || r.statusText));
+      return;
+    }
+    // Reload the section
+    loadOtto();
+  } catch (e) {
+    alert('Erreur réseau');
+  }
+}
+
+function renderOttoIntegrations(integrations) {
+  const el = document.getElementById('otto-integrations-list');
+  if (!el) return;
+  if (integrations.length === 0) {
+    el.innerHTML = '<div class="otto-empty">Aucune intégration connectée. Demande à Otto sur WhatsApp : "Connecte mon Gmail" ou "Connecte mon Calendar".</div>';
+    return;
+  }
+  el.innerHTML = integrations.map(i => {
+    const statusBadge = i.status === 'ACTIVE'
+      ? '<span class="otto-status-badge otto-status-active">Actif</span>'
+      : `<span class="otto-status-badge otto-status-cancelled">${escapeHtml(i.status)}</span>`;
+    return `
+      <div class="otto-card">
+        <div class="otto-card-icon">${i.logo ? `<img src="${escapeHtml(i.logo)}" alt="">` : '🔌'}</div>
+        <div class="otto-card-body">
+          <div class="otto-card-title">${escapeHtml(i.name)} ${statusBadge}</div>
+          <div class="otto-card-meta">Connecté ${i.createdAt ? formatRelative(i.createdAt) : '—'}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderOttoSubscription(sub) {
+  const el = document.getElementById('otto-subscription');
+  if (!el) return;
+  const statusLabels = {
+    active: { label: 'Actif', cls: 'otto-status-active' },
+    trial: { label: 'Période d\'essai', cls: 'otto-status-trial' },
+    pending_cancellation: { label: 'Résiliation en cours', cls: 'otto-status-cancelled' },
+    cancelled: { label: 'Annulé', cls: 'otto-status-cancelled' },
+  };
+  const status = statusLabels[sub.status] || { label: sub.status, cls: '' };
+  const memberSince = sub.memberSince ? new Date(sub.memberSince).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+  let trialInfo = '';
+  if (sub.status === 'trial' && sub.trialEndsAt) {
+    const end = new Date(sub.trialEndsAt);
+    const days = Math.max(0, Math.ceil((end - new Date()) / (24 * 3600 * 1000)));
+    trialInfo = `<div class="otto-info-row"><span class="otto-info-label">Fin de la période d'essai</span><span class="otto-info-value">${end.toLocaleDateString('fr-FR')} (${days}j restants)</span></div>`;
+  }
+  let cancelInfo = '';
+  if (sub.cancelAt) {
+    const c = new Date(sub.cancelAt);
+    cancelInfo = `<div class="otto-info-row"><span class="otto-info-label">Date de fin</span><span class="otto-info-value">${c.toLocaleDateString('fr-FR')}</span></div>`;
+  }
+  el.innerHTML = `
+    <div class="otto-info-row"><span class="otto-info-label">Statut</span><span class="otto-info-value"><span class="otto-status-badge ${status.cls}">${status.label}</span></span></div>
+    <div class="otto-info-row"><span class="otto-info-label">Client depuis</span><span class="otto-info-value">${memberSince}</span></div>
+    ${trialInfo}
+    ${cancelInfo}
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+      ${sub.hasStripeCustomer ? '<button class="otto-btn otto-btn-primary" onclick="openBillingPortal()">Gérer mon abonnement</button>' : ''}
+    </div>
+  `;
+}
+
+async function openBillingPortal() {
+  try {
+    const r = await fetch('/api/portal/otto/billing-portal', { method: 'POST' });
+    const data = await r.json();
+    if (data.url) window.location.href = data.url;
+    else alert('Erreur : ' + (data.error || 'Impossible d\'ouvrir le portail Stripe'));
+  } catch (e) {
+    alert('Erreur réseau');
+  }
+}
+
+function renderOttoAccount(account) {
+  const el = document.getElementById('otto-account');
+  if (!el) return;
+  const fields = [
+    ['Nom', account.name],
+    ['Email', account.email],
+    ['Entreprise', account.company],
+    ['Téléphone', account.phone],
+    ['Adresse', [account.addressLine1, account.addressLine2].filter(Boolean).join(' ')],
+    ['Ville', [account.postalCode, account.city].filter(Boolean).join(' ')],
+    ['Pays', account.country],
+    ['TVA intracom.', account.taxId],
+  ];
+  el.innerHTML = fields
+    .filter(([_, v]) => v)
+    .map(([k, v]) => `<div class="otto-info-row"><span class="otto-info-label">${k}</span><span class="otto-info-value">${escapeHtml(String(v))}</span></div>`)
+    .join('') + '<p style="margin-top:12px;font-size:0.75rem;color:var(--text-muted)">Pour modifier ces informations, contacte <a href="mailto:otto@hntic.fr" style="color:var(--accent)">otto@hntic.fr</a>.</p>';
+}
+
+function formatRelative(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return 'à l\'instant';
+  if (diff < 3600) return `il y a ${Math.floor(diff/60)} min`;
+  if (diff < 86400) return `il y a ${Math.floor(diff/3600)}h`;
+  if (diff < 86400 * 30) return `il y a ${Math.floor(diff/86400)}j`;
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
 
 /* ─── Chat ─── */
 
