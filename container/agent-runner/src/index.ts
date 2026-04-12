@@ -307,7 +307,7 @@ function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean, isMai
 
     // Credentials and config files
     /settings\.json/,          // SDK settings
-    /\.claude\//,              // SDK directory
+    /\.claude\/(?!skills(\/|$))/, // SDK directory (sessions, projects, todos…) — but allow skills/
     /\.gmail-mcp\//,           // Gmail OAuth tokens
     /creds\.json/,             // WhatsApp credentials
     /\.env\b/,                 // environment files (\b to not match .envrc etc in paths)
