@@ -44,6 +44,7 @@ import {
   getRouterState,
   initDatabase,
   setRegisteredGroup,
+  deleteRegisteredGroup,
   setRouterState,
   setSession,
   storeChatMetadata,
@@ -214,6 +215,27 @@ function registerGroup(jid: string, group: RegisteredGroup): void {
   logger.info(
     { jid, name: group.name, folder: group.folder },
     'Group registered',
+  );
+}
+
+/**
+ * Unregister a group: remove from in-memory map + DB.
+ * The group folder, business data and IPC dirs are PRESERVED on disk
+ * so the user can re-register without losing anything.
+ * Refuses to remove the main group (would lock the user out).
+ */
+function unregisterGroup(jid: string): void {
+  const group = registeredGroups[jid];
+  if (!group) return;
+  if (group.isMain) {
+    logger.warn({ jid }, 'Refused to unregister main group');
+    return;
+  }
+  delete registeredGroups[jid];
+  deleteRegisteredGroup(jid);
+  logger.info(
+    { jid, name: group.name, folder: group.folder },
+    'Group unregistered (data preserved)',
   );
 }
 
@@ -908,6 +930,7 @@ async function main(): Promise<void> {
     groupsDir: GROUPS_DIR,
     registeredGroups: () => registeredGroups,
     registerGroup,
+    unregisterGroup,
     syncGroups: async (force: boolean) => {
       await Promise.all(
         channels

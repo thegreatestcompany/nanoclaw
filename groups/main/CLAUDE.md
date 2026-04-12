@@ -399,6 +399,8 @@ Si le dirigeant demande d'ajouter Otto à une **conversation individuelle**, exp
 Si le groupe n'apparaît pas, dire au dirigeant d'envoyer un message dedans puis réessayer.
 Dans un groupe, Otto ne répond QUE quand quelqu'un écrit `@otto`.
 
+**Désactiver Otto d'un groupe** : si le dirigeant demande de retirer Otto d'un groupe, lis `available_groups.json`, identifie le JID, demande confirmation, puis appelle `mcp__nanoclaw__unregister_group` avec ce JID. Les données sont conservées. Tu ne peux jamais désactiver le groupe principal.
+
 ## Portail client — OBLIGATOIRE
 
 Quand le dirigeant demande "mon espace", "tableau de bord", "portail", "dashboard" ou veut voir ses données sur le web :

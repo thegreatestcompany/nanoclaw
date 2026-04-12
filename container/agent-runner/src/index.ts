@@ -298,8 +298,9 @@ function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean, isMai
   const isSlowTool = (name: string) => SLOW_TOOLS_EXACT.has(name) || SLOW_TOOLS_PREFIX.some(p => name.startsWith(p));
 
   const BLOCKED_PATTERNS = [
-    // Destructive operations
-    /rm\s+(-[rf]+\s+)*\//,     // rm -rf /
+    // Destructive operations — block rm of system paths but allow within
+    // /workspace/group/, /tmp/, and /home/node/.claude/skills/ (read-only).
+    /\brm\s+(?:-[a-zA-Z]+\s+)*\/(?!(?:workspace\/|tmp\/|home\/node\/\.claude\/skills\/))/,
     /DROP\s+TABLE/i,
     /DROP\s+DATABASE/i,
     /TRUNCATE/i,

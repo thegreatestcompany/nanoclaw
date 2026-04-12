@@ -380,6 +380,36 @@ Use available_groups.json to find the JID for a group. The folder name must be c
   },
 );
 
+server.tool(
+  'unregister_group',
+  `Deactivate Otto in a previously registered group. Main group only. Use this when the user explicitly asks to remove Otto from a group / disable Otto in a group / déactiver Otto dans un groupe.
+
+The group folder, business data and conversation history are PRESERVED on disk in case the user wants to re-activate later. Otto simply stops responding in that group.`,
+  {
+    jid: z.string().describe('The chat JID of the group to deactivate (e.g., "120363336345536173@g.us"). Look it up in available_groups.json among entries where isRegistered is true.'),
+  },
+  async (args) => {
+    if (!isMain) {
+      return {
+        content: [{ type: 'text' as const, text: 'Only the main group can unregister groups.' }],
+        isError: true,
+      };
+    }
+
+    const data = {
+      type: 'unregister_group',
+      jid: args.jid,
+      timestamp: new Date().toISOString(),
+    };
+
+    writeIpcFile(TASKS_DIR, data);
+
+    return {
+      content: [{ type: 'text' as const, text: `Group ${args.jid} deactivated. Otto will no longer respond to messages in this group. Data is preserved.` }],
+    };
+  },
+);
+
 // Start the stdio transport
 const transport = new StdioServerTransport();
 await server.connect(transport);

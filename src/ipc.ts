@@ -33,6 +33,7 @@ export interface IpcDeps {
   groupsDir: string;
   registeredGroups: () => Record<string, RegisteredGroup>;
   registerGroup: (jid: string, group: RegisteredGroup) => void;
+  unregisterGroup: (jid: string) => void;
   syncGroups: (force: boolean) => Promise<void>;
   getAvailableGroups: () => AvailableGroup[];
   writeGroupsSnapshot: (
@@ -645,6 +646,44 @@ export async function processTaskIpc(
       logger.info(
         { jid: data.jid, folder: data.folder, sourceGroup },
         'Group registered via IPC',
+      );
+      break;
+    }
+
+    case 'unregister_group': {
+      // Only the main group can unregister groups
+      if (!isMain) {
+        logger.warn(
+          { sourceGroup },
+          'Unauthorized unregister_group attempt blocked',
+        );
+        break;
+      }
+      if (!data.jid) {
+        logger.warn({ sourceGroup }, 'unregister_group: missing jid');
+        break;
+      }
+      const targetJid = data.jid as string;
+      const target = deps.registeredGroups()[targetJid];
+      if (!target) {
+        logger.warn(
+          { jid: targetJid },
+          'unregister_group: jid not registered',
+        );
+        break;
+      }
+      // Refuse to unregister the main group itself (would lock the user out)
+      if (target.isMain) {
+        logger.warn(
+          { jid: targetJid },
+          'unregister_group: refused to remove main group',
+        );
+        break;
+      }
+      deps.unregisterGroup(targetJid);
+      logger.info(
+        { jid: targetJid, folder: target.folder, sourceGroup },
+        'Group unregistered via IPC (data preserved on disk)',
       );
       break;
     }
