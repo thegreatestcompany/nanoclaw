@@ -58,6 +58,11 @@ app.get('/portal', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'portal.html'));
 });
 
+// Test landing (variant for A/B comparison)
+app.get('/test', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'test.html'));
+});
+
 // Legal pages
 app.get('/cgv', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'cgv.html'));

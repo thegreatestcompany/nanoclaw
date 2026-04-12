@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Otto by HNTIC — L'IA qui pilote votre entreprise depuis WhatsApp</title>
+  <meta name="description" content="Otto est un assistant IA sur WhatsApp qui g&egrave;re votre entreprise : CRM, documents, finances, RH, juridique. Comme avoir une &eacute;quipe enti&egrave;re dans votre poche.">
+  <meta name="keywords" content="assistant IA WhatsApp, gestion entreprise IA, CRM WhatsApp, automatisation PME, intelligence artificielle entreprise, chief of staff IA, assistant virtuel dirigeant">
+  <meta property="og:title" content="Otto by HNTIC — L'IA qui pilote votre entreprise depuis WhatsApp">
+  <meta property="og:description" content="Un seul assistant WhatsApp qui organise, anticipe et ex&eacute;cute. Sans rien installer.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://otto.hntic.fr">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="robots" content="index, follow">
+  <link rel="icon" href="/static/hntic-logo.png" type="image/png">
+  <link rel="canonical" href="https://otto.hntic.fr">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Otto by HNTIC",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "WhatsApp",
+    "description": "Assistant IA qui pilote votre entreprise depuis WhatsApp. CRM, documents, finances, RH, juridique.",
+    "offers": {
+      "@type": "Offer",
+      "availability": "https://schema.org/OnlineOnly"
+    }
+  }
+  </script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Satoshi:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    :root {
+      --bg: #08090b;
+      --bg2: #0e1013;
+      --bg3: #151820;
+      --text: #f0eee9;
+      --text2: #a8a69e;
+      --text3: #6b6962;
+      --text4: #4a4843;
+      --border: #1c1f26;
+      --border2: #2a2e38;
+      --accent: #1fc07f;
+      --accent-dim: rgba(31,192,127,.08);
+      --accent-glow: rgba(31,192,127,.15);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ═══ SCROLL REVEAL ═══ */
+    .reveal {
+      opacity: 0; transform: translateY(48px);
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.v { opacity: 1; transform: translateY(0); }
+    .d1 { transition-delay: 0.1s; } .d2 { transition-delay: 0.2s; }
+    .d3 { transition-delay: 0.3s; } .d4 { transition-delay: 0.4s; }
+    .reveal-scale {
+      opacity: 0; transform: scale(0.94);
+      transition: opacity 0.8s ease, transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal-scale.v { opacity: 1; transform: scale(1); }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+    @media (max-width: 480px) { .container { padding: 0 1rem; } }
+
+    .spacer { height: 5rem; }
+    .spacer-sm { height: 2.5rem; }
+    .divider { height: 1px; background: var(--border); margin: 5rem 0; }
+
+    /* ═══ HEADER ═══ */
+    header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 14px 24px;
+      background: rgba(8,9,11,0.85);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    header .inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo-link {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text);
+    }
+    .logo-link svg { width: 28px; height: 28px; }
+    .logo-link .logo-text {
+      font-family: 'Satoshi', sans-serif;
+      font-weight: 700; font-size: 1.3rem; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--accent), #17a36a);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hdr-cta {
+      padding: 10px 24px;
+      background: var(--accent); color: #08090b;
+      border-radius: 100px; text-decoration: none; font-size: 0.85rem;
+      font-weight: 600; transition: all 0.2s;
+    }
+    .hdr-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(31,192,127,.25); }
+
+    /* ═══ HERO ═══ */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      text-align: center; padding: 140px 2rem 80px; position: relative;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 1000px; height: 1000px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 55%);
+      pointer-events: none; opacity: .5;
+    }
+    @media (max-width: 480px) {
+      .hero { padding: 120px 1rem 60px; min-height: auto; }
+    }
+    .hero h1 {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: clamp(2.4rem, 6vw, 4.2rem); line-height: 1.1;
+      letter-spacing: -0.03em; margin-bottom: 1.5rem;
+      position: relative; max-width: 900px;
+    }
+    .hero h1 em { font-style: italic; color: var(--accent); }
+    .hero .sub {
+      font-size: 1.15rem; color: var(--text2); max-width: 560px;
+      line-height: 1.7; position: relative;
+    }
+
+    /* ═══ ACT LABEL ═══ */
+    .act {
+      font-size: .7rem; letter-spacing: .18em; text-transform: uppercase;
+      color: var(--text4); font-weight: 600; margin-bottom: 2rem; padding-left: 2px;
+    }
+
+    /* ═══ NEED CARDS ═══ */
+    .need {
+      padding: 2.5rem; border-radius: 20px; background: var(--bg2);
+      border: 1px solid var(--border); margin-bottom: 1.5rem;
+      position: relative; overflow: hidden; transition: border-color .3s;
+    }
+    .need:hover { border-color: var(--border2); }
+    .need .num {
+      font-family: 'Instrument Serif', serif; font-size: 4rem; color: var(--accent);
+      opacity: .12; position: absolute; top: 1.2rem; right: 2rem; line-height: 1;
+    }
+    .need .eyebrow {
+      font-size: .7rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--text3); font-weight: 500; margin-bottom: .75rem;
+    }
+    .need h2 {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: clamp(1.3rem, 3vw, 1.8rem); line-height: 1.25; margin-bottom: .75rem;
+    }
+    .need p { font-size: 1rem; color: var(--text2); line-height: 1.7; max-width: 620px; }
+    .need .pain {
+      margin-top: 1rem; font-size: .9rem; color: var(--text3);
+      line-height: 1.8; font-style: italic;
+    }
+    .needs-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+    @media (min-width: 768px) { .needs-grid { grid-template-columns: 1fr 1fr; } .needs-grid .need:first-child { grid-column: 1 / -1; } }
+    .need { margin-bottom: 0; }
+    @media (max-width: 480px) { .need { padding: 1.5rem; } }
+
+    /* ═══ REVEAL MOMENT ═══ */
+    .reveal-moment {
+      text-align: center; padding: 5rem 2rem; position: relative;
+    }
+    .reveal-moment::before {
+      content: ''; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .reveal-moment h2 {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: clamp(1.8rem, 5vw, 3.2rem); line-height: 1.15;
+      margin-bottom: 1.5rem; position: relative;
+    }
+    .reveal-moment h2 em { font-style: italic; color: var(--accent); }
+    .reveal-moment p {
+      font-size: 1.1rem; color: var(--text2); max-width: 520px;
+      margin: 0 auto; line-height: 1.7; position: relative;
+    }
+
+    /* ═══ SCENE LABEL ═══ */
+    .scene-label {
+      font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--text4); font-weight: 500; margin-bottom: 1rem;
+      padding-left: 2px; display: flex; align-items: center; gap: 8px;
+    }
+    .scene-label .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); opacity: .5;
+    }
+
+    /* ═══ CHAT BUBBLES ═══ */
+    .chat-demo {
+      max-width: 680px; margin: 0 auto 3.5rem;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .bubble {
+      max-width: 88%; padding: 14px 18px; border-radius: 16px;
+      font-size: .92rem; line-height: 1.55;
+    }
+    .bubble.user {
+      align-self: flex-end; background: var(--accent); color: #08090b;
+      font-weight: 500; border-bottom-right-radius: 4px;
+    }
+    .bubble.otto {
+      align-self: flex-start; background: var(--bg3); color: var(--text);
+      border: 1px solid var(--border2); border-bottom-left-radius: 4px;
+    }
+    .bubble .name {
+      font-size: .68rem; letter-spacing: .06em; text-transform: uppercase;
+      margin-bottom: 4px; font-weight: 600;
+    }
+    .bubble.otto .name { color: var(--accent); opacity: .7; }
+    .bubble.user .name { opacity: .6; }
+    .bubble .file {
+      margin-top: 8px; padding: 8px 12px; border-radius: 8px;
+      background: rgba(255,255,255,.06); font-size: .82rem;
+      display: inline-block; border: 1px solid rgba(255,255,255,.06);
+    }
+    .bubble .subtle { color: var(--text2); font-size: .85rem; }
+    .bubble .link {
+      color: var(--accent); text-decoration: underline;
+      text-underline-offset: 2px; font-size: .85rem;
+    }
+
+    /* ═══ AUTONOMOUS SECTION ═══ */
+    .auto-section {
+      margin: 2rem 0 3rem; padding: 2.5rem; border-radius: 20px;
+      background: var(--bg2); border: 1px solid var(--border);
+      position: relative; overflow: hidden;
+    }
+    .auto-section::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), transparent); opacity: .5;
+      border-radius: 20px 20px 0 0;
+    }
+    .auto-section .eyebrow {
+      font-size: .7rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent); font-weight: 500; margin-bottom: .75rem; opacity: .7;
+    }
+    .auto-section h3 {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: 1.5rem; margin-bottom: .75rem;
+    }
+    .auto-section p {
+      font-size: 1rem; color: var(--text2); line-height: 1.7;
+      max-width: 620px; margin-bottom: 1.5rem;
+    }
+    @media (max-width: 480px) { .auto-section { padding: 1.5rem; } }
+
+    /* ═══ PORTAL MOCKUP ═══ */
+    .portal-mock {
+      margin: 3rem auto; max-width: 900px; border-radius: 16px;
+      overflow: hidden; border: 1px solid var(--border2); background: var(--bg2);
+    }
+    .portal-bar {
+      padding: 10px 18px; background: var(--bg3);
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .portal-dot { width: 8px; height: 8px; border-radius: 50%; opacity: .3; }
+    .portal-url {
+      flex: 1; text-align: center; font-size: .75rem;
+      color: var(--text3); font-family: monospace;
+    }
+    .portal-body {
+      padding: 2rem; display: grid;
+      grid-template-columns: 140px 1fr; gap: 1.5rem;
+    }
+    @media (max-width: 600px) { .portal-body { grid-template-columns: 1fr; } }
+    .portal-sidebar { display: flex; flex-direction: column; gap: 4px; }
+    .portal-nav-item {
+      font-size: .8rem; padding: 8px 12px; border-radius: 6px;
+      color: var(--text3); cursor: default;
+    }
+    .portal-nav-item.active {
+      background: var(--accent-dim); color: var(--accent); font-weight: 500;
+    }
+    .portal-main { display: flex; flex-direction: column; gap: 1rem; }
+    .portal-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    @media (max-width: 480px) { .portal-kpis { grid-template-columns: repeat(2, 1fr); } }
+    .portal-kpi {
+      padding: 12px; border-radius: 8px; background: var(--bg3);
+      border: 1px solid var(--border); text-align: center;
+    }
+    .portal-kpi .val { font-size: 1.3rem; font-weight: 600; color: var(--accent); }
+    .portal-kpi .lab { font-size: .7rem; color: var(--text3); margin-top: 2px; }
+    .portal-table { font-size: .8rem; line-height: 2; }
+    .portal-table .row {
+      display: flex; justify-content: space-between; padding: 0 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .portal-table .row:last-child { border-bottom: none; }
+    .portal-table .tname { color: var(--text); }
+    .portal-table .detail { color: var(--text3); font-size: .75rem; }
+    .portal-table .val { color: var(--accent); font-weight: 500; }
+    .portal-badge {
+      display: inline-block; font-size: .65rem; padding: 2px 8px;
+      border-radius: 4px; background: var(--accent-dim);
+      color: var(--accent); font-weight: 500; margin-top: 8px;
+    }
+
+    /* ═══ FEATURES GRID ═══ */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1px; border-radius: 16px; overflow: hidden; margin: 2rem 0;
+    }
+    @media (max-width: 768px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .features-grid { grid-template-columns: 1fr; } }
+    .feature-card {
+      padding: 2.2rem; background: var(--bg2); position: relative;
+      border-left: 3px solid transparent; transition: border-color .3s, background .3s;
+    }
+    .feature-card:hover { border-left-color: var(--accent); background: var(--bg3); }
+    .feature-card .feature-icon { font-size: 1.6rem; margin-bottom: .75rem; display: block; }
+    .feature-card h3 {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: 1.15rem; margin-bottom: .6rem;
+    }
+    .feature-card p { font-size: .88rem; color: var(--text2); line-height: 1.65; }
+
+    /* ═══ FAQ ═══ */
+    .faq { padding: 5rem 0; }
+    .faq h2 {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: clamp(1.6rem, 4vw, 2.4rem); text-align: center;
+      margin-bottom: 3rem;
+    }
+    .faq-list { max-width: 680px; margin: 0 auto; text-align: left; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 22px 0; }
+    .faq-q {
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; font-size: 1rem; font-weight: 500; user-select: none;
+      color: var(--text);
+    }
+    .faq-q::after {
+      content: '+'; font-size: 1.4rem; font-weight: 300;
+      color: var(--text3); transition: transform 0.3s;
+    }
+    .faq-item.open .faq-q::after { transform: rotate(45deg); }
+    .faq-a { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+    .faq-item.open .faq-a { max-height: 300px; }
+    .faq-a p {
+      padding-top: 14px; font-size: .92rem; color: var(--text2); line-height: 1.65;
+    }
+
+    /* ═══ FINALE / CTA ═══ */
+    .finale { text-align: center; padding: 5rem 2rem 3rem; }
+    .finale h2 {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: clamp(1.6rem, 4vw, 2.6rem); margin-bottom: 1rem;
+    }
+    .finale h2 em { font-style: italic; color: var(--accent); }
+    .finale p {
+      color: var(--text2); font-size: 1rem; max-width: 480px;
+      margin: 0 auto 2rem; line-height: 1.7;
+    }
+
+    /* ═══ CONTACT FORM ═══ */
+    .contact-section { padding: 0 2rem 6rem; }
+    .contact-form {
+      max-width: 420px; margin: 0 auto; text-align: left;
+    }
+    .contact-form input, .contact-form textarea {
+      width: 100%; padding: 14px 18px;
+      border: 1px solid var(--border2); border-radius: 12px;
+      font-size: 0.92rem; font-family: inherit;
+      background: var(--bg2); color: var(--text);
+      margin-bottom: 10px; outline: none; transition: border-color 0.2s;
+    }
+    .contact-form input:focus, .contact-form textarea:focus {
+      border-color: var(--accent);
+    }
+    .contact-form input::placeholder, .contact-form textarea::placeholder {
+      color: var(--text3);
+    }
+    .contact-form textarea { resize: vertical; min-height: 80px; }
+    .contact-form button {
+      width: 100%; padding: 16px;
+      background: var(--accent); color: #08090b;
+      border: none; border-radius: 100px;
+      font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .contact-form button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px rgba(31,192,127,.25);
+    }
+    .contact-form button:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .contact-msg { font-size: 0.85rem; text-align: center; margin-top: 12px; min-height: 20px; }
+    .contact-msg.success { color: var(--accent); }
+    .contact-msg.error { color: #ef4444; }
+
+    /* ═══ FOOTER ═══ */
+    footer {
+      padding: 36px 24px; text-align: center;
+      border-top: 1px solid var(--border);
+    }
+    footer p { font-size: 0.78rem; color: var(--text3); }
+    footer a { color: var(--text2); text-decoration: none; }
+
+    /* ═══ PRICING ═══ */
+    .pricing { padding: 5rem 0 4rem; }
+    .pricing-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 1.5rem; max-width: 880px; margin: 0 auto;
+    }
+    @media (max-width: 720px) {
+      .pricing-grid { grid-template-columns: 1fr; gap: 1.25rem; }
+    }
+    .pricing-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 24px; padding: 2.5rem 2rem;
+      position: relative; transition: all 0.3s ease;
+    }
+    .pricing-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .pricing-card-featured {
+      background: linear-gradient(180deg, rgba(31,192,127,.06) 0%, var(--bg2) 100%);
+      border: 1px solid var(--accent);
+      box-shadow: 0 0 60px rgba(31,192,127,.08);
+    }
+    .pricing-card-featured:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 80px rgba(31,192,127,.15);
+    }
+    .pricing-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #08090b;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em;
+      padding: 6px 16px; border-radius: 100px;
+      text-transform: uppercase; white-space: nowrap;
+    }
+    .pricing-eyebrow {
+      font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text3); font-weight: 600; margin-bottom: 1rem;
+    }
+    .pricing-amount {
+      display: flex; align-items: baseline; gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .pricing-price {
+      font-family: 'Instrument Serif', serif; font-weight: 400;
+      font-size: 3.4rem; line-height: 1; color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .pricing-period { font-size: 0.95rem; color: var(--text2); font-weight: 500; }
+    .pricing-equiv {
+      font-size: 0.92rem; color: var(--text2); margin-bottom: 1.75rem;
+      padding-bottom: 1.75rem; border-bottom: 1px solid var(--border);
+    }
+    .pricing-features {
+      list-style: none; padding: 0; margin: 0 0 2rem;
+    }
+    .pricing-features li {
+      padding: 0.5rem 0 0.5rem 1.5rem; position: relative;
+      color: var(--text2); font-size: 0.92rem; line-height: 1.5;
+    }
+    .pricing-features li::before {
+      content: '✓'; position: absolute; left: 0;
+      color: var(--accent); font-weight: 700;
+    }
+    .pricing-cta {
+      display: block; text-align: center; padding: 14px 24px;
+      border-radius: 100px; text-decoration: none;
+      font-size: 0.95rem; font-weight: 600;
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border2); transition: all 0.2s;
+    }
+    .pricing-cta:hover { border-color: var(--accent); color: var(--accent); }
+    .pricing-cta-featured {
+      background: var(--accent); color: #08090b !important; border-color: var(--accent);
+    }
+    .pricing-cta-featured:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px rgba(31,192,127,.3);
+      color: #08090b !important;
+    }
+
+    /* ═══ MOBILE ═══ */
+    @media (max-width: 480px) {
+      .faq { padding: 3rem 0; }
+      .finale { padding: 3rem 1rem 2rem; }
+      .contact-section { padding: 0 1rem 4rem; }
+      .portal-kpis { grid-template-columns: 1fr 1fr; }
+      .pricing { padding: 3rem 0 2rem; }
+      .pricing-card { padding: 2rem 1.5rem; }
+      .pricing-price { font-size: 2.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══ HEADER ═══ -->
+  <header>
+    <div class="inner">
+      <a href="/" class="logo-link">
+        <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+          <path d="M24 4L42 14V34L24 44L6 34V14L24 4Z" stroke="currentColor" stroke-width="2.5" fill="none"/>
+          <circle cx="24" cy="14" r="3" fill="currentColor"/><circle cx="14" cy="24" r="3" fill="currentColor"/>
+          <circle cx="34" cy="24" r="3" fill="currentColor"/><circle cx="24" cy="34" r="3" fill="currentColor"/>
+          <circle cx="24" cy="24" r="4" fill="currentColor"/>
+          <line x1="24" y1="14" x2="24" y2="20" stroke="currentColor" stroke-width="2"/>
+          <line x1="14" y1="24" x2="20" y2="24" stroke="currentColor" stroke-width="2"/>
+          <line x1="28" y1="24" x2="34" y2="24" stroke="currentColor" stroke-width="2"/>
+          <line x1="24" y1="28" x2="24" y2="34" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <span class="logo-text">Otto</span>
+      </a>
+      <a href="#contact" class="hdr-cta">Nous contacter</a>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════
+       ACTE I — TROIS BESOINS
+       ═══════════════════════════════════════ -->
+
+  <section class="hero">
+    <h1 class="reveal">Vous avez cr&eacute;&eacute; votre entreprise<br>pour &ecirc;tre <em>patron</em>.<br>Pas pour &ecirc;tre son employ&eacute;.</h1>
+    <p class="sub reveal d1"><strong style="color:var(--accent)">Otto</strong> reprend tout votre quotidien &mdash; contacts, deals, factures, agenda, &eacute;quipe, documents, relances, devis, recherches. Vous, vous redevenez celui qui dirige. Sur <strong style="color:var(--text)">WhatsApp</strong>. <strong style="color:var(--accent)">Moins de 10 &euro; par jour.</strong></p>
+  </section>
+
+  <div class="container">
+    <div class="act reveal">Acte I &mdash; Le probl&egrave;me</div>
+    <p class="reveal" style="font-size:1.1rem;color:var(--text2);margin-bottom:2.5rem;line-height:1.7">Aujourd'hui, pour diriger votre entreprise, il vous faut <strong style="color:var(--text)">trois choses</strong>. Et c'est vous qui les faites toutes.</p>
+
+    <div class="needs-grid">
+    <div class="need reveal">
+      <div class="num">1</div>
+      <div class="eyebrow">Organiser</div>
+      <h2>Un endroit o&ugrave; tout est &agrave; jour</h2>
+      <p>Vos clients, vos affaires en cours, vos contrats, votre &eacute;quipe, vos factures. Vous avez besoin d'une vue d'ensemble fiable. Mais les outils qui font &ccedil;a ne se remplissent pas tout seuls &mdash; c'est vous qui saisissez, vous qui mettez &agrave; jour, vous qui relancez quand c'est en retard.</p>
+      <p class="pain">&laquo; Mon CRM est &agrave; jour une semaine par trimestre &mdash; celle o&ugrave; je pr&eacute;pare le board. &raquo;</p>
+    </div>
+
+    <div class="need reveal d1">
+      <div class="num">2</div>
+      <div class="eyebrow">Anticiper</div>
+      <h2>Quelqu'un qui pr&eacute;pare en amont</h2>
+      <p>Avant un rendez-vous, un brief qui r&eacute;sume tout. Le matin, un point sur les urgences du jour. Une relance en retard d&eacute;tect&eacute;e avant que le client vous oublie. Aujourd'hui, c'est vous qui allez chercher ces infos &mdash; dans cinq onglets diff&eacute;rents. Ou vous improvisez.</p>
+      <p class="pain">&laquo; Je passe plus de temps &agrave; chercher l'info qu'&agrave; m'en servir. &raquo;</p>
+    </div>
+
+    <div class="need reveal d2">
+      <div class="num">3</div>
+      <div class="eyebrow">Ex&eacute;cuter</div>
+      <h2>Quelqu'un qui fait, derri&egrave;re</h2>
+      <p>R&eacute;diger le devis. Envoyer le mail de suivi. Mettre &agrave; jour le contrat. Pr&eacute;parer la pr&eacute;sentation client. Cr&eacute;er le tableau de bord. Chacune de ces t&acirc;ches prend 10 minutes &mdash; mais elles s'empilent. Et votre m&eacute;tier, ce n'est pas l'administratif. C'est de diriger.</p>
+      <p class="pain">&laquo; Je sais que je devrais relancer Acme. &Ccedil;a fait une semaine. J'ai pas eu le temps. &raquo;</p>
+    </div>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       ACTE II — LE REVEAL + DEMOS
+       ═══════════════════════════════════════ -->
+
+  <div class="reveal-moment reveal">
+    <h2>Et si ces trois choses &eacute;taient<br><em>une seule conversation ?</em></h2>
+    <p>Pas trois outils. Pas une formation. Une conversation WhatsApp. Vous parlez, Otto organise, anticipe, et ex&eacute;cute.</p>
+  </div>
+
+  <div class="container">
+    <div class="act reveal">Acte II &mdash; Otto en action</div>
+
+    <!-- AGENT AUTONOME : MORNING BRIEFING -->
+    <div class="auto-section reveal">
+      <div class="eyebrow">Agent autonome</div>
+      <h3>Otto n'attend pas que vous lui parliez</h3>
+      <p>Chaque matin, avant m&ecirc;me que vous ouvriez WhatsApp, Otto a d&eacute;j&agrave; travaill&eacute;. Il a analys&eacute; votre semaine, d&eacute;tect&eacute; les urgences, et pr&eacute;par&eacute; votre briefing.</p>
+
+      <div class="chat-demo" style="margin-bottom:0">
+        <div class="bubble otto"><div class="name">Otto &middot; 7h45</div>
+          <strong>Bonjour. Voici votre point du jour.</strong><br><br>
+          3 rendez-vous aujourd'hui (9h Dupont, 14h TechStart, 16h30 interne)<br>
+          2 relances en retard : Acme (+7j) et Veritas (+4j)<br>
+          1 contrat arrive &agrave; &eacute;ch&eacute;ance vendredi (Nexus, renouvellement tacite)<br>
+          1 facture impay&eacute;e depuis 45 jours (GreenTech, 12 800 &euro;)<br><br>
+          <span class="subtle">Vous voulez que je pr&eacute;pare le brief pour Dupont &agrave; 9h ?</span>
+        </div>
+        <div class="bubble user"><div class="name">Vous</div>Oui, et relance Acme et Veritas par mail</div>
+      </div>
+    </div>
+
+    <div class="spacer-sm"></div>
+
+    <!-- COMMERCIAL -->
+    <div class="scene-label reveal"><span class="dot"></span>Commercial</div>
+    <div class="chat-demo reveal">
+      <div class="bubble user"><div class="name">Vous</div>Pr&eacute;pare un brief pour le call Dupont de 9h</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        <strong>Brief &mdash; Dupont SAS</strong><br><br>
+        Contact : Marie Duval, DAF<br>
+        Deal : Accompagnement transformation SI &mdash; 85 000 &euro;, en n&eacute;gociation<br>
+        Dernier &eacute;change : call du 12 mars, elle attendait votre proposition r&eacute;vis&eacute;e<br>
+        Relance en retard : +8 jours<br><br>
+        <span class="subtle">Points &agrave; aborder : confirmer le planning de d&eacute;marrage (board en avril), TJM senior ajust&eacute; &agrave; 1 200 &euro;/j, modalit&eacute;s de facturation mensuelle.</span>
+      </div>
+    </div>
+
+    <!-- DOCUMENTS -->
+    <div class="scene-label reveal"><span class="dot"></span>Documents</div>
+    <div class="chat-demo reveal">
+      <div class="bubble user"><div class="name">Vous</div>Fais-moi une pr&eacute;sentation pour le comit&eacute; de pilotage TechStart, avec l'avancement du projet et les prochaines &eacute;tapes</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        Pr&eacute;sentation g&eacute;n&eacute;r&eacute;e &mdash; 8 slides :<br>
+        Rappel du contexte, avancement par lot, planning mis &agrave; jour, risques identifi&eacute;s, budget consomm&eacute; vs pr&eacute;visionnel, prochaines &eacute;tapes, annexes.<br><br>
+        J'ai repris les donn&eacute;es du projet et les time entries de votre &eacute;quipe.<br>
+        <div class="file"><span style="color:#d04423;font-size:1.1rem;margin-right:6px">&#9654;</span> COPIL_TechStart_Avril2026.pptx</div>
+      </div>
+    </div>
+
+    <div class="chat-demo reveal">
+      <div class="bubble user"><div class="name">Vous</div>G&eacute;n&egrave;re aussi le reporting financier du trimestre en Excel</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        Fait. CA factur&eacute;, encaissements, charges, marge par projet, taux d'occupation par consultant.<br>
+        <div class="file"><span style="color:#1d6f42;font-size:1.1rem;margin-right:6px">&#9638;</span> Reporting_Q1_2026.xlsx</div>
+      </div>
+    </div>
+
+    <!-- EQUIPE / RH -->
+    <div class="scene-label reveal"><span class="dot"></span>&Eacute;quipe</div>
+    <div class="chat-demo reveal">
+      <div class="bubble user"><div class="name">Vous</div>Qui est dispo pour une mission de 3 mois &agrave; partir de mai ?</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        2 consultants disponibles &agrave; partir du 5 mai :<br><br>
+        &mdash; Lucas Martin (Senior, Data/BI) &mdash; fin de mission Nexus le 30 avril<br>
+        &mdash; Sarah Chen (Confirm&eacute;e, PMO) &mdash; intercontrat depuis le 15 avril<br><br>
+        <span class="subtle">Thomas Petit termine chez GreenTech le 15 mai si vous voulez d&eacute;caler de 2 semaines. Vous voulez que je pr&eacute;pare les profils &agrave; envoyer au client ?</span>
+      </div>
+      <div class="bubble user"><div class="name">Vous</div>Oui envoie Lucas et Sarah &agrave; Dupont par mail</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        Mail envoy&eacute; &agrave; Marie Duval (Dupont) avec les deux profils en pi&egrave;ce jointe.<br>
+        <span class="subtle">J'ai not&eacute; l'interaction dans le suivi Dupont et mis les deux consultants en &laquo; propos&eacute; &raquo; sur cette mission.</span>
+      </div>
+    </div>
+
+    <!-- CONTRATS -->
+    <div class="scene-label reveal"><span class="dot"></span>Contrats</div>
+    <div class="chat-demo reveal">
+      <div class="bubble user"><div class="name">Vous</div>Le contrat Nexus arrive &agrave; &eacute;ch&eacute;ance quand ?</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        Contrat Nexus Digital &mdash; Prestation Data Engineering<br>
+        &Eacute;ch&eacute;ance : vendredi 11 avril (dans 3 jours)<br>
+        Renouvellement tacite, pr&eacute;avis 30 jours (d&eacute;j&agrave; pass&eacute;)<br>
+        Valeur : 4 200 &euro;/mois<br><br>
+        <span class="subtle">Le contrat se renouvelle automatiquement. Vous voulez ren&eacute;gocier les conditions ou laisser courir ?</span>
+      </div>
+    </div>
+
+    <!-- INTEGRATIONS -->
+    <div class="scene-label reveal"><span class="dot"></span>Int&eacute;grations</div>
+    <div class="chat-demo reveal">
+      <div class="bubble user"><div class="name">Vous</div>Connecte mon Google Drive pour que tu puisses retrouver mes documents</div>
+      <div class="bubble otto"><div class="name">Otto</div>
+        Pour connecter Google Drive, cliquez sur ce lien pour autoriser l'acc&egrave;s :<br><br>
+        <span class="link">Connecter Google Drive &rarr;</span><br><br>
+        <span class="subtle">L'autorisation est s&eacute;curis&eacute;e et vous pouvez la r&eacute;voquer &agrave; tout moment. Une fois connect&eacute;, je pourrai chercher et retrouver vos documents directement.</span>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       ACTE III — LE PORTAIL
+       ═══════════════════════════════════════ -->
+
+  <div class="reveal-moment reveal">
+    <h2>Ouvrez votre <em>espace client</em></h2>
+    <p>Tout ce que vous avez dit sur WhatsApp a organis&eacute; votre activit&eacute;. Contacts, affaires, &eacute;quipe, factures, documents &mdash; tout est &agrave; jour. Vous n'avez rien saisi.</p>
+  </div>
+
+  <div class="container">
+    <div class="act reveal">Acte III &mdash; Tout est d&eacute;j&agrave; l&agrave;</div>
+
+    <div class="portal-mock reveal-scale">
+      <div class="portal-bar">
+        <div class="portal-dot" style="background:#e8553c"></div>
+        <div class="portal-dot" style="background:#e8a73c"></div>
+        <div class="portal-dot" style="background:#5dca5a"></div>
+        <div class="portal-url">otto.hntic.fr/portal</div>
+      </div>
+      <div class="portal-body">
+        <div class="portal-sidebar">
+          <div class="portal-nav-item active">Vue d'ensemble</div>
+          <div class="portal-nav-item">Contacts</div>
+          <div class="portal-nav-item">Affaires</div>
+          <div class="portal-nav-item">&Eacute;quipe</div>
+          <div class="portal-nav-item">Factures</div>
+          <div class="portal-nav-item">Contrats</div>
+          <div class="portal-nav-item">Documents</div>
+          <div class="portal-nav-item">Journal</div>
+          <div class="portal-nav-item">Chat</div>
+        </div>
+        <div class="portal-main">
+          <div class="portal-kpis">
+            <div class="portal-kpi"><div class="val">12</div><div class="lab">Affaires en cours</div></div>
+            <div class="portal-kpi"><div class="val">340K&euro;</div><div class="lab">Pr&eacute;visionnel</div></div>
+            <div class="portal-kpi"><div class="val">89%</div><div class="lab">Taux d'occupation</div></div>
+          </div>
+          <div class="portal-table">
+            <div style="font-size:.72rem;color:var(--text4);margin-bottom:4px;font-weight:500;letter-spacing:.05em">ACTIVIT&Eacute; R&Eacute;CENTE</div>
+            <div class="row"><span class="tname">Profils envoy&eacute;s &agrave; Dupont</span><span class="detail">via Gmail</span><span class="val">il y a 2h</span></div>
+            <div class="row"><span class="tname">Devis Acme g&eacute;n&eacute;r&eacute;</span><span class="detail">16 500 &euro;</span><span class="val">hier</span></div>
+            <div class="row"><span class="tname">COPIL TechStart</span><span class="detail">.pptx cr&eacute;&eacute;</span><span class="val">hier</span></div>
+            <div class="row"><span class="tname">Relance Veritas</span><span class="detail">mail envoy&eacute;</span><span class="val">ce matin</span></div>
+          </div>
+          <div class="portal-badge">Mis &agrave; jour en continu depuis vos conversations WhatsApp</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WEBCHAT ── -->
+    <div class="auto-section reveal" style="margin-top:3rem">
+      <div class="eyebrow">Webchat int&eacute;gr&eacute;</div>
+      <h3>Parlez &agrave; Otto depuis votre navigateur</h3>
+      <p>Le portail inclut un chat synchronis&eacute; en temps r&eacute;el avec WhatsApp. Envoyez un message depuis votre ordinateur, la r&eacute;ponse appara&icirc;t aussi sur votre t&eacute;l&eacute;phone &mdash; et inversement.</p>
+      <div style="display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap;margin-top:1rem">
+        <div style="flex:1;min-width:200px;padding:1.2rem;border-radius:12px;background:var(--bg3);border:1px solid var(--border);text-align:center">
+          <div style="font-size:1.5rem;margin-bottom:.5rem">&#128187;</div>
+          <div style="font-size:.85rem;color:var(--text)">Webchat portail</div>
+          <div style="font-size:.72rem;color:var(--text3);margin-top:.25rem">Documents t&eacute;l&eacute;chargeables en un clic</div>
+        </div>
+        <div style="font-size:1.5rem;color:var(--accent)">&#8596;</div>
+        <div style="flex:1;min-width:200px;padding:1.2rem;border-radius:12px;background:var(--bg3);border:1px solid var(--border);text-align:center">
+          <div style="font-size:1.5rem;margin-bottom:.5rem">&#128241;</div>
+          <div style="font-size:.85rem;color:var(--text)">WhatsApp</div>
+          <div style="font-size:.72rem;color:var(--text3);margin-top:.25rem">Vocaux, photos, en d&eacute;placement</div>
+        </div>
+      </div>
+      <div style="margin-top:1rem;font-size:.85rem;color:var(--text3)">M&ecirc;me conversation, m&ecirc;me assistant, m&ecirc;me m&eacute;moire &mdash; deux interfaces.</div>
+    </div>
+
+    <div style="text-align:center;margin:2.5rem 0" class="reveal">
+      <p style="font-size:1.05rem;color:var(--text2);line-height:1.8;max-width:520px;margin:0 auto">
+        Vous n'avez ouvert aucun logiciel.<br>
+        Vous n'avez rempli aucun formulaire.<br>
+        Vous n'avez export&eacute; aucun fichier.<br><br>
+        <span style="color:var(--text);font-family:'Instrument Serif',serif;font-size:1.2rem">Vous avez juste parl&eacute; &agrave; Otto.</span>
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="reveal" style="text-align:center;margin-bottom:3rem">
+      <h2 style="font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(1.6rem,4vw,2.4rem);margin-bottom:1rem">Ce qui rend <em style="color:var(--accent);font-style:italic">&ccedil;a</em> possible</h2>
+      <p style="font-size:1rem;color:var(--text2);max-width:500px;margin:0 auto">Six piliers qui font d'Otto bien plus qu'un chatbot.</p>
+    </div>
+
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <span class="feature-icon">&#128202;</span>
+        <h3>Il conna&icirc;t votre business</h3>
+        <p>Clients, affaires, contrats, &eacute;quipe, factures &mdash; Otto a une m&eacute;moire compl&egrave;te de votre activit&eacute;, enrichie &agrave; chaque conversation.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#9889;</span>
+        <h3>Il travaille sans vous</h3>
+        <p>Briefing du matin, relances d&eacute;tect&eacute;es, &eacute;ch&eacute;ances anticip&eacute;es. Otto est proactif &mdash; il n'attend pas que vous demandiez.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#128196;</span>
+        <h3>Il cr&eacute;e vos documents</h3>
+        <p>Devis, pr&eacute;sentations, reportings, tableaux de bord &mdash; Word, Excel, PowerPoint, PDF. G&eacute;n&eacute;r&eacute;s et envoy&eacute;s en quelques secondes.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#128268;</span>
+        <h3>Il se connecte &agrave; vos outils</h3>
+        <p>Gmail, Calendar, Drive, et des centaines d'autres. Vous connectez un service en un clic depuis WhatsApp.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#128274;</span>
+        <h3>Vous gardez le contr&ocirc;le</h3>
+        <p>Chaque action sensible est soumise &agrave; votre validation. Otto propose, vous d&eacute;cidez &mdash; rien ne se fait dans votre dos.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">&#128640;</span>
+        <h3>Pr&ecirc;t en 3 minutes</h3>
+        <p>Pas d'installation, pas de formation, pas de consultant. Vous scannez un QR code, Otto est actif.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ═══ PRICING ═══ -->
+    <section class="pricing" id="pricing">
+      <h2 class="reveal" style="font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(1.8rem,4.5vw,2.8rem);line-height:1.15;text-align:center;margin-bottom:1rem">Un seul tarif. <em style="color:var(--accent);font-style:italic">Tout inclus.</em></h2>
+      <p class="reveal d1" style="text-align:center;color:var(--text2);font-size:1.05rem;max-width:540px;margin:0 auto 3rem">Pas de surcoût caché. Pas de paliers. Pas de modules en option. Otto, complet, dès le premier euro.</p>
+
+      <div class="pricing-grid">
+        <!-- MENSUEL -->
+        <div class="pricing-card reveal">
+          <div class="pricing-eyebrow">Mensuel</div>
+          <div class="pricing-amount"><span class="pricing-price">347&nbsp;&euro;</span><span class="pricing-period">HT&nbsp;/&nbsp;mois</span></div>
+          <div class="pricing-equiv">Sans engagement</div>
+          <ul class="pricing-features">
+            <li>Toutes les fonctionnalit&eacute;s d'Otto</li>
+            <li>WhatsApp + portail web</li>
+            <li>Annulable &agrave; tout moment</li>
+            <li>7 jours d'essai gratuit</li>
+            <li>Support par email</li>
+          </ul>
+          <a href="#contact" class="pricing-cta">D&eacute;marrer</a>
+        </div>
+
+        <!-- ANNUEL -->
+        <div class="pricing-card pricing-card-featured reveal d1">
+          <div class="pricing-badge">Recommand&eacute; &mdash; 2 mois offerts</div>
+          <div class="pricing-eyebrow">Annuel</div>
+          <div class="pricing-amount"><span class="pricing-price">290&nbsp;&euro;</span><span class="pricing-period">HT&nbsp;/&nbsp;mois</span></div>
+          <div class="pricing-equiv">Soit <strong>3&nbsp;470&nbsp;&euro; HT/an</strong> &mdash; <strong style="color:var(--accent)">moins de 10&nbsp;&euro; par jour</strong></div>
+          <ul class="pricing-features">
+            <li>Tout ce qui est inclus dans l'offre mensuelle</li>
+            <li><strong style="color:var(--text)">2 mois offerts</strong> (-17&nbsp;%)</li>
+            <li>Engagement 12 mois</li>
+            <li>7 jours d'essai gratuit</li>
+            <li>Support prioritaire</li>
+          </ul>
+          <a href="#contact" class="pricing-cta pricing-cta-featured">D&eacute;marrer &mdash; &eacute;conomiser 694&nbsp;&euro;</a>
+        </div>
+      </div>
+
+      <p class="reveal d2" style="text-align:center;color:var(--text3);font-size:0.85rem;margin-top:2rem">TVA 20&nbsp;% applicable en France &middot; Auto-liquidation pour les entreprises UE &middot; Paiement s&eacute;curis&eacute; par Stripe</p>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ═══ FAQ ═══ -->
+    <section class="faq" id="faq">
+      <h2 class="reveal">Questions fr&eacute;quentes</h2>
+      <div class="faq-list">
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Comment Otto remplit-il ma base automatiquement ?</div>
+          <div class="faq-a"><p>Otto analyse chaque conversation, chaque vocal, chaque document que vous lui envoyez. Il extrait les contacts, deals, montants, dates et les classe dans votre base. Vous retrouvez tout sans avoir jamais rien saisi manuellement.</p></div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Mes donn&eacute;es sont-elles s&eacute;curis&eacute;es ?</div>
+          <div class="faq-a"><p>Oui. Vos donn&eacute;es sont h&eacute;berg&eacute;es en Union Europ&eacute;enne dans un environnement isol&eacute; qui vous est enti&egrave;rement d&eacute;di&eacute;. Aucun autre client ne peut y acc&eacute;der. Vos messages WhatsApp restent chiffr&eacute;s de bout en bout.</p></div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Est-ce qu'Otto peut vraiment remplacer mon CRM ?</div>
+          <div class="faq-a"><p>Oui. Otto g&egrave;re contacts, deals, pipeline et relances. La diff&eacute;rence : vous n'ouvrez jamais un logiciel. Dites-lui &laquo; Ajoute le deal Acme &agrave; 50K &raquo; et c'est fait. Il vous rappellera de relancer au bon moment.</p></div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Otto envoie-t-il des emails &agrave; ma place ?</div>
+          <div class="faq-a"><p>Oui, Otto peut lire, r&eacute;diger et envoyer des emails depuis votre Gmail. Pour les actions sensibles, il vous demande confirmation avant d'agir.</p></div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Comment fonctionne l'espace client web ?</div>
+          <div class="faq-a"><p>Dites &laquo; Mon espace &raquo; &agrave; Otto sur WhatsApp. Il vous envoie un lien s&eacute;curis&eacute; (magic link) vers votre portail web. Vous y retrouvez tous vos KPIs, deals, contacts, factures, documents &mdash; comme un ERP, sans rien installer.</p></div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Combien de temps pour &ecirc;tre op&eacute;rationnel ?</div>
+          <div class="faq-a"><p>3 minutes. Scannez un QR code avec WhatsApp, et Otto est pr&ecirc;t. Pas d'installation, pas de configuration, pas de formation.</p></div>
+        </div>
+        <div class="faq-item reveal">
+          <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">Est-ce que &ccedil;a marche avec les vocaux ?</div>
+          <div class="faq-a"><p>Oui. Envoyez un message vocal, Otto le transcrit instantan&eacute;ment et agit dessus. Parfait quand vous &ecirc;tes en d&eacute;placement ou entre deux rendez-vous.</p></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ═══ FINALE + CONTACT ═══ -->
+  <div class="finale" id="contact">
+    <h2 class="reveal">Vous n'avez pas cr&eacute;&eacute; votre entreprise<br>pour faire de l'admin.<br><em>Otto s'en occupe.</em></h2>
+    <p class="reveal d1">Laissez-nous vos coordonn&eacute;es. On vous recontacte en moins de 24h.</p>
+  </div>
+
+  <div class="contact-section">
+    <div class="contact-form reveal d2">
+      <input type="text" id="contact-name" placeholder="Votre nom" autocomplete="name">
+      <input type="email" id="contact-email" placeholder="Votre email" autocomplete="email">
+      <input type="text" id="contact-company" placeholder="Entreprise (optionnel)" autocomplete="organization">
+      <textarea id="contact-message" placeholder="Un mot sur votre besoin (optionnel)" rows="3"></textarea>
+      <button id="contact-btn" onclick="submitContact()">Demander un acc&egrave;s &rarr;</button>
+      <div class="contact-msg" id="contact-msg"></div>
+    </div>
+  </div>
+
+  <footer>
+    <p style="margin-bottom:8px">
+      <a href="https://hntic.fr" target="_blank" rel="noopener" style="font-weight:500;color:var(--text);text-decoration:none">HNTIC</a>
+      &nbsp;&middot;&nbsp;
+      <a href="/cgv">CGV</a>
+      &nbsp;&middot;&nbsp;
+      <a href="/privacy">Confidentialit&eacute;</a>
+      &nbsp;&middot;&nbsp;
+      <a href="/legal">Mentions l&eacute;gales</a>
+    </p>
+    <p>&copy; 2026 HNTIC. Tous droits r&eacute;serv&eacute;s.</p>
+  </footer>
+
+  <script>
+    /* ═══ Scroll Reveal (IntersectionObserver) ═══ */
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('v'); });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal,.reveal-scale').forEach(el => obs.observe(el));
+
+    /* ═══ Contact Form ═══ */
+    async function submitContact() {
+      const name = document.getElementById('contact-name').value.trim();
+      const email = document.getElementById('contact-email').value.trim();
+      const company = document.getElementById('contact-company').value.trim();
+      const message = document.getElementById('contact-message').value.trim();
+      const btn = document.getElementById('contact-btn');
+      const msg = document.getElementById('contact-msg');
+
+      if (!name || name.length < 2) {
+        msg.className = 'contact-msg error';
+        msg.textContent = 'Veuillez entrer votre nom.';
+        return;
+      }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+        msg.className = 'contact-msg error';
+        msg.textContent = 'Veuillez entrer une adresse email valide.';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Envoi en cours\u2026';
+      msg.textContent = '';
+
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, company, message }),
+        });
+        if (res.ok) {
+          msg.className = 'contact-msg success';
+          msg.textContent = 'Merci ! Nous vous recontactons tr\u00e8s vite.';
+          document.getElementById('contact-name').value = '';
+          document.getElementById('contact-email').value = '';
+          document.getElementById('contact-company').value = '';
+          document.getElementById('contact-message').value = '';
+        } else {
+          msg.className = 'contact-msg error';
+          msg.textContent = 'Une erreur est survenue. R\u00e9essayez.';
+        }
+      } catch {
+        msg.className = 'contact-msg error';
+        msg.textContent = 'Impossible de contacter le serveur.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Demander un acc\u00e8s \u2192';
+      }
+    }
+
+    document.querySelectorAll('.contact-form input, .contact-form textarea').forEach(el => {
+      el.addEventListener('keydown', e => { if (e.key === 'Enter' && el.tagName !== 'TEXTAREA') submitContact(); });
+    });
+  </script>
+
+</body>
+</html>
