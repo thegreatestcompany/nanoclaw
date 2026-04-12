@@ -177,6 +177,28 @@ export async function sendWelcomeEmail(to: string, name?: string | null): Promis
           </ol>
         </div>
 
+        <!-- ASTUCE FORWARD -->
+        <h2 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.08em;color:#128C7E;margin-bottom:12px">&#128640; L'astuce qui change tout : transf&egrave;re &agrave; Otto</h2>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:20px;margin-bottom:24px">
+          <p style="font-size:0.95rem;line-height:1.6;margin:0 0 12px;color:#1e3a8a">
+            Tu peux <strong>transf&eacute;rer n'importe quel message, photo, PDF ou vocal</strong>
+            de n'importe quelle conversation WhatsApp vers ton chat avec Otto. Il extrait,
+            structure et stocke automatiquement.
+          </p>
+          <p style="font-size:0.85rem;line-height:1.6;margin:0;color:#1e3a8a">
+            Quelques exemples concrets :
+          </p>
+          <ul style="font-size:0.85rem;line-height:1.7;color:#1e3a8a;padding-left:20px;margin:6px 0 0">
+            <li>Une <strong>photo de carte de visite</strong> &rarr; Otto cr&eacute;e le contact</li>
+            <li>Un <strong>devis PDF</strong> re&ccedil;u d'un fournisseur &rarr; Otto extrait montant et conditions</li>
+            <li>Un <strong>vocal client</strong> qui d&eacute;crit son besoin &rarr; Otto transcrit et cr&eacute;e un lead</li>
+            <li>Une <strong>convocation URSSAF</strong> en photo &rarr; Otto cr&eacute;e l'&eacute;ch&eacute;ance</li>
+          </ul>
+          <p style="font-size:0.8rem;line-height:1.5;margin:12px 0 0;color:#3b82f6;font-style:italic">
+            Ton chat Otto devient ta bo&icirc;te de r&eacute;ception universelle. Drop ce que tu veux, il s'occupe du reste.
+          </p>
+        </div>
+
         <!-- GROUPES -->
         <h2 style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.08em;color:#128C7E;margin-bottom:12px">&#128101; Dans tes groupes WhatsApp</h2>
         <p style="font-size:0.95rem;line-height:1.6;margin-bottom:12px">
