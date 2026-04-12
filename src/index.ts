@@ -785,6 +785,24 @@ async function main(): Promise<void> {
         return;
       }
 
+      // HNTIC: in the main group (self-chat), legitimate messages from the
+      // dirigeant are always tagged is_from_me=1 (because the user IS the
+      // owner of the WhatsApp account). Messages with is_from_me=0 in the
+      // self-chat are mirror artifacts of @Meta AI conversations or other
+      // device sync side effects — they should NOT trigger Otto.
+      const targetGroup = registeredGroups[chatJid];
+      if (
+        targetGroup?.isMain &&
+        !msg.is_from_me &&
+        !msg.is_bot_message
+      ) {
+        logger.debug(
+          { chatJid, sender: msg.sender, content: msg.content.slice(0, 60) },
+          'Main group: dropping non-from-me message (likely Meta AI mirror)',
+        );
+        return;
+      }
+
       // Sender allowlist drop mode: discard messages from denied senders before storing
       if (!msg.is_from_me && !msg.is_bot_message && registeredGroups[chatJid]) {
         const cfg = loadSenderAllowlist();
