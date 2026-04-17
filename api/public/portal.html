@@ -1582,15 +1582,23 @@ function renderDashboard(data) {
       '</tbody></table>');
   }
 
-  // Upcoming obligations
-  html += '<div class="section-title">Prochaines \u00E9ch\u00E9ances</div>';
-  const obls = data.upcoming_obligations || [];
-  if (obls.length === 0) {
+  // Obligations: overdue first (red badge), then upcoming
+  html += '<div class="section-title">\u00C9ch\u00E9ances</div>';
+  const overdue = data.overdue_obligations || [];
+  const upcoming = data.upcoming_obligations || [];
+  const allObls = [
+    ...overdue.map(o => ({ ...o, _overdue: true })),
+    ...upcoming.map(o => ({ ...o, _overdue: false })),
+  ];
+  if (allObls.length === 0) {
     html += tableWrap(emptyMsg('Aucune \u00E9ch\u00E9ance \u00E0 venir.'));
   } else {
     html += tableWrap('<table><thead><tr><th>Titre</th><th>Cat\u00E9gorie</th><th>Date</th></tr></thead><tbody>' +
-      obls.map(o => '<tr><td>' + escapeHtml(o.title) + '</td><td>' + escapeHtml(tr(OBLIGATION_CAT_FR, o.category)) +
-        '</td><td>' + fmtDateShort(o.due_date) + '</td></tr>').join('') +
+      allObls.map(o => '<tr><td>' + escapeHtml(o.title) + '</td><td>' + escapeHtml(tr(OBLIGATION_CAT_FR, o.category)) +
+        '</td><td>' + (o._overdue
+          ? '<span class="badge red">En retard</span> <span style="color:var(--text-muted);font-size:0.78rem">' + fmtDateShort(o.due_date) + '</span>'
+          : fmtDateShort(o.due_date)) +
+        '</td></tr>').join('') +
       '</tbody></table>');
   }
   html += '</div>';
