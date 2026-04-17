@@ -51,6 +51,7 @@
       background: var(--bg);
       color: var(--text-primary);
       min-height: 100vh;
+      overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
@@ -205,9 +206,9 @@
       margin-left: var(--sidebar-w);
       min-height: 100vh;
       min-width: 0;
-      overflow-x: hidden;
     }
     .tab-pane { min-width: 0; }
+    /* Long unbreakable content (currency with U+00A0, long names) shouldn't push the page wider. */
     .kpi-card, .welcome-bar, .alert-banner, .interaction-summary, .interaction-meta,
     .meeting-summary, .meeting-attendees, .doc-name {
       overflow-wrap: anywhere;
