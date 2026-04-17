@@ -348,6 +348,11 @@
 
     /* ═══ TWO-COLUMN LAYOUT ═══ */
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+    /* Critical: min-width:0 on grid items lets them shrink below their content width,
+       allowing inner .table-scroll to activate horizontal scroll instead of growing
+       the column. Without this, tables with min-width:500px push their column wider
+       than the viewport. */
+    .two-col > * { min-width: 0; }
     @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
 
     /* ═══ SECTION TITLES ═══ */
