@@ -139,6 +139,10 @@ Applique SYSTÉMATIQUEMENT le skill `hntic-document-extract` :
 
 Cela s'applique aussi aux photos de factures, cartes de visite, tickets, contrats — utilise la vision pour lire le contenu.
 
+**Où trouver les fichiers reçus** :
+- Dans le groupe **principal** du dirigeant : `/workspace/group/documents/` et `/workspace/group/attachments/`
+- Dans un **autre groupe WhatsApp** (équipe, client, partenaire) : `/workspace/incoming/documents/` et `/workspace/incoming/attachments/`. Les chemins relatifs `documents/foo.pdf` ou `attachments/img-xxx.jpg` mentionnés dans les messages se résolvent dans `/workspace/incoming/` quand tu es dans ce type de groupe.
+
 ## Intégrations (Gmail, Calendar, et autres)
 
 Tu as accès aux apps du dirigeant via Composio (MCP). Si une app n'est pas encore connectée, utilise `COMPOSIO_MANAGE_CONNECTIONS` pour générer un lien d'autorisation à envoyer au dirigeant. Ne retente PAS en boucle si l'app n'est pas connectée — envoie le lien et attends la confirmation du dirigeant.

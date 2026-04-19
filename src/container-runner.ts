@@ -113,13 +113,29 @@ function buildVolumeMounts(
   } else {
     // Non-main groups mount the main folder as read-only.
     // Same CLAUDE.md, same business.db, same documents, same memory — identical context.
-    // The group's own folder is not mounted (untrusted groups can't write to shared data).
+    // The group's own folder is not mounted writable (untrusted groups can't
+    // mutate shared business data), but its incoming media is exposed
+    // read-only below so Otto can extract files received in this group.
     const mainDir = path.join(GROUPS_DIR, 'main');
     mounts.push({
       hostPath: mainDir,
       containerPath: '/workspace/group',
       readonly: true,
     });
+
+    // Files received in this specific group (PDFs, images, vocals) are
+    // captured by the WhatsApp channel into `groups/{folder}/{documents,
+    // attachments}/`. Mounted on a sibling path so Otto can read them
+    // without colliding with main's documents.
+    for (const sub of ['documents', 'attachments'] as const) {
+      const incomingDir = path.join(groupDir, sub);
+      fs.mkdirSync(incomingDir, { recursive: true });
+      mounts.push({
+        hostPath: incomingDir,
+        containerPath: `/workspace/incoming/${sub}`,
+        readonly: true,
+      });
+    }
 
     // Global memory directory (read-only for non-main)
     const globalDir = path.join(GROUPS_DIR, 'global');
