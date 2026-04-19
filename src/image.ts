@@ -9,7 +9,9 @@ import path from 'path';
 import sharp from 'sharp';
 
 const MAX_DIMENSION = 1024;
-const IMAGE_REF_PATTERN = /\[Image: (attachments\/[^\]]+)\]/g;
+// Matches `[Image reçue : attachments/foo.jpg]`. Spaces around `:` mirror the
+// `[Document reçu : …]` / `[Vocal reçu : …]` conventions and CLAUDE.md.
+const IMAGE_REF_PATTERN = /\[Image reçue : (attachments\/[^\]]+)\]/g;
 
 export interface ProcessedImage {
   content: string;
@@ -45,8 +47,8 @@ export async function processImage(
 
   const relativePath = `attachments/${filename}`;
   const content = caption
-    ? `[Image: ${relativePath}] ${caption}`
-    : `[Image: ${relativePath}]`;
+    ? `[Image reçue : ${relativePath}] ${caption}`
+    : `[Image reçue : ${relativePath}]`;
 
   return { content, relativePath };
 }

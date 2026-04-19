@@ -75,7 +75,13 @@ function escapeRegex(str: string): string {
 }
 
 export function buildTriggerPattern(trigger: string): RegExp {
-  return new RegExp(`^${escapeRegex(trigger.trim())}\\b`, 'i');
+  // Match the trigger at the start of the message, after whitespace, or after
+  // a closing `]` (so that media prefixes like `[Image reçue : foo.jpg] @otto`
+  // and `[Document reçu : foo.pdf] (stocké à …)\n@otto …` still trigger).
+  return new RegExp(
+    `(?:^|\\s|\\])${escapeRegex(trigger.trim())}\\b`,
+    'i',
+  );
 }
 
 export const DEFAULT_TRIGGER = `@${ASSISTANT_NAME}`;

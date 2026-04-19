@@ -143,8 +143,32 @@ describe('TRIGGER_PATTERN', () => {
     expect(TRIGGER_PATTERN.test(`@${upper} hello`)).toBe(true);
   });
 
-  it('does not match when not at start of message', () => {
-    expect(TRIGGER_PATTERN.test(`hello @${name}`)).toBe(false);
+  it('matches inline mention preceded by whitespace', () => {
+    // Allowed since the trigger regex accepts ^, whitespace, or `]` before
+    // the trigger so that media prefixes like `[Image reçue : …] @name` work.
+    expect(TRIGGER_PATTERN.test(`hello @${name}`)).toBe(true);
+  });
+
+  it('matches when trigger follows a closing `]` (media prefix)', () => {
+    expect(
+      TRIGGER_PATTERN.test(`[Image reçue : attachments/foo.jpg] @${name} décris`),
+    ).toBe(true);
+    expect(
+      TRIGGER_PATTERN.test(`[Document reçu : foo.pdf] @${name} résume`),
+    ).toBe(true);
+  });
+
+  it('matches when trigger follows a newline (after document `(stocké à …)\\n`)', () => {
+    expect(
+      TRIGGER_PATTERN.test(
+        `[Document reçu : foo.pdf] (stocké à documents/foo.pdf)\n@${name} résume`,
+      ),
+    ).toBe(true);
+  });
+
+  it('does not match a bare email or trigger glued to a previous word', () => {
+    // No `^`/whitespace/`]` boundary before the trigger.
+    expect(TRIGGER_PATTERN.test(`mailto:foo@${name}.com`)).toBe(false);
   });
 
   it('does not match partial name like @NameExtra (word boundary)', () => {
