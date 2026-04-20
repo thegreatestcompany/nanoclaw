@@ -22,6 +22,7 @@ import {
   getClientById,
   getAllClients,
   renewOnboardToken,
+  updateClientStatus,
 } from './db.js';
 import { setupStripeRoutes, runPeriodicChecks } from './stripe.js';
 import { setupAdminRoutes } from './admin.js';
@@ -137,6 +138,14 @@ function setupPm2IpcListener(): void {
         if (!client) {
           console.error(`Client ${clientId} not found in database`);
           return;
+        }
+
+        // Reflect the disconnected state in the DB so the admin dashboard
+        // doesn't keep showing 'active' while the auth dir is gone. Only
+        // flip live statuses — leave terminal states (cancelled,
+        // payment_failed, awaiting_whatsapp) alone.
+        if (client.status === 'active' || client.status === 'trial') {
+          updateClientStatus(clientId, 'awaiting_whatsapp');
         }
 
         // Generate a fresh onboard token and send reconnection email
