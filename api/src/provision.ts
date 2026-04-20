@@ -100,7 +100,7 @@ export async function revokeAnthropicApiKey(apiKeyId: string): Promise<void> {
 export async function provisionClient(
   clientId: string,
   email: string,
-  stripeCustomerId: string,
+  stripeCustomerId: string | null,
   apiKey?: string,
   customerName?: string | null,
   companyName?: string | null,

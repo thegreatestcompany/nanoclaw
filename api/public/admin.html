@@ -91,6 +91,20 @@
     .disk-bar { background: #12121e; border-radius: 6px; height: 24px; margin: 8px 0; overflow: hidden; }
     .disk-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #60a5fa); border-radius: 6px; display: flex; align-items: center; padding-left: 8px; font-size: 0.7rem; font-weight: 500; }
 
+    /* Create-client modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+    .modal-overlay.open { display: flex; }
+    .modal-card { background: #1a1a2e; border-radius: 12px; padding: 24px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+    .modal-card h2 { font-size: 1.1rem; font-weight: 500; margin-bottom: 16px; }
+    .modal-card label { display: block; font-size: 0.78rem; color: #aaa; margin: 12px 0 4px; }
+    .modal-card input, .modal-card select { width: 100%; padding: 10px 12px; background: #0a0a0f; border: 1px solid #333; border-radius: 6px; color: #fff; font-size: 0.9rem; box-sizing: border-box; }
+    .modal-card .row { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+    .modal-card .row button { padding: 8px 18px; border-radius: 6px; border: 1px solid #333; background: transparent; color: #aaa; cursor: pointer; font-size: 0.85rem; }
+    .modal-card .row button.primary { background: #2a2a3e; color: #fff; }
+    .modal-card .row button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .modal-card .error { color: #ff6b6b; font-size: 0.8rem; margin-top: 12px; min-height: 1em; }
+    .modal-card .success { color: #4ade80; font-size: 0.8rem; margin-top: 12px; word-break: break-all; }
+
     /* Responsive */
     @media (max-width: 768px) {
       .content { padding: 16px; }
@@ -118,6 +132,7 @@
     <div class="otto-logo"><svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M24 4L42 14V34L24 44L6 34V14L24 4Z" stroke="#e0e0e0" stroke-width="2.5" fill="none"/><circle cx="24" cy="14" r="3" fill="#e0e0e0"/><circle cx="14" cy="24" r="3" fill="#e0e0e0"/><circle cx="34" cy="24" r="3" fill="#e0e0e0"/><circle cx="24" cy="34" r="3" fill="#e0e0e0"/><circle cx="24" cy="24" r="4" fill="#e0e0e0"/><line x1="24" y1="14" x2="24" y2="20" stroke="#e0e0e0" stroke-width="2"/><line x1="14" y1="24" x2="20" y2="24" stroke="#e0e0e0" stroke-width="2"/><line x1="28" y1="24" x2="34" y2="24" stroke="#e0e0e0" stroke-width="2"/><line x1="24" y1="28" x2="24" y2="34" stroke="#e0e0e0" stroke-width="2"/></svg><span class="logo-text">Otto</span><span class="logo-sub">Admin</span></div>
     <div class="header-right">
       <span class="header-time" id="header-time"></span>
+      <button class="refresh-btn" onclick="openCreateClient()">+ Nouveau client</button>
       <button class="refresh-btn" onclick="loadDashboard()">Actualiser</button>
     </div>
   </header>
@@ -153,6 +168,34 @@
       </div>
       <div class="tabs" id="detail-tabs"></div>
       <div id="detail-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Create-client modal -->
+<div class="modal-overlay" id="create-modal">
+  <div class="modal-card">
+    <h2>Nouveau client (sans Stripe)</h2>
+    <label>Email *</label>
+    <input id="cc-email" type="email" placeholder="marie-charlotte@hntic.fr" autocomplete="off">
+    <label>Nom</label>
+    <input id="cc-name" type="text" placeholder="Marie-Charlotte Renaux" autocomplete="off">
+    <label>Entreprise</label>
+    <input id="cc-company" type="text" placeholder="HNTIC" autocomplete="off">
+    <label>Plan *</label>
+    <select id="cc-plan" onchange="document.getElementById('cc-trial-row').style.display = this.value === 'trial' ? 'block' : 'none'">
+      <option value="active">Actif (gratuit perpétuel)</option>
+      <option value="trial">Trial (date de fin)</option>
+    </select>
+    <div id="cc-trial-row" style="display:none">
+      <label>Fin du trial</label>
+      <input id="cc-trial-end" type="date">
+    </div>
+    <div class="error" id="cc-error"></div>
+    <div class="success" id="cc-success"></div>
+    <div class="row">
+      <button onclick="closeCreateClient()">Annuler</button>
+      <button class="primary" id="cc-submit" onclick="submitCreateClient()">Créer</button>
     </div>
   </div>
 </div>
@@ -480,6 +523,79 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+// --- Create-client modal ---
+function openCreateClient() {
+  document.getElementById('cc-email').value = '';
+  document.getElementById('cc-name').value = '';
+  document.getElementById('cc-company').value = '';
+  document.getElementById('cc-plan').value = 'active';
+  document.getElementById('cc-trial-end').value = '';
+  document.getElementById('cc-trial-row').style.display = 'none';
+  document.getElementById('cc-error').textContent = '';
+  document.getElementById('cc-success').textContent = '';
+  document.getElementById('cc-submit').disabled = false;
+  document.getElementById('cc-submit').textContent = 'Créer';
+  document.getElementById('create-modal').classList.add('open');
+  setTimeout(() => document.getElementById('cc-email').focus(), 50);
+}
+
+function closeCreateClient() {
+  document.getElementById('create-modal').classList.remove('open');
+}
+
+async function submitCreateClient() {
+  const email = document.getElementById('cc-email').value.trim();
+  const name = document.getElementById('cc-name').value.trim();
+  const company = document.getElementById('cc-company').value.trim();
+  const plan = document.getElementById('cc-plan').value;
+  const trialDate = document.getElementById('cc-trial-end').value;
+  const errEl = document.getElementById('cc-error');
+  const okEl = document.getElementById('cc-success');
+  errEl.textContent = '';
+  okEl.textContent = '';
+
+  if (!email || !email.includes('@')) {
+    errEl.textContent = 'Email valide requis.';
+    return;
+  }
+  if (plan === 'trial' && !trialDate) {
+    errEl.textContent = 'Date de fin de trial requise.';
+    return;
+  }
+
+  const body = { email, plan };
+  if (name) body.name = name;
+  if (company) body.company = company;
+  if (plan === 'trial') body.trialEndsAt = new Date(trialDate + 'T23:59:59').toISOString();
+
+  const submitBtn = document.getElementById('cc-submit');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Création…';
+
+  try {
+    const data = await apiFetch('/clients', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    if (!data.ok) {
+      errEl.textContent = data.error || 'Erreur inconnue';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Créer';
+      return;
+    }
+    okEl.innerHTML =
+      `Client <b>${escapeHtml(data.clientId)}</b> créé. Email envoyé à ${escapeHtml(email)}.<br>` +
+      `Lien d'onboarding : <a href="${data.onboardUrl}" target="_blank" style="color:#60a5fa">${escapeHtml(data.onboardUrl)}</a>`;
+    submitBtn.textContent = 'Fermer';
+    submitBtn.disabled = false;
+    submitBtn.onclick = () => { closeCreateClient(); submitBtn.onclick = submitCreateClient; loadDashboard(); };
+  } catch (err) {
+    errEl.textContent = err.message || 'Erreur inconnue';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Créer';
+  }
 }
 
 // Auto-login if token saved

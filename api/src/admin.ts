@@ -13,12 +13,14 @@ import path from 'path';
 import os from 'os';
 import Database from 'better-sqlite3';
 
-import { getAllClients, getClientById } from './db.js';
+import { getAllClients, getClientById, getDb } from './db.js';
 import {
   provisionDefaultTriggers,
   listClientTriggers,
   deleteAllClientTriggers,
 } from './composio-triggers.js';
+import { provisionClient } from './provision.js';
+import { sendOnboardingEmail } from './mailer.js';
 
 const IS_LINUX = os.platform() === 'linux';
 const CLIENTS_DIR = process.env.CLIENTS_DIR || path.join(process.cwd(), '..', 'clients');
@@ -115,6 +117,69 @@ export function setupAdminRoutes(app: Express): void {
     });
 
     res.json(enriched);
+  });
+
+  // Manually provision a client without going through Stripe.
+  // Use cases: internal team, demo accounts for collaborators, free
+  // promotional access for early customers / influencers.
+  app.post('/api/admin/clients', async (req, res) => {
+    const { email, name, company, plan, trialEndsAt } = req.body || {};
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      res.status(400).json({ error: 'email required' });
+      return;
+    }
+    if (plan !== 'active' && plan !== 'trial') {
+      res.status(400).json({ error: 'plan must be "active" or "trial"' });
+      return;
+    }
+    if (plan === 'trial') {
+      if (!trialEndsAt || typeof trialEndsAt !== 'string' || isNaN(Date.parse(trialEndsAt))) {
+        res.status(400).json({ error: 'trialEndsAt (ISO date) required for trial plan' });
+        return;
+      }
+    }
+
+    const baseSlug = String(name || email.split('@')[0])
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 32) || 'client';
+
+    const db = getDb();
+    let clientId = baseSlug;
+    let n = 2;
+    while (db.prepare('SELECT 1 FROM clients WHERE id = ?').get(clientId)) {
+      clientId = `${baseSlug}-${n++}`;
+      if (n > 100) {
+        res.status(500).json({ error: 'could not generate unique clientId' });
+        return;
+      }
+    }
+
+    try {
+      const result = await provisionClient(
+        clientId,
+        email.trim().toLowerCase(),
+        null, // no Stripe customer
+        undefined,
+        name || null,
+        company || null,
+      );
+      if (plan === 'trial') {
+        db.prepare(
+          `UPDATE clients SET status = 'trial', trial_ends_at = ?, updated_at = datetime('now') WHERE id = ?`,
+        ).run(new Date(trialEndsAt).toISOString(), clientId);
+      }
+      sendOnboardingEmail(email, result.onboardUrl, name || null).catch((err) =>
+        console.error(`[admin] Failed to send onboarding email for ${clientId}:`, err),
+      );
+      res.json({ ok: true, clientId, onboardUrl: result.onboardUrl });
+    } catch (err) {
+      console.error('[admin] Manual provision failed:', err);
+      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+    }
   });
 
   // Get a single client
