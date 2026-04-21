@@ -155,6 +155,7 @@
           <th>Restarts</th>
           <th>Contacts</th>
           <th>Deals</th>
+          <th>$ mois</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -275,13 +276,18 @@ async function loadDashboard() {
   // Load API costs (computed from usage_report tokens, filtered by Otto workspaces)
   let costTotal = 0;
   let costData = [];
+  let costsByClient = {};
   try {
     const costs = await apiFetch('/costs');
     costTotal = costs.total_cost_usd || 0;
     costData = costs.daily || [];
+    for (const c of (costs.byClient || [])) {
+      costsByClient[c.clientId] = c;
+    }
   } catch { /* ANTHROPIC_ADMIN_KEY not set */ }
   const costHtml = costTotal > 0 ? `$${costTotal.toFixed(2)}` : '—';
   _costData = costData;
+  _costsByClient = costsByClient;
 
   // Overview
   const online = clients.filter(c => c.pm2_status === 'online').length;
@@ -304,6 +310,8 @@ async function loadDashboard() {
   document.getElementById('clients-body').innerHTML = clients.map(c => {
     const waClass = c.whatsapp_status === 'connected' ? 'connected' : c.whatsapp_status === 'disconnected' ? 'disconnected' : 'no_auth';
     const waLabel = c.whatsapp_status === 'connected' ? 'Connecté' : c.whatsapp_status === 'disconnected' ? 'Déconnecté' : 'Pas de WA';
+    const cc = costsByClient[c.id];
+    const costCell = cc ? `<span style="font-family:monospace;color:#fbbf24">$${cc.cost.toFixed(2)}</span>` : '—';
     return `
     <tr>
       <td><strong>${escapeHtml(c.name || c.id)}</strong><br><span style="font-size:0.7rem;color:#666">${c.id}</span></td>
@@ -315,6 +323,7 @@ async function loadDashboard() {
       <td>${c.restarts ?? '—'}</td>
       <td>${c.stats?.contacts ?? '—'}</td>
       <td>${c.stats?.deals ?? '—'}</td>
+      <td>${costCell}</td>
       <td>
         <button class="btn-sm" onclick="openDetail('${c.id}')">Détail</button>
         <button class="btn-sm" onclick="restartClient('${c.id}')">Restart</button>
@@ -325,25 +334,45 @@ async function loadDashboard() {
 }
 
 let _costData = [];
+let _costsByClient = {};
 
 function toggleCostDetail() {
   const el = document.getElementById('cost-detail');
   if (el.style.display === 'none') {
-    if (_costData.length === 0) {
+    if (_costData.length === 0 && Object.keys(_costsByClient).length === 0) {
       el.innerHTML = '<div class="card"><pre>Pas de données de coûts</pre></div>';
     } else {
-      let html = '<div class="card"><div class="section-title">Coûts API Otto — mois en cours (workspaces Otto uniquement)</div>';
-      html += '<div style="overflow-x:auto"><table style="font-size:0.8rem"><thead><tr><th>Date</th><th style="text-align:right">Coût ($)</th><th style="text-align:right">Tokens</th><th style="text-align:right">Recherches</th></tr></thead><tbody>';
-      let total = 0, totalTokens = 0, totalSearches = 0;
-      for (const day of _costData) {
-        const date = new Date(day.date).toLocaleDateString('fr-FR', { timeZone: PARIS_TZ, weekday: 'short', day: '2-digit', month: '2-digit' });
-        total += day.cost;
-        totalTokens += day.tokens;
-        totalSearches += day.searches;
-        html += `<tr><td>${date}</td><td style="text-align:right;font-family:monospace">${day.cost.toFixed(2)}</td><td style="text-align:right;font-family:monospace;color:#888">${(day.tokens / 1000).toFixed(0)}K</td><td style="text-align:right;font-family:monospace;color:#888">${day.searches || '—'}</td></tr>`;
+      let html = '';
+
+      // Per-client breakdown (top of section since it's the rentability lever)
+      const byClient = Object.values(_costsByClient).sort((a, b) => b.cost - a.cost);
+      if (byClient.length > 0) {
+        html += '<div class="card" style="margin-bottom:16px"><div class="section-title">Coûts par client — mois en cours</div>';
+        html += '<div style="overflow-x:auto"><table style="font-size:0.8rem"><thead><tr><th>Client</th><th style="text-align:right">Coût ($)</th><th style="text-align:right">Tokens</th><th style="text-align:right">Recherches</th></tr></thead><tbody>';
+        let totalC = 0, totalCT = 0, totalCS = 0;
+        for (const c of byClient) {
+          totalC += c.cost; totalCT += c.tokens; totalCS += c.searches;
+          html += `<tr><td>${escapeHtml(c.clientId)}</td><td style="text-align:right;font-family:monospace">${c.cost.toFixed(2)}</td><td style="text-align:right;font-family:monospace;color:#888">${(c.tokens / 1000).toFixed(0)}K</td><td style="text-align:right;font-family:monospace;color:#888">${c.searches || '—'}</td></tr>`;
+        }
+        html += `<tr style="font-weight:bold;border-top:2px solid #333"><td>Total</td><td style="text-align:right;font-family:monospace">$${totalC.toFixed(2)}</td><td style="text-align:right;font-family:monospace;color:#888">${(totalCT / 1e6).toFixed(1)}M</td><td style="text-align:right;font-family:monospace;color:#888">${totalCS}</td></tr>`;
+        html += '</tbody></table></div></div>';
       }
-      html += `<tr style="font-weight:bold;border-top:2px solid #333"><td>Total</td><td style="text-align:right;font-family:monospace">$${total.toFixed(2)}</td><td style="text-align:right;font-family:monospace;color:#888">${(totalTokens / 1e6).toFixed(1)}M</td><td style="text-align:right;font-family:monospace;color:#888">${totalSearches}</td></tr>`;
-      html += '</tbody></table></div></div>';
+
+      // Daily breakdown
+      if (_costData.length > 0) {
+        html += '<div class="card"><div class="section-title">Coûts par jour — mois en cours</div>';
+        html += '<div style="overflow-x:auto"><table style="font-size:0.8rem"><thead><tr><th>Date</th><th style="text-align:right">Coût ($)</th><th style="text-align:right">Tokens</th><th style="text-align:right">Recherches</th></tr></thead><tbody>';
+        let total = 0, totalTokens = 0, totalSearches = 0;
+        for (const day of _costData) {
+          const date = new Date(day.date).toLocaleDateString('fr-FR', { timeZone: PARIS_TZ, weekday: 'short', day: '2-digit', month: '2-digit' });
+          total += day.cost;
+          totalTokens += day.tokens;
+          totalSearches += day.searches;
+          html += `<tr><td>${date}</td><td style="text-align:right;font-family:monospace">${day.cost.toFixed(2)}</td><td style="text-align:right;font-family:monospace;color:#888">${(day.tokens / 1000).toFixed(0)}K</td><td style="text-align:right;font-family:monospace;color:#888">${day.searches || '—'}</td></tr>`;
+        }
+        html += `<tr style="font-weight:bold;border-top:2px solid #333"><td>Total</td><td style="text-align:right;font-family:monospace">$${total.toFixed(2)}</td><td style="text-align:right;font-family:monospace;color:#888">${(totalTokens / 1e6).toFixed(1)}M</td><td style="text-align:right;font-family:monospace;color:#888">${totalSearches}</td></tr>`;
+        html += '</tbody></table></div></div>';
+      }
       el.innerHTML = html;
     }
     el.style.display = 'block';

@@ -468,15 +468,25 @@ export function setupAdminRoutes(app: Express): void {
     const DEFAULT_PRICING = { input: 3, cache_write: 3.75, cache_read: 0.30, output: 15 };
     const WEB_SEARCH_COST = 0.01; // per search
 
+    // Map Otto workspace_id → clientId so we can attribute Anthropic spend
+    // to the right client. Workspaces without a matching client (e.g.
+    // ad-hoc, deprovisioned) are aggregated under the workspace ID itself.
+    const workspaceToClient = new Map<string, string>();
+    for (const c of getAllClients()) {
+      if (c.anthropic_workspace_id) workspaceToClient.set(c.anthropic_workspace_id, c.id);
+    }
+
     // Fetch all workspaces to know which ones to query
-    let workspaceIds: string[] = [];
-    try {
-      const wsResp = await fetch('https://api.anthropic.com/v1/organizations/workspaces', {
-        headers: { 'x-api-key': adminKey, 'anthropic-version': '2023-06-01' },
-      });
-      const wsBody = await wsResp.json() as { data?: { id: string; name: string }[] };
-      workspaceIds = (wsBody.data || []).map(w => w.id);
-    } catch { /* fallback: no workspace filter */ }
+    let workspaceIds: string[] = Array.from(workspaceToClient.keys());
+    if (workspaceIds.length === 0) {
+      try {
+        const wsResp = await fetch('https://api.anthropic.com/v1/organizations/workspaces', {
+          headers: { 'x-api-key': adminKey, 'anthropic-version': '2023-06-01' },
+        });
+        const wsBody = await wsResp.json() as { data?: { id: string; name: string }[] };
+        workspaceIds = (wsBody.data || []).map(w => w.id);
+      } catch { /* fallback: no workspace filter */ }
+    }
 
     const wsFilter = workspaceIds.length > 0
       ? workspaceIds.map(id => `workspace_ids[]=${id}`).join('&') + '&'
@@ -491,6 +501,7 @@ export function setupAdminRoutes(app: Express): void {
         output_tokens: number;
         server_tool_use?: { web_search_requests: number };
         model: string;
+        workspace_id?: string;
       }
       interface UsageBucket {
         starting_at: string;
@@ -501,7 +512,8 @@ export function setupAdminRoutes(app: Express): void {
       const allBuckets: UsageBucket[] = [];
       let nextPage: string | null = null;
       for (let page = 0; page < 10; page++) {
-        let url = `https://api.anthropic.com/v1/organizations/usage_report/messages?starting_at=${startOfMonth}&ending_at=${now.toISOString()}&${wsFilter}group_by[]=model&bucket_width=1d`;
+        // group_by workspace_id AND model so we can attribute cost per client
+        let url = `https://api.anthropic.com/v1/organizations/usage_report/messages?starting_at=${startOfMonth}&ending_at=${now.toISOString()}&${wsFilter}group_by[]=workspace_id&group_by[]=model&bucket_width=1d`;
         if (nextPage) url += `&page=${nextPage}`;
 
         const response = await fetch(url, {
@@ -513,8 +525,23 @@ export function setupAdminRoutes(app: Express): void {
         nextPage = body.next_page || null;
       }
 
-      // Compute costs from token usage
+      const computeCost = (r: UsageResult): { cost: number; tokens: number; searches: number } => {
+        const p = PRICING[r.model] || DEFAULT_PRICING;
+        const cacheWrite = (r.cache_creation?.ephemeral_5m_input_tokens || 0) + (r.cache_creation?.ephemeral_1h_input_tokens || 0);
+        const cost =
+          (r.uncached_input_tokens / 1e6) * p.input +
+          (cacheWrite / 1e6) * p.cache_write +
+          (r.cache_read_input_tokens / 1e6) * p.cache_read +
+          (r.output_tokens / 1e6) * p.output +
+          (r.server_tool_use?.web_search_requests || 0) * WEB_SEARCH_COST;
+        const tokens = r.uncached_input_tokens + cacheWrite + r.cache_read_input_tokens + r.output_tokens;
+        const searches = r.server_tool_use?.web_search_requests || 0;
+        return { cost, tokens, searches };
+      };
+
+      // Aggregate by day AND by client
       const dailyCosts: { date: string; cost: number; tokens: number; searches: number }[] = [];
+      const byClient = new Map<string, { cost: number; tokens: number; searches: number }>();
       let totalCost = 0;
 
       for (const bucket of allBuckets) {
@@ -522,17 +549,20 @@ export function setupAdminRoutes(app: Express): void {
         let dayTokens = 0;
         let daySearches = 0;
         for (const r of bucket.results) {
-          const p = PRICING[r.model] || DEFAULT_PRICING;
-          const cacheWrite = (r.cache_creation?.ephemeral_5m_input_tokens || 0) + (r.cache_creation?.ephemeral_1h_input_tokens || 0);
-          const cost =
-            (r.uncached_input_tokens / 1e6) * p.input +
-            (cacheWrite / 1e6) * p.cache_write +
-            (r.cache_read_input_tokens / 1e6) * p.cache_read +
-            (r.output_tokens / 1e6) * p.output +
-            (r.server_tool_use?.web_search_requests || 0) * WEB_SEARCH_COST;
+          const { cost, tokens, searches } = computeCost(r);
           dayCost += cost;
-          dayTokens += r.uncached_input_tokens + cacheWrite + r.cache_read_input_tokens + r.output_tokens;
-          daySearches += r.server_tool_use?.web_search_requests || 0;
+          dayTokens += tokens;
+          daySearches += searches;
+          // Attribute to client (fallback to workspace_id, then 'unknown')
+          const key = (r.workspace_id && workspaceToClient.get(r.workspace_id))
+            || r.workspace_id
+            || 'unknown';
+          const prev = byClient.get(key) || { cost: 0, tokens: 0, searches: 0 };
+          byClient.set(key, {
+            cost: prev.cost + cost,
+            tokens: prev.tokens + tokens,
+            searches: prev.searches + searches,
+          });
         }
         if (dayCost > 0) {
           dailyCosts.push({ date: bucket.starting_at, cost: dayCost, tokens: dayTokens, searches: daySearches });
@@ -540,7 +570,20 @@ export function setupAdminRoutes(app: Express): void {
         totalCost += dayCost;
       }
 
-      res.json({ total_cost_usd: Math.round(totalCost * 100) / 100, daily: dailyCosts });
+      const byClientArr = Array.from(byClient.entries())
+        .map(([clientId, v]) => ({
+          clientId,
+          cost: Math.round(v.cost * 100) / 100,
+          tokens: v.tokens,
+          searches: v.searches,
+        }))
+        .sort((a, b) => b.cost - a.cost);
+
+      res.json({
+        total_cost_usd: Math.round(totalCost * 100) / 100,
+        daily: dailyCosts,
+        byClient: byClientArr,
+      });
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
     }
