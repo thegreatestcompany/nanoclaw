@@ -476,17 +476,19 @@ export function setupAdminRoutes(app: Express): void {
       if (c.anthropic_workspace_id) workspaceToClient.set(c.anthropic_workspace_id, c.id);
     }
 
-    // Fetch all workspaces to know which ones to query
-    let workspaceIds: string[] = Array.from(workspaceToClient.keys());
-    if (workspaceIds.length === 0) {
-      try {
-        const wsResp = await fetch('https://api.anthropic.com/v1/organizations/workspaces', {
-          headers: { 'x-api-key': adminKey, 'anthropic-version': '2023-06-01' },
-        });
-        const wsBody = await wsResp.json() as { data?: { id: string; name: string }[] };
-        workspaceIds = (wsBody.data || []).map(w => w.id);
-      } catch { /* fallback: no workspace filter */ }
-    }
+    // Always fetch all workspaces (in addition to those linked to clients).
+    // Catches usage from older clients without anthropic_workspace_id and
+    // from the org default workspace.
+    const workspaceIds: string[] = Array.from(workspaceToClient.keys());
+    try {
+      const wsResp = await fetch('https://api.anthropic.com/v1/organizations/workspaces', {
+        headers: { 'x-api-key': adminKey, 'anthropic-version': '2023-06-01' },
+      });
+      const wsBody = await wsResp.json() as { data?: { id: string; name: string }[] };
+      for (const w of (wsBody.data || [])) {
+        if (!workspaceIds.includes(w.id)) workspaceIds.push(w.id);
+      }
+    } catch { /* fallback: keep client-linked IDs only */ }
 
     const wsFilter = workspaceIds.length > 0
       ? workspaceIds.map(id => `workspace_ids[]=${id}`).join('&') + '&'
