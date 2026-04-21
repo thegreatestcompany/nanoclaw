@@ -480,6 +480,7 @@ export function setupAdminRoutes(app: Express): void {
     // Catches usage from older clients without anthropic_workspace_id and
     // from the org default workspace.
     const workspaceIds: string[] = Array.from(workspaceToClient.keys());
+    const workspaceNames = new Map<string, string>();
     try {
       const wsResp = await fetch('https://api.anthropic.com/v1/organizations/workspaces', {
         headers: { 'x-api-key': adminKey, 'anthropic-version': '2023-06-01' },
@@ -487,6 +488,7 @@ export function setupAdminRoutes(app: Express): void {
       const wsBody = await wsResp.json() as { data?: { id: string; name: string }[] };
       for (const w of (wsBody.data || [])) {
         if (!workspaceIds.includes(w.id)) workspaceIds.push(w.id);
+        workspaceNames.set(w.id, w.name);
       }
     } catch { /* fallback: keep client-linked IDs only */ }
 
@@ -573,12 +575,20 @@ export function setupAdminRoutes(app: Express): void {
       }
 
       const byClientArr = Array.from(byClient.entries())
-        .map(([clientId, v]) => ({
-          clientId,
-          cost: Math.round(v.cost * 100) / 100,
-          tokens: v.tokens,
-          searches: v.searches,
-        }))
+        .map(([key, v]) => {
+          // key is either a clientId (mapped) or a workspace_id (orphan)
+          const isWorkspace = key.startsWith('wrkspc_');
+          return {
+            clientId: key,
+            label: isWorkspace
+              ? `${workspaceNames.get(key) || key} (non mappé)`
+              : key,
+            mapped: !isWorkspace,
+            cost: Math.round(v.cost * 100) / 100,
+            tokens: v.tokens,
+            searches: v.searches,
+          };
+        })
         .sort((a, b) => b.cost - a.cost);
 
       res.json({

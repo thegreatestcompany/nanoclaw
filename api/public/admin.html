@@ -352,7 +352,10 @@ function toggleCostDetail() {
         let totalC = 0, totalCT = 0, totalCS = 0;
         for (const c of byClient) {
           totalC += c.cost; totalCT += c.tokens; totalCS += c.searches;
-          html += `<tr><td>${escapeHtml(c.clientId)}</td><td style="text-align:right;font-family:monospace">${c.cost.toFixed(2)}</td><td style="text-align:right;font-family:monospace;color:#888">${(c.tokens / 1000).toFixed(0)}K</td><td style="text-align:right;font-family:monospace;color:#888">${c.searches || '—'}</td></tr>`;
+          const labelHtml = c.mapped === false
+            ? `<span style="color:#fbbf24" title="${escapeHtml(c.clientId)}">${escapeHtml(c.label || c.clientId)}</span>`
+            : escapeHtml(c.label || c.clientId);
+          html += `<tr><td>${labelHtml}</td><td style="text-align:right;font-family:monospace">${c.cost.toFixed(2)}</td><td style="text-align:right;font-family:monospace;color:#888">${(c.tokens / 1000).toFixed(0)}K</td><td style="text-align:right;font-family:monospace;color:#888">${c.searches || '—'}</td></tr>`;
         }
         html += `<tr style="font-weight:bold;border-top:2px solid #333"><td>Total</td><td style="text-align:right;font-family:monospace">$${totalC.toFixed(2)}</td><td style="text-align:right;font-family:monospace;color:#888">${(totalCT / 1e6).toFixed(1)}M</td><td style="text-align:right;font-family:monospace;color:#888">${totalCS}</td></tr>`;
         html += '</tbody></table></div></div>';
