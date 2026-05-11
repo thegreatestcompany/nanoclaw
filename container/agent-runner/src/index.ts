@@ -290,13 +290,7 @@ function createPostCompactHook(): HookCallback {
 /**
  * PreToolUse hook: block destructive Bash commands and writes outside workspace.
  */
-function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean, isMain?: boolean): HookCallback {
-  // Auto-send ⏳ feedback on first "slow" tool call per query
-  let lastFeedbackTime = 0;
-  const SLOW_TOOLS_EXACT = new Set(['Bash', 'Skill', 'mcp__nanoclaw__schedule_task']);
-  const SLOW_TOOLS_PREFIX = ['mcp__exa__', 'mcp__composio__', 'mcp__gmail__', 'mcp__google-calendar__'];
-  const isSlowTool = (name: string) => SLOW_TOOLS_EXACT.has(name) || SLOW_TOOLS_PREFIX.some(p => name.startsWith(p));
-
+function createPreToolUseHook(isScheduledTask?: boolean, isMain?: boolean): HookCallback {
   const BLOCKED_PATTERNS = [
     // Destructive operations — block rm of system paths but allow within
     // /workspace/group/, /tmp/, and /home/node/.claude/skills/ (read-only).
@@ -338,23 +332,6 @@ function createPreToolUseHook(chatJid?: string, isScheduledTask?: boolean, isMai
         ? (toolInput.file_path as string || '')
         : JSON.stringify(toolInput).slice(0, 150);
     log(`[TOOL] ${hookInput.tool_name}: ${summary}`);
-
-    // Auto-send feedback on first slow tool call (max once per 10s)
-    const now = Date.now();
-    if (now - lastFeedbackTime > 10000 && isSlowTool(hookInput.tool_name)) {
-      lastFeedbackTime = now;
-      try {
-        const ipcDir = '/workspace/ipc/messages';
-        fs.mkdirSync(ipcDir, { recursive: true });
-        if (chatJid) {
-          fs.writeFileSync(
-            path.join(ipcDir, `feedback-${Date.now()}.json`),
-            JSON.stringify({ type: 'message', chatJid, text: '\u23F3' }),
-          );
-          log('[FEEDBACK] Auto-sent ⏳ via IPC');
-        }
-      } catch { /* non-critical */ }
-    }
 
     // Block WebSearch when Exa is available (Exa gives better results)
     if (hookInput.tool_name === 'WebSearch' && process.env.EXA_API_KEY) {
@@ -939,7 +916,7 @@ async function runQuery(
       hooks: {
         PreCompact: [{ hooks: [createPreCompactHook(containerInput.assistantName)] }],
         PostCompact: [{ hooks: [createPostCompactHook()] }],
-        PreToolUse: [{ hooks: [createPreToolUseHook(containerInput.chatJid, containerInput.isScheduledTask, containerInput.isMain)] }],
+        PreToolUse: [{ hooks: [createPreToolUseHook(containerInput.isScheduledTask, containerInput.isMain)] }],
         PostToolUse: [{ hooks: [createPostToolUseHook()] }],
       },
     }
