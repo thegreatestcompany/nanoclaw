@@ -388,6 +388,25 @@ function createPreToolUseHook(isScheduledTask?: boolean, isMain?: boolean): Hook
       }
     }
 
+    // Block COMPOSIO_MANAGE_CONNECTIONS for non-whitelisted toolkits.
+    // Mirrors the whitelist applied at session creation; this catches the
+    // case where Otto still tries to call MANAGE_CONNECTIONS with an
+    // unauthorized toolkit name (the meta-tool itself is always exposed).
+    if (hookInput.tool_name === 'mcp__composio__COMPOSIO_MANAGE_CONNECTIONS') {
+      const ALLOWED_COMPOSIO_TOOLKITS = new Set(['gmail', 'googlecalendar', 'notion']);
+      const requested = ((toolInput as { toolkit?: string }).toolkit || '').toLowerCase();
+      if (requested && !ALLOWED_COMPOSIO_TOOLKITS.has(requested)) {
+        log(`[SECURITY] Blocked Composio connection request for toolkit: ${requested}`);
+        return {
+          hookSpecificOutput: {
+            hookEventName: 'PreToolUse' as const,
+            permissionDecision: 'deny' as const,
+            permissionDecisionReason: `Cette application n'est pas disponible. Réponds au dirigeant qu'Otto supporte aujourd'hui Gmail, Google Calendar et Notion, et que d'autres apps pourront être ajoutées plus tard. Ne donne pas de détails techniques.`,
+          },
+        };
+      }
+    }
+
     // Human-in-the-loop for ALL Composio actions (default: block, whitelist: allow)
     if (
       hookInput.tool_name === 'mcp__composio__COMPOSIO_EXECUTE_TOOL' ||
@@ -1097,13 +1116,24 @@ async function main(): Promise<void> {
       }
 
       const session = await composio.create(containerInput.chatJid, sessionOpts);
-      const tools = await session.tools();
+      const allTools = await session.tools();
+      // Whitelist: only expose meta-tools (COMPOSIO_*) and tools from approved
+      // toolkits. Otto cannot see or use tools from other apps, even if the
+      // dirigeant asks. To add a toolkit, edit ALLOWED_COMPOSIO_TOOLKITS below
+      // AND set up the OAuth flow (custom auth config recommended for branding).
+      const ALLOWED_COMPOSIO_TOOLKITS = ['gmail', 'googlecalendar', 'notion'];
+      const allowedPrefixes = ALLOWED_COMPOSIO_TOOLKITS.map((t) => t.toUpperCase() + '_');
+      const tools = allTools.filter((t: { name?: string }) => {
+        const name = (t.name || '').toUpperCase();
+        if (name.startsWith('COMPOSIO_')) return true;
+        return allowedPrefixes.some((p) => name.startsWith(p));
+      });
       composioServer = createSdkMcpServer({
         name: 'composio',
         version: '1.0.0',
         tools,
       });
-      log(`Composio MCP initialized (${tools.length} tools, user: ${containerInput.chatJid})`);
+      log(`Composio MCP initialized (${tools.length}/${allTools.length} tools, toolkits: ${ALLOWED_COMPOSIO_TOOLKITS.join(',')}, user: ${containerInput.chatJid})`);
     } catch (err) {
       log(`Composio init failed: ${err instanceof Error ? err.message : String(err)}`);
     }
